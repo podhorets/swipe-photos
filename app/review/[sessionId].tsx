@@ -8,7 +8,7 @@ import { SwipeStack } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { UndoPill } from '@/components/ui/UndoPill';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { GlassSheet } from '@/components/glass/GlassSheet';
+import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import type { Category } from '@/types';
 
 export default function ReviewScreen() {
@@ -84,6 +84,7 @@ export default function ReviewScreen() {
 
   const stagedCount = Object.values(decisions).filter((d) => d === 'delete').length;
   const keptCount = Object.values(decisions).filter((d) => d === 'keep').length;
+  const favoritedCount = Object.values(decisions).filter((d) => d === 'favorite').length;
 
   if (!session) {
     return (
@@ -145,37 +146,17 @@ export default function ReviewScreen() {
 
       {/* Session complete sheet */}
       {showComplete && (
-        <View className="absolute inset-0 justify-end">
-          <GlassSheet>
-            <View className="py-4 gap-4">
-              <Text className="text-white text-2xl font-bold text-center">
-                Session Complete 🎉
-              </Text>
-              <Text className="text-white/60 text-base text-center">
-                {totalCount} reviewed · {stagedCount} to delete · {keptCount} kept
-              </Text>
-
-              <Pressable
-                onPress={() => {
-                  router.back();
-                  router.push('/trash');
-                }}
-                className="bg-red-500/80 rounded-2xl py-4 items-center mt-2"
-              >
-                <Text className="text-white font-semibold text-base">
-                  Review Trash ({stagedCount})
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => router.back()}
-                className="py-3 items-center"
-              >
-                <Text className="text-white/50 text-base">Done</Text>
-              </Pressable>
-            </View>
-          </GlassSheet>
-        </View>
+        <SessionCompleteSheet
+          totalCount={totalCount}
+          stagedCount={stagedCount}
+          keptCount={keptCount}
+          favoritedCount={favoritedCount}
+          onReviewTrash={() => {
+            router.back();
+            router.push('/trash');
+          }}
+          onDone={() => router.back()}
+        />
       )}
     </View>
   );

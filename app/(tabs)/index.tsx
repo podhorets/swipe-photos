@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
+import { YearPicker, MonthPicker } from '@/components/ui/YearMonthPicker';
 import {
   getOnThisDay,
   getScreenshots,
@@ -35,6 +36,9 @@ export default function HomeScreen() {
   const index = useGalleryStore((s) => s.index);
   const favoriteIds = useGalleryStore((s) => s.favoriteIds);
 
+  const [yearPickerVisible, setYearPickerVisible] = useState(false);
+  const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+
   // Memoize counts so grouper functions only re-run when index/favoriteIds change
   const counts = useMemo(() => ({
     year:        index.length,
@@ -51,7 +55,25 @@ export default function HomeScreen() {
   }
 
   function handleCategoryPress(category: Category) {
+    if (category === 'year') {
+      setYearPickerVisible(true);
+      return;
+    }
+    if (category === 'month') {
+      setMonthPickerVisible(true);
+      return;
+    }
     router.push(`/review/${category}`);
+  }
+
+  function handleYearSelect(year: number) {
+    setYearPickerVisible(false);
+    router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'year', year: String(year) } });
+  }
+
+  function handleMonthSelect(yyyymm: string) {
+    setMonthPickerVisible(false);
+    router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'month', month: yyyymm } });
   }
 
   return (
@@ -99,6 +121,18 @@ export default function HomeScreen() {
           );
         })}
       </ScrollView>
+
+      <YearPicker
+        visible={yearPickerVisible}
+        onSelect={handleYearSelect}
+        onClose={() => setYearPickerVisible(false)}
+      />
+
+      <MonthPicker
+        visible={monthPickerVisible}
+        onSelect={handleMonthSelect}
+        onClose={() => setMonthPickerVisible(false)}
+      />
     </View>
   );
 }
