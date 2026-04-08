@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { View, Text, Pressable, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,59 +38,70 @@ const STEPS = [
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { isMediaGranted, requestMedia, requestNotifications } = usePermissions();
-  const step = useSharedValue(0);
-  // Track current step as a ref for callbacks (avoids stale closure)
-  const currentStep = useRef(0);
+
+  // useState so React re-renders on step change (dots + button label update)
+  const [currentStep, setCurrentStep] = useState(0);
+  // useSharedValue only drives the slide animation
+  const slideOffset = useSharedValue(0);
 
   const slideStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: -step.value * SCREEN_WIDTH }],
+    transform: [{ translateX: -slideOffset.value * SCREEN_WIDTH }],
   }));
+
+  const isLastStep = currentStep === STEPS.length - 1;
 
   function goNext() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const next = currentStep.current + 1;
-    currentStep.current = next;
-    step.value = withSpring(next, SPRING.modal);
+    const next = currentStep + 1;
+    setCurrentStep(next);
+    slideOffset.value = withSpring(next, SPRING.modal);
   }
 
   async function handleFinish() {
-    // Request photo permission (required)
     if (!isMediaGranted) {
       const result = await requestMedia();
-      if (!result?.granted) return; // stay on last step if denied
+      if (!result?.granted) return;
     }
-
-    // Request notifications (optional — don't block on denial)
+    // Notifications optional — don't block on denial
     await requestNotifications();
-
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     storage.set(STORAGE_KEYS.hasCompletedOnboarding, true);
     router.replace('/(tabs)');
   }
 
-  const isLastStep = currentStep.current === STEPS.length - 1;
-
   return (
     <View className="flex-1 bg-black" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       {/* Slides */}
       <View className="flex-1 overflow-hidden">
-        <Animated.View className="flex-row flex-1" style={[{ width: SCREEN_WIDTH * STEPS.length }, slideStyle]}>
+        <Animated.View
+          className="flex-row flex-1"
+          style={[{ width: SCREEN_WIDTH * STEPS.length }, slideStyle]}
+        >
           {STEPS.map((s, i) => (
-            <View key={i} className="flex-1 px-8 justify-center" style={{ width: SCREEN_WIDTH }}>
+            <View
+              key={i}
+              className="items-center justify-center px-8"
+              style={{ width: SCREEN_WIDTH }}
+            >
               {/* Emoji */}
               <Text className="text-8xl mb-8">{s.emoji}</Text>
 
               {/* Title */}
-              <Text className="text-white font-bold mb-4" style={{ fontSize: 40, lineHeight: 48 }}>
+              <Text
+                className="text-white font-bold text-center mb-4"
+                style={{ fontSize: 40, lineHeight: 48 }}
+              >
                 {s.title}
               </Text>
 
               {/* Subtitle */}
-              <Text className="text-white/60 text-lg leading-7">{s.subtitle}</Text>
+              <Text className="text-white/60 text-lg leading-7 text-center">
+                {s.subtitle}
+              </Text>
 
               {/* Feature highlights on step 2 */}
               {i === 1 && (
-                <View className="mt-10 gap-3">
+                <View className="mt-10 gap-3 w-full">
                   {[
                     { icon: '📅', label: 'By year, month, or On This Day' },
                     { icon: '📸', label: 'Screenshots & videos sorted for you' },
@@ -113,10 +124,13 @@ export default function OnboardingScreen() {
         {/* Step dots */}
         <View className="flex-row justify-center gap-2 mb-2">
           {STEPS.map((_, i) => (
-            <Animated.View
+            <View
               key={i}
               className="h-1.5 rounded-full bg-white"
-              style={{ width: i === currentStep.current ? 24 : 8, opacity: i === currentStep.current ? 1 : 0.3 }}
+              style={{
+                width: i === currentStep ? 24 : 8,
+                opacity: i === currentStep ? 1 : 0.3,
+              }}
             />
           ))}
         </View>
