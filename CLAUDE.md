@@ -1,74 +1,84 @@
-# SwipeClean — Project Rules for Claude
+# SwipeClean — Claude Reference
 
-## Styling: NativeWind Only
+## Hard Rules
 
-**Always use NativeWind `className` prop for styling. Never use `StyleSheet.create`.**
-
+### Styling: NativeWind only — never `StyleSheet.create`
 ```tsx
-// ✅ Correct
-<View className="flex-1 bg-black px-4 pt-12">
+// ✅
+<View className="flex-1 bg-black px-6">
   <Text className="text-white text-3xl font-bold">Title</Text>
 </View>
 
-// ❌ Wrong
+// ❌
 const styles = StyleSheet.create({ container: { flex: 1 } });
-<View style={styles.container} />
+```
+**Allowed exceptions for `style` prop:**
+- `useAnimatedStyle` from Reanimated (animated styles must be JS objects)
+- Dynamic values that can't be Tailwind classes (computed pixel offsets, etc.)
+- Navigator config props (`tabBarStyle`, `tabBarBackground`, etc.)
+
+Mix both when needed: `className` for static, `style` for animated/dynamic.
+
+### No custom native modules
+All functionality via Expo SDK only. If a gap exists, adjust the UX — don't write native code.
+
+### Glass UI is mandatory, not optional
+Every screen uses `GlassCard`, `BlurPanel`, or `GlassSheet` from `components/glass/`. No plain white/gray surfaces.
+
+### Commit discipline
+Every commit leaves the app in a runnable state. Convention: `feat:` / `fix:` / `chore:` / `refactor:` / `docs:`
+
+---
+
+## API Gotchas
+
+### MMKV v4 — `createMMKV()`, not `new MMKV()`
+`MMKV` is a type-only export in v4. Use the factory:
+```ts
+import { createMMKV } from 'react-native-mmkv';
+const storage = createMMKV();
 ```
 
-**Exceptions where `style` prop is allowed:**
-1. `useAnimatedStyle` from Reanimated — animated styles must use `style` prop
-2. Dynamic JS values that can't be expressed as Tailwind classes (e.g. computed pixel offsets)
-3. `StyleSheet.absoluteFill` — replace with `className="absolute inset-0"` instead
-
-When both are needed, use `className` for static styles and `style` for dynamic/animated:
-```tsx
-<Animated.View className="absolute rounded-3xl overflow-hidden" style={animatedStyle} />
+### MMKV cannot store `Set` — serialize manually
+```ts
+// Write
+storage.set(key, JSON.stringify(Array.from(mySet)));
+// Read
+new Set<string>(JSON.parse(storage.getString(key) ?? '[]'));
 ```
 
-## Architecture
+### `deleteAssetsAsync` shows an iOS system confirmation dialog — this is correct
+`expo-media-library`'s delete triggers a native iOS alert ("Delete X Photos?"). This is required by Apple and moves photos to Recently Deleted (30-day recovery). Do not attempt to suppress or work around it. Our trash screen is the pre-confirmation; the system dialog is the final safety net.
 
-- **Expo Router** for all navigation (file-based routes in `app/`)
-- **Zustand** for all global state (`stores/`)
-- **MMKV v4** for persistence (not AsyncStorage) — use `createMMKV()` factory, not `new MMKV()`. `MMKV` is a type-only export in v4.
-- **TanStack Query** for async data fetching
-- **Reanimated 3/4** for all animations — worklets only, never JS-thread animations
-- **No custom native modules** — use Expo SDK APIs
-
-## Component Rules
-
-- Glass components live in `components/glass/` — use `GlassCard`, `BlurPanel`, `GlassSheet`
-- All interactive elements must have haptic feedback via `expo-haptics`
-- All press animations use Reanimated spring scale (not opacity-only)
-- Use `expo-image` (not `Image` from react-native) for all photo rendering
-
-## Checking Errors
-
-- **`npm run lint`** — ESLint: catches code patterns, style issues, restricted APIs
-- **`npm run typecheck`** — `tsc --noEmit`: catches TypeScript type errors (TS2693, TS2820, etc.)
-- ESLint does NOT catch TypeScript type errors by default. Always run both before committing.
-
-## Code Style
-
-- TypeScript strict mode — no `any`, no `@ts-ignore`
-- No `console.log` in committed code
-- No unused imports
-- Prefer named exports over default exports for components (exception: Expo Router route files require default export)
-
-## Commit Convention
-
-```
-feat: add new user-facing feature
-fix: correct a bug
-chore: config, tooling, deps
-docs: documentation only
-refactor: restructure without behavior change
+### Favorites = iOS smart album
+```ts
+const albums = await MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true });
+const favAlbum = albums.find(a => a.title === 'Favorites');
 ```
 
-## What NOT to do
+### Spring and swipe constants live in `constants/theme.ts`
+Never hardcode spring configs or swipe thresholds. Always use `SPRING.*` and `SWIPE.*` from `theme.ts`.
 
-- No `StyleSheet.create` for static styles
-- No `AsyncStorage` (use MMKV)
-- No `react-navigation` imports directly (use `expo-router`)
-- No `Image` from react-native (use `expo-image`)
-- No premature abstractions — build it when needed the third time
-- No `console.log` in committed code
+---
+
+## Library Choices (non-negotiable)
+
+| Need | Use | Never use |
+|---|---|---|
+| Styling | NativeWind `className` | `StyleSheet.create` |
+| Images | `expo-image` | `Image` from react-native |
+| Storage | `react-native-mmkv` (`createMMKV`) | `AsyncStorage` |
+| Navigation | `expo-router` | `@react-navigation/*` directly |
+| Animations | `react-native-reanimated` worklets | JS-thread animations |
+| Global state | `zustand` | Context, Redux |
+| Async gallery queries | `@tanstack/react-query` (`useQuery` only) | `useEffect` + `useState` for async fetching |
+
+---
+
+## Quality Gates (run before every commit)
+
+```bash
+npm run lint       # ESLint — patterns, restricted APIs
+npm run typecheck  # tsc --noEmit — type errors (ESLint does NOT catch these)
+```
+Both must pass clean.

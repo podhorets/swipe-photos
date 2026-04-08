@@ -44,7 +44,7 @@
           "icon": "./assets/images/icon.png",
           "color": "#000000"
         }
-      ],
+      ]
     ],
     "experiments": {
       "typedRoutes": true
