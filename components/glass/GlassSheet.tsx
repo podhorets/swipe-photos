@@ -1,22 +1,22 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GLASS, RADIUS, SPACING } from '@/constants/theme';
+import { GLASS } from '@/constants/theme';
 
 interface GlassSheetProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  className?: string;
   intensity?: number;
   withSafeArea?: boolean;
 }
 
 /**
- * Bottom-anchored glass panel, typically used for action sheets and session-complete overlays.
+ * Bottom-anchored glass panel for action sheets and session-complete overlays.
  */
 export function GlassSheet({
   children,
-  style,
+  className = '',
   intensity = GLASS.intensity.heavy,
   withSafeArea = true,
 }: GlassSheetProps) {
@@ -26,39 +26,12 @@ export function GlassSheet({
     <BlurView
       intensity={intensity}
       tint={GLASS.tint}
-      style={[
-        styles.container,
-        {
-          paddingBottom: withSafeArea ? insets.bottom + SPACING.md : SPACING.md,
-        },
-        style,
-      ]}
+      className={`rounded-t-4xl overflow-hidden border-t border-l border-r border-white/20 pt-2 px-6 ${className}`}
+      style={{ paddingBottom: withSafeArea ? insets.bottom + 16 : 16 }}
     >
       {/* Drag handle */}
-      <View style={styles.handle} />
+      <View className="w-9 h-1 rounded-full bg-white/20 self-center mb-4" />
       {children}
     </BlurView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    overflow: 'hidden',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: COLORS.glass.border,
-    paddingTop: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.glass.border,
-    alignSelf: 'center',
-    marginBottom: SPACING.md,
-  },
-});

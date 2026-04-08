@@ -1,47 +1,31 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { COLORS, GLASS, RADIUS, SPACING } from '@/constants/theme';
+import { GLASS } from '@/constants/theme';
 
 interface GlassCardProps {
   children: React.ReactNode;
+  className?: string;
   style?: ViewStyle;
   intensity?: number;
-  radius?: number;
-  padding?: number;
-  // When true, renders a plain View fallback (e.g. inside another BlurView)
+  // When true, renders a plain View fallback (e.g. nested inside another BlurView)
   noBlur?: boolean;
 }
 
 export function GlassCard({
   children,
+  className = '',
   style,
   intensity = GLASS.intensity.medium,
-  radius = RADIUS.lg,
-  padding = SPACING.md,
   noBlur = false,
 }: GlassCardProps) {
-  const containerStyle: ViewStyle = {
-    borderRadius: radius,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.glass.border,
-    // Drop shadow for depth
-    shadowColor: COLORS.glass.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-  };
-
-  const innerStyle: ViewStyle = {
-    padding,
-    backgroundColor: noBlur ? COLORS.glass.light : undefined,
-  };
-
   if (noBlur) {
     return (
-      <View style={[containerStyle, style]}>
-        <View style={innerStyle}>{children}</View>
+      <View
+        className={`rounded-3xl overflow-hidden border border-white/20 ${className}`}
+        style={style}
+      >
+        <View className="bg-white/10 border-t border-white/30">{children}</View>
       </View>
     );
   }
@@ -50,17 +34,11 @@ export function GlassCard({
     <BlurView
       intensity={intensity}
       tint={GLASS.tint}
-      style={[containerStyle, style]}
+      className={`rounded-3xl overflow-hidden border border-white/20 ${className}`}
+      style={style}
     >
-      <View style={[styles.inner, innerStyle]}>{children}</View>
+      {/* Inner top highlight */}
+      <View className="border-t border-white/30">{children}</View>
     </BlurView>
   );
 }
-
-const styles = StyleSheet.create({
-  inner: {
-    // Subtle inner highlight at top edge
-    borderTopWidth: 1,
-    borderTopColor: COLORS.glass.borderStrong,
-  },
-});

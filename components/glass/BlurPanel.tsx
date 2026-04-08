@@ -1,11 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { GLASS } from '@/constants/theme';
 
 interface BlurPanelProps {
   children?: React.ReactNode;
-  style?: ViewStyle;
+  className?: string;
   intensity?: number;
 }
 
@@ -14,14 +13,14 @@ interface BlurPanelProps {
  */
 export function BlurPanel({
   children,
-  style,
+  className = '',
   intensity = GLASS.intensity.heavy,
 }: BlurPanelProps) {
   return (
     <BlurView
       intensity={intensity}
       tint={GLASS.tint}
-      style={[StyleSheet.absoluteFill, style]}
+      className={`absolute inset-0 ${className}`}
     >
       {children}
     </BlurView>
