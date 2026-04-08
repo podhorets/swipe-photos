@@ -7,6 +7,8 @@ export interface AssetMeta {
   uri: string;
   filename: string;
   mediaType: MediaLibrary.MediaTypeValue;
+  // iOS native subtypes — includes 'screenshot', 'livePhoto', 'panorama', etc.
+  mediaSubtypes: MediaLibrary.MediaSubtype[];
   creationTime: number; // Unix ms
   modificationTime: number; // Unix ms
   duration: number; // seconds (0 for photos)
@@ -45,7 +47,7 @@ export interface Session {
   createdAt: number;
 }
 
-// ─── Deletion ─────────────────────────────────────────────────────────────────
+// ─── Deletion ────────────────────────────────────────────────────────────────
 
 export interface DeletionResult {
   success: boolean;
