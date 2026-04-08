@@ -21,7 +21,7 @@ const STEPS = [
   {
     emoji: '🗂️',
     title: 'Reclaim your\nphone storage',
-    subtitle: 'SwipeClean helps you breeze through thousands of photos and delete what you no longer need.',
+    subtitle: 'Swipe Photos helps you breeze through thousands of photos and delete what you no longer need.',
   },
   {
     emoji: '👆',

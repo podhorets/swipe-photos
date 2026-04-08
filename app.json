@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "SwipeClean",
-    "slug": "swipe-clean",
+    "name": "Swipe Photos",
+    "slug": "swipe-photos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "swipeclean",
+    "scheme": "swipephotos",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,11 +15,11 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.swipeclean.app",
+      "bundleIdentifier": "com.podhorets.swipephotos",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "SwipeClean needs access to your photo library to help you review and clean up photos.",
-        "NSPhotoLibraryAddUsageDescription": "SwipeClean needs permission to save photos to your library.",
-        "NSFaceIDUsageDescription": "SwipeClean uses Face ID to protect bulk photo deletion."
+        "NSPhotoLibraryUsageDescription": "Swipe Photos needs access to your photo library to help you review and clean up photos.",
+        "NSPhotoLibraryAddUsageDescription": "Swipe Photos needs permission to save photos to your library.",
+        "NSFaceIDUsageDescription": "Swipe Photos uses Face ID to protect bulk photo deletion."
       }
     },
     "plugins": [
@@ -27,15 +27,15 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "SwipeClean needs access to your photo library to help you review and clean up photos.",
-          "savePhotosPermission": "SwipeClean needs permission to save photos to your library.",
+          "photosPermission": "Swipe Photos needs access to your photo library to help you review and clean up photos.",
+          "savePhotosPermission": "Swipe Photos needs permission to save photos to your library.",
           "isAccessMediaLocationEnabled": true
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "SwipeClean uses Face ID to protect bulk photo deletion."
+          "faceIDPermission": "Swipe Photos uses Face ID to protect bulk photo deletion."
         }
       ],
       [

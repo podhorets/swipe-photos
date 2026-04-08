@@ -1,4 +1,14 @@
-# SwipeClean — Claude Reference
+# Swipe Photos — Claude Reference
+
+## Running the App
+
+**Expo Go will not work.** MMKV, Skia, and Lottie require native code. Use Expo Dev Client:
+- **Build + install once:** `npx expo run:ios --device`
+- **Hot reload after that:** `npx expo start` (Dev Client app on device picks it up)
+- **NativeWind v4 babel setup:** `jsxImportSource: 'nativewind'` on `babel-preset-expo` — NOT a separate `nativewind/babel` plugin entry.
+- **`react-native-mmkv` v4 requires `react-native-nitro-modules`** as a peer dependency — install it explicitly, then rebuild native.
+
+---
 
 ## Hard Rules
 
