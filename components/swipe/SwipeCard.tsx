@@ -22,8 +22,7 @@ interface SwipeCardProps {
   onSwipeRight: () => void;
   onSwipeUp: () => void;
   onDoubleTap: () => void;
-  // Stack depth: 0 = top card (interactive), 1 and 2 = background cards
-  stackIndex: number;
+  stackIndex: number; // 0 = top (interactive), 1/2 = background
 }
 
 function triggerHaptic(style: Haptics.ImpactFeedbackStyle) {
@@ -43,11 +42,9 @@ export function SwipeCard({
   const hasPassedThreshold = useSharedValue(false);
 
   const isTopCard = stackIndex === 0;
-
-  // Stack depth visual offsets (for cards 1 and 2 behind the top)
-  const baseScale = SWIPE.stackScale[stackIndex];
-  const baseOffsetY = SWIPE.stackOffsetY[stackIndex];
-  const baseOpacity = SWIPE.stackOpacity[stackIndex];
+  const baseScale = SWIPE.stackScale[stackIndex] ?? 1;
+  const baseOffsetY = SWIPE.stackOffsetY[stackIndex] ?? 0;
+  const baseOpacity = SWIPE.stackOpacity[stackIndex] ?? 1;
 
   const pan = Gesture.Pan()
     .enabled(isTopCard)
@@ -55,7 +52,6 @@ export function SwipeCard({
       translateX.value = e.translationX;
       translateY.value = e.translationY;
 
-      // Fire haptic once when crossing the horizontal threshold
       const crossed = Math.abs(e.translationX) > SWIPE.thresholdPx;
       if (crossed && !hasPassedThreshold.value) {
         hasPassedThreshold.value = true;
@@ -67,7 +63,9 @@ export function SwipeCard({
     .onEnd((e) => {
       const swipedLeft = e.translationX < -SWIPE.thresholdPx;
       const swipedRight = e.translationX > SWIPE.thresholdPx;
-      const swipedUp = e.translationY < -SWIPE.upThresholdPx && Math.abs(e.translationX) < SWIPE.thresholdPx;
+      const swipedUp =
+        e.translationY < -SWIPE.upThresholdPx &&
+        Math.abs(e.translationX) < SWIPE.thresholdPx;
 
       if (swipedLeft) {
         translateX.value = withSpring(-SCREEN_WIDTH * 1.5, SPRING.flyOff, () => {
@@ -82,7 +80,6 @@ export function SwipeCard({
           runOnJS(onSwipeUp)();
         });
       } else {
-        // Snap back
         translateX.value = withSpring(0, SPRING.snappy);
         translateY.value = withSpring(0, SPRING.snappy);
         hasPassedThreshold.value = false;
@@ -114,8 +111,8 @@ export function SwipeCard({
         { scale: baseScale },
       ],
       opacity: baseOpacity,
-      // Background cards are offset downward
-      marginTop: baseOffsetY,
+      // Use `top` not `marginTop` — marginTop has no effect on absolute elements
+      top: baseOffsetY,
     };
   });
 
@@ -132,16 +129,13 @@ export function SwipeCard({
           cardStyle,
         ]}
       >
-        {/* Photo */}
         <Image
           source={{ uri }}
-          className="flex-1"
+          style={{ flex: 1 }}
           contentFit="cover"
           transition={200}
           recyclingKey={uri}
         />
-
-        {/* Decision overlays — only visible on top card */}
         {isTopCard && (
           <ActionOverlay translateX={translateX} translateY={translateY} />
         )}
