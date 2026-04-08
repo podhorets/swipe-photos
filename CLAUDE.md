@@ -42,6 +42,17 @@ Every commit leaves the app in a runnable state. Convention: `feat:` / `fix:` / 
 
 ## API Gotchas
 
+### Zustand selectors must return stable values
+Never put derived-state methods in a Zustand store — they return new object references every call, causing infinite re-render loops. Keep stores as flat state + actions only. Compute derived values in components with `useMemo`.
+```ts
+// ❌ Infinite loop — new object reference every call
+const counts = useStore((s) => s.getCounts());
+
+// ✅ Stable — useMemo recomputes only when index changes
+const index = useStore((s) => s.index);
+const counts = useMemo(() => computeCounts(index), [index]);
+```
+
 ### MMKV v4 — `createMMKV()`, not `new MMKV()`
 `MMKV` is a type-only export in v4. Use the factory:
 ```ts
