@@ -1,36 +1,50 @@
 {
   "expo": {
-    "name": "swipe-photos",
-    "slug": "swipe-photos",
+    "name": "SwipeClean",
+    "slug": "swipe-clean",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "swipephotos",
+    "scheme": "swipeclean",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.swipeclean.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "SwipeClean needs access to your photo library to help you review and clean up photos.",
+        "NSPhotoLibraryAddUsageDescription": "SwipeClean needs permission to save photos to your library.",
+        "NSFaceIDUsageDescription": "SwipeClean uses Face ID to protect bulk photo deletion."
+      }
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "SwipeClean needs access to your photo library to help you review and clean up photos.",
+          "savePhotosPermission": "SwipeClean needs permission to save photos to your library.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "SwipeClean uses Face ID to protect bulk photo deletion."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#000000"
+        }
+      ],
     ],
     "experiments": {
       "typedRoutes": true
