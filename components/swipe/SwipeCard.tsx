@@ -68,17 +68,15 @@ export function SwipeCard({
         Math.abs(e.translationX) < SWIPE.thresholdPx;
 
       if (swipedLeft) {
-        translateX.value = withSpring(-SCREEN_WIDTH * 1.5, SPRING.flyOff, () => {
-          runOnJS(onSwipeLeft)();
-        });
+        // Call callback immediately — don't wait for animation to settle
+        runOnJS(onSwipeLeft)();
+        translateX.value = withSpring(-SCREEN_WIDTH * 1.5, SPRING.flyOff);
       } else if (swipedRight) {
-        translateX.value = withSpring(SCREEN_WIDTH * 1.5, SPRING.flyOff, () => {
-          runOnJS(onSwipeRight)();
-        });
+        runOnJS(onSwipeRight)();
+        translateX.value = withSpring(SCREEN_WIDTH * 1.5, SPRING.flyOff);
       } else if (swipedUp) {
-        translateY.value = withSpring(-SCREEN_HEIGHT, SPRING.flyOff, () => {
-          runOnJS(onSwipeUp)();
-        });
+        runOnJS(onSwipeUp)();
+        translateY.value = withSpring(-SCREEN_HEIGHT, SPRING.flyOff);
       } else {
         translateX.value = withSpring(0, SPRING.snappy);
         translateY.value = withSpring(0, SPRING.snappy);

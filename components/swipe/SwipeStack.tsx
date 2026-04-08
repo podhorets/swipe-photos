@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { useSession } from '@/hooks/useSession';
+import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
+import { useDeletionStore } from '@/stores/deletionStore';
 import { SwipeCard } from './SwipeCard';
 import { SWIPE } from '@/constants/theme';
+import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
@@ -15,31 +17,43 @@ interface SwipeStackProps {
 }
 
 export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) {
-  const { visibleAssetIds, swipeLeft, swipeRight, swipeUp, isComplete, session } =
-    useSession();
+  // Select only the primitives we need — avoids full re-render on unrelated store changes
+  const session = useSessionStore((s) => s.session);
+  const currentIndex = useSessionStore((s) => s.currentIndex);
+  const decide = useSessionStore((s) => s.decide);
   const index = useGalleryStore((s) => s.index);
+  const stage = useDeletionStore((s) => s.stage);
 
-  const uriById = new Map(index.map((a) => [a.id, a.uri]));
+  const totalCount = session?.assetIds.length ?? 0;
+  const isComplete = totalCount > 0 && currentIndex >= totalCount;
+  const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
-  // Prefetch cards just beyond the visible stack
-  const prefetchIds = session?.assetIds.slice(
-    session.assetIds.indexOf(visibleAssetIds[visibleAssetIds.length - 1] ?? '') + 1,
-    session.assetIds.indexOf(visibleAssetIds[visibleAssetIds.length - 1] ?? '') + 1 + SWIPE.stackSize,
-  ) ?? [];
+  // Build uri lookup once — only rebuilds when gallery index changes, NOT on every swipe
+  const uriById = useMemo(
+    () => new Map(index.map((a) => [a.id, a.uri])),
+    [index],
+  );
 
-  prefetchIds.forEach((id) => {
-    const uri = uriById.get(id);
-    if (uri) Image.prefetch(uri);
-  });
+  // Prefetch the next few cards beyond the visible stack
+  useMemo(() => {
+    if (!session) return;
+    const prefetchSlice = session.assetIds.slice(
+      currentIndex + SWIPE.stackSize,
+      currentIndex + SWIPE.stackSize + SESSION_PREFETCH,
+    );
+    prefetchSlice.forEach((id) => {
+      const uri = uriById.get(id);
+      if (uri) Image.prefetch(uri);
+    });
+  }, [currentIndex, session?.id, uriById]);
 
-  // Move onSessionComplete out of render into an effect
   useEffect(() => {
     if (isComplete) onSessionComplete();
   }, [isComplete, onSessionComplete]);
 
   if (visibleAssetIds.length === 0) return null;
 
-  // Render back-to-front so top card (stackIndex 0) is on top visually
+  // Render back-to-front so top card (stackIndex 0) is visually on top
   const renderIds = [...visibleAssetIds].reverse();
 
   return (
@@ -58,9 +72,19 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
             key={assetId}
             uri={uri}
             stackIndex={stackIndex}
-            onSwipeLeft={() => swipeLeft(assetId)}
-            onSwipeRight={() => swipeRight(assetId)}
-            onSwipeUp={() => swipeUp(assetId)}
+            onSwipeLeft={() => {
+              decide(assetId, 'delete');
+              stage(assetId);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }}
+            onSwipeRight={() => {
+              decide(assetId, 'keep');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }}
+            onSwipeUp={() => {
+              decide(assetId, 'favorite');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }}
             onDoubleTap={() => onDoubleTap(assetId)}
           />
         );
@@ -68,3 +92,5 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
     </View>
   );
 }
+
+const SESSION_PREFETCH = 5;
