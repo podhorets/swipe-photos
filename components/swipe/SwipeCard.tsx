@@ -93,7 +93,9 @@ export function SwipeCard({
       runOnJS(onDoubleTap)();
     });
 
-  const composed = Gesture.Exclusive(doubleTap, pan);
+  // Race: pan activates immediately on movement, doubleTap wins on second tap.
+  // Exclusive would delay pan by ~300ms waiting for doubleTap to fail.
+  const composed = Gesture.Race(doubleTap, pan);
 
   const cardStyle = useAnimatedStyle(() => {
     const rotate = interpolate(

@@ -1,9 +1,13 @@
 import '../global.css';
+import { enableMapSet } from 'immer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Required for Immer to handle Set and Map in Zustand stores
+enableMapSet();
 
 SplashScreen.preventAutoHideAsync();
 

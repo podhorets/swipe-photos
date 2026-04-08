@@ -42,6 +42,13 @@ Every commit leaves the app in a runnable state. Convention: `feat:` / `fix:` / 
 
 ## API Gotchas
 
+### Immer requires `enableMapSet()` for Set/Map support
+Immer doesn't support `Set` or `Map` mutations by default. `enableMapSet()` must be called once at app startup (in `app/_layout.tsx`) before any store that uses `Set` is accessed. Without it, `state.staged.add()` throws at runtime.
+```ts
+import { enableMapSet } from 'immer';
+enableMapSet(); // call at module level in _layout.tsx
+```
+
 ### Zustand selectors must return stable values
 Never put derived-state methods in a Zustand store — they return new object references every call, causing infinite re-render loops. Keep stores as flat state + actions only. Compute derived values in components with `useMemo`.
 ```ts
