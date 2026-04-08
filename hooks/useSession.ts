@@ -1,10 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
+import { useDeletionStore } from '@/stores/deletionStore';
 import { createSession, type SessionRequest } from '@/lib/session/sessionFactory';
 
 export function useSession() {
   const store = useSessionStore();
+  const { stage, unstage } = useDeletionStore();
 
   function startSession(request: SessionRequest) {
     const { index, favoriteIds } = useGalleryStore.getState();
@@ -14,8 +16,8 @@ export function useSession() {
   }
 
   function swipeLeft(assetId: string) {
-    // Stage for deletion — deletionStore wired on Day 4
     store.decide(assetId, 'delete');
+    stage(assetId); // persist to MMKV-backed deletion queue
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }
 
@@ -32,6 +34,9 @@ export function useSession() {
   function undoLast() {
     const restoredId = store.undoLast();
     if (restoredId) {
+      // If the undone decision was 'delete', remove from staging
+      const previousDecision = store.decisions[restoredId];
+      if (previousDecision === 'delete') unstage(restoredId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     return restoredId;
@@ -42,8 +47,6 @@ export function useSession() {
   const remainingCount = totalCount - currentIndex;
   const progressFraction = totalCount > 0 ? currentIndex / totalCount : 0;
   const isComplete = totalCount > 0 && remainingCount === 0;
-
-  // Current and next few asset IDs for the swipe stack
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
   return {
