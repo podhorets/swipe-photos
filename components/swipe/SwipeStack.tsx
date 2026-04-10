@@ -5,6 +5,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useDeletionStore } from '@/stores/deletionStore';
 import { SwipeCard } from './SwipeCard';
+import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 
@@ -51,7 +52,19 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
     if (isComplete) onSessionComplete();
   }, [isComplete, onSessionComplete]);
 
-  if (visibleAssetIds.length === 0) return null;
+  // Session started but assets not yet resolved — show skeleton placeholder
+  if (visibleAssetIds.length === 0) {
+    return (
+      <View style={{ width: SCREEN_WIDTH, height: CARD_HEIGHT + SWIPE.stackOffsetY[SWIPE.stackSize - 1] }}>
+        <SkeletonTile
+          width={SCREEN_WIDTH - 48}
+          height={CARD_HEIGHT}
+          borderRadius={24}
+          style={{ position: 'absolute', left: 24, top: 0 }}
+        />
+      </View>
+    );
+  }
 
   // Render back-to-front so top card (stackIndex 0) is visually on top
   const renderIds = [...visibleAssetIds].reverse();

@@ -3,6 +3,7 @@ import Animated from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { GlassCard } from '@/components/glass/GlassCard';
+import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { useSpringPress } from '@/hooks/useSpringPress';
 import type { Category } from '@/types';
 
@@ -13,6 +14,7 @@ interface CategoryCardProps {
   count: number;
   subtitle?: string;
   disabled?: boolean;
+  loading?: boolean;
   onPress: () => void;
 }
 
@@ -22,6 +24,7 @@ export function CategoryCard({
   count,
   subtitle,
   disabled = false,
+  loading = false,
   onPress,
 }: CategoryCardProps) {
   const { animatedStyle, onPressIn, onPressOut } = useSpringPress();
@@ -59,7 +62,9 @@ export function CategoryCard({
             </View>
 
             {/* Count badge + chevron */}
-            {!disabled && (
+            {loading ? (
+              <SkeletonTile width={52} height={24} borderRadius={12} />
+            ) : !disabled ? (
               <View className="flex-row items-center gap-2">
                 <View className="bg-white/15 rounded-full px-2.5 py-1">
                   <Text className="text-white text-xs font-semibold">
@@ -68,7 +73,7 @@ export function CategoryCard({
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
               </View>
-            )}
+            ) : null}
           </View>
         </GlassCard>
       </Pressable>

@@ -37,6 +37,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const index = useGalleryStore((s) => s.index);
   const favoriteIds = useGalleryStore((s) => s.favoriteIds);
+  const isIndexing = useGalleryStore((s) => s.isIndexing);
   const staged = useDeletionStore((s) => s.staged);
   const stagedCount = staged.size;
 
@@ -138,7 +139,8 @@ export default function HomeScreen() {
               icon={cat.icon}
               count={count}
               subtitle={cat.subtitle}
-              disabled={count === 0}
+              disabled={!isIndexing && count === 0}
+              loading={isIndexing && count === 0}
               onPress={() => handleCategoryPress(cat.id)}
             />
           );
