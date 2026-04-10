@@ -1,7 +1,7 @@
-const tseslint = require('typescript-eslint');
-const js = require('@eslint/js');
+import tseslint from 'typescript-eslint';
+import js from '@eslint/js';
 
-module.exports = tseslint.config(
+export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -10,7 +10,6 @@ module.exports = tseslint.config(
   {
     files: ['**/*.ts', '**/*.tsx'],
     rules: {
-      // Enforce NativeWind: warn on StyleSheet.create
       'no-restricted-properties': [
         'warn',
         {
@@ -22,8 +21,7 @@ module.exports = tseslint.config(
       ],
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-require-imports': 'off',
-      // React Native doesn't need display-name
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },
-);
+];

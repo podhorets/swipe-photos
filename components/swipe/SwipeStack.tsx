@@ -89,11 +89,12 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
     >
       {renderIds.map((assetId, reversedIndex) => {
         const stackIndex = visibleAssetIds.length - 1 - reversedIndex;
+        const absoluteIndex = currentIndex + stackIndex;
         const uri = uriById.get(assetId) ?? '';
 
         return (
           <SwipeCard
-            key={assetId}
+            key={`${absoluteIndex}-${assetId}`}
             uri={uri}
             stackIndex={stackIndex}
             onSwipeLeft={() => {
