@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
   runOnJS,
   interpolate,
   Extrapolation,
@@ -42,9 +44,17 @@ export function SwipeCard({
   const hasPassedThreshold = useSharedValue(false);
 
   const isTopCard = stackIndex === 0;
-  const baseScale = SWIPE.stackScale[stackIndex] ?? 1;
-  const baseOffsetY = SWIPE.stackOffsetY[stackIndex] ?? 0;
-  const baseOpacity = SWIPE.stackOpacity[stackIndex] ?? 1;
+
+  // Animated stack position — spring into new position when stackIndex changes (promote effect)
+  const animScale = useSharedValue(SWIPE.stackScale[stackIndex] ?? 1);
+  const animOffsetY = useSharedValue(SWIPE.stackOffsetY[stackIndex] ?? 0);
+  const animOpacity = useSharedValue(SWIPE.stackOpacity[stackIndex] ?? 1);
+
+  useEffect(() => {
+    animScale.value = withSpring(SWIPE.stackScale[stackIndex] ?? 1, SPRING.promote);
+    animOffsetY.value = withSpring(SWIPE.stackOffsetY[stackIndex] ?? 0, SPRING.promote);
+    animOpacity.value = withTiming(SWIPE.stackOpacity[stackIndex] ?? 1, { duration: 220 });
+  }, [stackIndex, animScale, animOffsetY, animOpacity]);
 
   const pan = Gesture.Pan()
     .enabled(isTopCard)
@@ -68,7 +78,6 @@ export function SwipeCard({
         Math.abs(e.translationX) < SWIPE.thresholdPx;
 
       if (swipedLeft) {
-        // Call callback immediately — don't wait for animation to settle
         runOnJS(onSwipeLeft)();
         translateX.value = withSpring(-SCREEN_WIDTH * 1.5, SPRING.flyOff);
       } else if (swipedRight) {
@@ -78,6 +87,7 @@ export function SwipeCard({
         runOnJS(onSwipeUp)();
         translateY.value = withSpring(-SCREEN_HEIGHT, SPRING.flyOff);
       } else {
+        // Snap back with spring overshoot
         translateX.value = withSpring(0, SPRING.snappy);
         translateY.value = withSpring(0, SPRING.snappy);
         hasPassedThreshold.value = false;
@@ -91,8 +101,7 @@ export function SwipeCard({
       runOnJS(onDoubleTap)();
     });
 
-  // Race: pan activates immediately on movement, doubleTap wins on second tap.
-  // Exclusive would delay pan by ~300ms waiting for doubleTap to fail.
+  // Race: pan activates immediately, doubleTap wins on second tap
   const composed = Gesture.Race(doubleTap, pan);
 
   const cardStyle = useAnimatedStyle(() => {
@@ -108,11 +117,10 @@ export function SwipeCard({
         { translateX: translateX.value },
         { translateY: translateY.value },
         { rotate: `${rotate}rad` },
-        { scale: baseScale },
+        { scale: animScale.value },
       ],
-      opacity: baseOpacity,
-      // Use `top` not `marginTop` — marginTop has no effect on absolute elements
-      top: baseOffsetY,
+      opacity: animOpacity.value,
+      top: animOffsetY.value,
     };
   });
 
@@ -120,14 +128,7 @@ export function SwipeCard({
     <GestureDetector gesture={composed}>
       <Animated.View
         className="absolute rounded-3xl overflow-hidden"
-        style={[
-          {
-            width: SCREEN_WIDTH - 48,
-            height: CARD_HEIGHT,
-            left: 24,
-          },
-          cardStyle,
-        ]}
+        style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24 }, cardStyle]}
       >
         <Image
           source={{ uri }}
