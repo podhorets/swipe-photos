@@ -1,9 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { BlurView } from 'expo-blur';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
+import { useGalleryStore } from '@/stores/galleryStore';
 import { SwipeStack } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { UndoPill } from '@/components/ui/UndoPill';
@@ -33,10 +36,17 @@ export default function ReviewScreen() {
     undoLast,
   } = useSession();
 
+  const galleryIndex = useGalleryStore((s) => s.index);
+  const uriById = useMemo(
+    () => new Map(galleryIndex.map((a) => [a.id, a.uri])),
+    [galleryIndex],
+  );
+
+  const currentUri = visibleAssetIds[0] ? (uriById.get(visibleAssetIds[0]) ?? null) : null;
+
   const [undoVisible, setUndoVisible] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
 
-  // Use a ref to start session only once on mount
   const didStart = useRef(false);
   useEffect(() => {
     if (didStart.current) return;
@@ -48,7 +58,6 @@ export default function ReviewScreen() {
     });
   }, [sessionId, year, month, startSession]);
 
-  // Show undo pill after each swipe
   const currentIndex = totalCount - remainingCount;
   useEffect(() => {
     if (currentIndex > 0) setUndoVisible(true);
@@ -96,7 +105,28 @@ export default function ReviewScreen() {
 
   return (
     <View className="flex-1 bg-black">
-      {/* Header */}
+      {/* ── Blurred dynamic background ──────────────────────────────────────── */}
+      {currentUri && (
+        <View className="absolute inset-0">
+          <Image
+            source={{ uri: currentUri }}
+            style={{ flex: 1 }}
+            contentFit="cover"
+            // Cross-dissolves smoothly as the URI changes with each swipe
+            transition={{ duration: 500, effect: 'cross-dissolve', timing: 'ease-in-out' }}
+            blurRadius={18}
+          />
+          {/* Extra blur + dark tint so background never competes with the card */}
+          <BlurView
+            intensity={60}
+            tint="dark"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <View className="absolute inset-0 bg-black/50" />
+        </View>
+      )}
+
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <View
         className="flex-row items-center px-6 pb-3"
         style={{ paddingTop: insets.top + 12 }}
@@ -116,10 +146,10 @@ export default function ReviewScreen() {
         </View>
       </View>
 
-      {/* Progress bar */}
+      {/* ── Progress bar ────────────────────────────────────────────────────── */}
       <ProgressBar progress={progressFraction} />
 
-      {/* Swipe stack */}
+      {/* ── Swipe stack ─────────────────────────────────────────────────────── */}
       <View className="flex-1 items-center justify-center mt-4">
         <SwipeStack
           onDoubleTap={handleDoubleTap}
@@ -127,7 +157,7 @@ export default function ReviewScreen() {
         />
       </View>
 
-      {/* Action buttons */}
+      {/* ── Action buttons ──────────────────────────────────────────────────── */}
       <View
         className="flex-row items-center justify-center gap-8"
         style={{ paddingBottom: insets.bottom + 24 }}
@@ -137,14 +167,14 @@ export default function ReviewScreen() {
         <ActionButton type="favorite" onPress={handleSwipeUp} />
       </View>
 
-      {/* Undo pill */}
+      {/* ── Undo pill ───────────────────────────────────────────────────────── */}
       <UndoPill
         visible={undoVisible}
         onUndo={handleUndo}
         onDismiss={() => setUndoVisible(false)}
       />
 
-      {/* Session complete sheet */}
+      {/* ── Session complete sheet ───────────────────────────────────────────── */}
       {showComplete && (
         <SessionCompleteSheet
           totalCount={totalCount}
