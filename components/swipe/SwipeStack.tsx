@@ -52,6 +52,9 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
     if (isComplete) onSessionComplete();
   }, [isComplete, onSessionComplete]);
 
+  // Session complete — nothing to render (sheet is shown by parent)
+  if (isComplete) return null;
+
   // Session started but assets not yet resolved — show skeleton placeholder
   if (visibleAssetIds.length === 0) {
     return (
