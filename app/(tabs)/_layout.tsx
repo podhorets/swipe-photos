@@ -1,8 +1,7 @@
 import { Tabs } from 'expo-router';
-import { BlurView } from 'expo-blur';
-import { StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { GLASS } from '@/constants/theme';
+import { BlurPanel } from '@/components/glass/BlurPanel';
 import { useGalleryIndex } from '@/hooks/useGalleryIndex';
 
 function GalleryIndexBootstrap() {
@@ -26,13 +25,7 @@ export default function TabLayout() {
             elevation: 0,
             backgroundColor: 'transparent',
           },
-          tabBarBackground: () => (
-            <BlurView
-              intensity={GLASS.intensity.heavy}
-              tint={GLASS.tint}
-              style={StyleSheet.absoluteFill}
-            />
-          ),
+          tabBarBackground: () => <BlurPanel intensity={GLASS.intensity.heavy} />,
         }}
       >
         <Tabs.Screen

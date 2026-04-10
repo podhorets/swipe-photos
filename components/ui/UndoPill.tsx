@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
+import { useSpringPress } from '@/hooks/useSpringPress';
 import { SPRING, GLASS } from '@/constants/theme';
 import { SESSION } from '@/constants/config';
 
@@ -22,6 +23,7 @@ interface UndoPillProps {
 export function UndoPill({ visible, onUndo, onDismiss }: UndoPillProps) {
   const translateY = useSharedValue(40);
   const opacity = useSharedValue(0);
+  const { animatedStyle: pressStyle, onPressIn, onPressOut } = useSpringPress(0.93);
 
   useEffect(() => {
     if (visible) {
@@ -56,15 +58,17 @@ export function UndoPill({ visible, onUndo, onDismiss }: UndoPillProps) {
       style={pillStyle}
       pointerEvents={visible ? 'auto' : 'none'}
     >
-      <Pressable onPress={onUndo}>
-        <BlurView
-          intensity={GLASS.intensity.heavy}
-          tint={GLASS.tint}
-          className="flex-row items-center gap-2 px-5 py-3 rounded-full overflow-hidden border border-white/20"
-        >
-          <Ionicons name="arrow-undo-outline" size={16} color="white" />
-          <Text className="text-white font-semibold text-sm">Undo</Text>
-        </BlurView>
+      <Pressable onPress={onUndo} onPressIn={onPressIn} onPressOut={onPressOut}>
+        <Animated.View style={pressStyle}>
+          <BlurView
+            intensity={GLASS.intensity.heavy}
+            tint={GLASS.tint}
+            className="flex-row items-center gap-2 px-5 py-3 rounded-full overflow-hidden border border-white/20"
+          >
+            <Ionicons name="arrow-undo-outline" size={16} color="white" />
+            <Text className="text-white font-semibold text-sm">Undo</Text>
+          </BlurView>
+        </Animated.View>
       </Pressable>
     </Animated.View>
   );

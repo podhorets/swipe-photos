@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { GlassSheet } from '@/components/glass/GlassSheet';
+import { useSpringPress } from '@/hooks/useSpringPress';
 import { formatBytes } from '@/lib/dateUtils';
 import { AVG_PHOTO_SIZE_BYTES } from '@/constants/config';
 
@@ -65,6 +66,8 @@ export function SessionCompleteSheet({
   const lottieRef = useRef<LottieView>(null);
   const sheetOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(40);
+  const { animatedStyle: trashBtnStyle, onPressIn: trashIn, onPressOut: trashOut } = useSpringPress(0.96);
+  const { animatedStyle: doneBtnStyle, onPressIn: doneIn, onPressOut: doneOut } = useSpringPress(0.96);
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -126,24 +129,32 @@ export function SessionCompleteSheet({
 
           {/* CTAs */}
           {stagedCount > 0 ? (
-            <Pressable
-              onPress={onReviewTrash}
-              className="bg-red-500/80 rounded-2xl py-4 items-center mb-3 active:opacity-70"
-            >
-              <Text className="text-white font-semibold text-base">
-                Review Trash ({stagedCount})
-              </Text>
-            </Pressable>
+            <Animated.View style={trashBtnStyle}>
+              <Pressable
+                onPress={onReviewTrash}
+                onPressIn={trashIn}
+                onPressOut={trashOut}
+                className="bg-red-500/80 rounded-2xl py-4 items-center mb-3"
+              >
+                <Text className="text-white font-semibold text-base">
+                  Review Trash ({stagedCount})
+                </Text>
+              </Pressable>
+            </Animated.View>
           ) : null}
 
-          <Pressable
-            onPress={onDone}
-            className="py-3 items-center active:opacity-60"
-          >
-            <Text className="text-white/60 text-base">
-              {stagedCount > 0 ? 'Done' : 'Back to Home'}
-            </Text>
-          </Pressable>
+          <Animated.View style={doneBtnStyle}>
+            <Pressable
+              onPress={onDone}
+              onPressIn={doneIn}
+              onPressOut={doneOut}
+              className="py-3 items-center"
+            >
+              <Text className="text-white/60 text-base">
+                {stagedCount > 0 ? 'Done' : 'Back to Home'}
+              </Text>
+            </Pressable>
+          </Animated.View>
         </GlassSheet>
       </Animated.View>
     </View>
