@@ -6,7 +6,6 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -150,18 +149,17 @@ export default function TrashScreen() {
     setIsDeleting(true);
     try {
       // deleteAssetsAsync shows a native iOS "Delete X Photos?" confirmation dialog
-      const success = await MediaLibrary.deleteAssetsAsync(ids);
-      if (success) {
-        confirmDeletion(ids);
-        removeAssets(ids);
-        if (staged.size - ids.length === 0) {
-          router.back();
-        }
-      }
+      await MediaLibrary.deleteAssetsAsync(ids);
     } catch {
-      Alert.alert('Deletion Failed', 'Could not delete the selected photos. Please try again.');
+      // Asset was already deleted externally — fall through to clean up staging
     } finally {
+      // Always remove from staged regardless of whether deletion succeeded or asset was already gone
+      confirmDeletion(ids);
+      removeAssets(ids);
       setIsDeleting(false);
+      if (staged.size - ids.length <= 0) {
+        router.back();
+      }
     }
   }
 

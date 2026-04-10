@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useDeletionStore } from '@/stores/deletionStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { YearPicker, MonthPicker } from '@/components/ui/YearMonthPicker';
@@ -40,6 +41,7 @@ export default function HomeScreen() {
   const isIndexing = useGalleryStore((s) => s.isIndexing);
   const staged = useDeletionStore((s) => s.staged);
   const stagedCount = staged.size;
+  const { isMediaGranted, isMediaLimited } = usePermissions();
 
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
@@ -60,6 +62,12 @@ export default function HomeScreen() {
   }
 
   function handleCategoryPress(category: Category) {
+    const count = countFor(category);
+    if (!isIndexing && count === 0) {
+      const cat = CATEGORIES.find((c) => c.id === category);
+      Alert.alert('Nothing Here', `No photos in "${cat?.label ?? category}" yet.`);
+      return;
+    }
     if (category === 'year') {
       setYearPickerVisible(true);
       return;
@@ -79,6 +87,25 @@ export default function HomeScreen() {
   function handleMonthSelect(yyyymm: string) {
     setMonthPickerVisible(false);
     router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'month', month: yyyymm } });
+  }
+
+  // Permission denied — show locked state with Settings deep link
+  if (!isMediaGranted) {
+    return (
+      <View className="flex-1 bg-black items-center justify-center px-8" style={{ paddingTop: insets.top }}>
+        <Ionicons name="lock-closed-outline" size={64} color="rgba(255,255,255,0.2)" />
+        <Text className="text-white text-2xl font-bold mt-6 text-center">Photo Access Required</Text>
+        <Text className="text-white/50 text-base mt-3 text-center leading-6">
+          Swipe Photos needs access to your library to help you review and clean up photos.
+        </Text>
+        <Pressable
+          onPress={() => Linking.openSettings()}
+          className="mt-8 bg-white/15 rounded-2xl px-8 py-4"
+        >
+          <Text className="text-white font-semibold text-base">Open Settings</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
@@ -120,6 +147,24 @@ export default function HomeScreen() {
             </Pressable>
           )}
         </View>
+
+        {/* Limited access banner */}
+        {isMediaLimited && (
+          <Pressable
+            onPress={() => Linking.openSettings()}
+            className="flex-row items-center gap-3 rounded-2xl px-4 py-3 mb-4"
+            style={{ backgroundColor: 'rgba(234,179,8,0.12)', borderWidth: 1, borderColor: 'rgba(234,179,8,0.25)' }}
+          >
+            <Ionicons name="warning-outline" size={20} color="rgba(234,179,8,0.8)" />
+            <View className="flex-1">
+              <Text className="text-yellow-400 text-sm font-semibold">Limited photo access</Text>
+              <Text className="text-yellow-400/70 text-xs mt-0.5">
+                You've granted access to {index.length.toLocaleString()} photos. Tap to expand in Settings.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="rgba(234,179,8,0.4)" />
+          </Pressable>
+        )}
 
         {/* Storage summary */}
         <StorageSummary />

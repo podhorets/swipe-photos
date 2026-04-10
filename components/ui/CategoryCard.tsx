@@ -30,7 +30,7 @@ export function CategoryCard({
   const { animatedStyle, onPressIn, onPressOut } = useSpringPress();
 
   function handlePress() {
-    Haptics.selectionAsync();
+    if (!disabled) Haptics.selectionAsync();
     onPress();
   }
 
@@ -38,9 +38,8 @@ export function CategoryCard({
     <Animated.View style={animatedStyle}>
       <Pressable
         onPress={handlePress}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        disabled={disabled}
+        onPressIn={disabled ? undefined : onPressIn}
+        onPressOut={disabled ? undefined : onPressOut}
       >
         <GlassCard className={`mb-3 ${disabled ? 'opacity-40' : ''}`}>
           <View className="flex-row items-center p-4 gap-4">

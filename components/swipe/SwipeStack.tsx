@@ -52,6 +52,14 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
     if (isComplete) onSessionComplete();
   }, [isComplete, onSessionComplete]);
 
+  // Auto-skip assets that were deleted externally (no longer in gallery index)
+  const topAssetId = visibleAssetIds[0];
+  useEffect(() => {
+    if (topAssetId && !uriById.has(topAssetId)) {
+      decide(topAssetId, 'keep');
+    }
+  }, [topAssetId, uriById, decide]);
+
   // Session complete — nothing to render (sheet is shown by parent)
   if (isComplete) return null;
 
