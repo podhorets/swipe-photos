@@ -6,20 +6,53 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "swipephotos",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.podhorets.swipephotos",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Swipe Photos needs access to your photo library to help you review and clean up photos.",
-        "NSPhotoLibraryAddUsageDescription": "Swipe Photos needs permission to save photos to your library.",
-        "NSFaceIDUsageDescription": "Swipe Photos uses Face ID to protect bulk photo deletion."
+        "NSPhotoLibraryUsageDescription": "Swipe Photos shows your photos so you can review and clean them up.",
+        "NSPhotoLibraryAddUsageDescription": "Swipe Photos needs permission to save changes to your photo library.",
+        "NSFaceIDUsageDescription": "Face ID protects bulk deletion so photos are never removed by accident.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          }
+        ]
       }
     },
     "plugins": [
@@ -27,15 +60,15 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Swipe Photos needs access to your photo library to help you review and clean up photos.",
-          "savePhotosPermission": "Swipe Photos needs permission to save photos to your library.",
+          "photosPermission": "Swipe Photos shows your photos so you can review and clean them up.",
+          "savePhotosPermission": "Swipe Photos needs permission to save changes to your photo library.",
           "isAccessMediaLocationEnabled": true
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Swipe Photos uses Face ID to protect bulk photo deletion."
+          "faceIDPermission": "Face ID protects bulk deletion so photos are never removed by accident."
         }
       ],
       [
@@ -48,6 +81,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1252f889-57b1-41ae-b1ca-a168ac07e81f"
+      }
+    },
+    "owner": "podhorets"
   }
 }
