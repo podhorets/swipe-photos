@@ -79,8 +79,8 @@ export const SPRING = {
   snappy: { damping: 20, stiffness: 280, mass: 0.8 },
   // Card fly-off
   flyOff: { damping: 14, stiffness: 120 },
-  // Stack promote (card 2→1) — near-critically damped, minimal oscillation
-  promote: { damping: 26, stiffness: 250 },
+  // Stack promote (card 2→1) — overdamped, no overshoot
+  promote: { damping: 34, stiffness: 250 },
   // UI element press
   press: { damping: 22, stiffness: 350, mass: 0.6 },
   // Modal / sheet entrance
