@@ -1,10 +1,15 @@
 import '../global.css';
 import { enableMapSet } from 'immer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
+import { useEffect, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useGalleryStore } from '@/stores/galleryStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { scheduleOnThisDayNotification } from '@/lib/notifications';
 
 // Required for Immer to handle Set and Map in Zustand stores
 enableMapSet();
@@ -20,6 +25,56 @@ const queryClient = new QueryClient({
   },
 });
 
+// Configure how notifications appear when app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+function NotificationBootstrap() {
+  const index = useGalleryStore((s) => s.index);
+  const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  // Reschedule notification when app comes to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        if (notificationsEnabled && index.length > 0) {
+          scheduleOnThisDayNotification(index).catch(() => {});
+        }
+      }
+      appState.current = nextState;
+    });
+    return () => sub.remove();
+  }, [index, notificationsEnabled]);
+
+  // Schedule on mount if enabled
+  useEffect(() => {
+    if (notificationsEnabled && index.length > 0) {
+      scheduleOnThisDayNotification(index).catch(() => {});
+    }
+  }, [index, notificationsEnabled]);
+
+  // Navigate to On This Day when user taps notification
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, unknown>;
+      if (data?.navigateTo === 'on-this-day') {
+        router.push('/(tabs)/on-this-day');
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
@@ -28,6 +83,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView className="flex-1">
       <QueryClientProvider client={queryClient}>
+        <NotificationBootstrap />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
