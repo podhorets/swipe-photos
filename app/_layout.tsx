@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { scheduleOnThisDayNotification } from '@/lib/notifications';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 // Required for Immer to handle Set and Map in Zustand stores
 enableMapSet();
@@ -82,6 +83,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView className="flex-1">
+      <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <NotificationBootstrap />
         <Stack screenOptions={{ headerShown: false }}>
@@ -93,6 +95,7 @@ export default function RootLayout() {
           <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
         </Stack>
       </QueryClientProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

@@ -6,10 +6,10 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  runOnJS,
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { SPRING, SWIPE } from '@/constants/theme';
@@ -65,7 +65,7 @@ export function SwipeCard({
       const crossed = Math.abs(e.translationX) > SWIPE.thresholdPx;
       if (crossed && !hasPassedThreshold.value) {
         hasPassedThreshold.value = true;
-        runOnJS(triggerHaptic)(Haptics.ImpactFeedbackStyle.Medium);
+        scheduleOnRN(triggerHaptic, Haptics.ImpactFeedbackStyle.Medium);
       } else if (!crossed) {
         hasPassedThreshold.value = false;
       }
@@ -78,13 +78,13 @@ export function SwipeCard({
         Math.abs(e.translationX) < SWIPE.thresholdPx;
 
       if (swipedLeft) {
-        runOnJS(onSwipeLeft)();
+        scheduleOnRN(onSwipeLeft);
         translateX.value = withSpring(-SCREEN_WIDTH * 1.5, SPRING.flyOff);
       } else if (swipedRight) {
-        runOnJS(onSwipeRight)();
+        scheduleOnRN(onSwipeRight);
         translateX.value = withSpring(SCREEN_WIDTH * 1.5, SPRING.flyOff);
       } else if (swipedUp) {
-        runOnJS(onSwipeUp)();
+        scheduleOnRN(onSwipeUp);
         translateY.value = withSpring(-SCREEN_HEIGHT, SPRING.flyOff);
       } else {
         // Snap back with spring overshoot
@@ -98,7 +98,7 @@ export function SwipeCard({
     .numberOfTaps(2)
     .enabled(isTopCard)
     .onEnd(() => {
-      runOnJS(onDoubleTap)();
+      scheduleOnRN(onDoubleTap);
     });
 
   // Race: pan activates immediately, doubleTap wins on second tap

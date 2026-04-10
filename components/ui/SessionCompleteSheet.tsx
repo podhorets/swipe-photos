@@ -11,10 +11,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { GlassSheet } from '@/components/glass/GlassSheet';
 import { useSpringPress } from '@/hooks/useSpringPress';
-import { formatBytes } from '@/lib/dateUtils';
-import { AVG_PHOTO_SIZE_BYTES } from '@/constants/config';
+import { SPRING } from '@/constants/theme';
 
-const confettiSource = require('@/assets/animations/confetti.json');
+import confettiSource from '@/assets/animations/confetti.json';
 
 interface SessionCompleteSheetProps {
   totalCount: number;
@@ -25,21 +24,15 @@ interface SessionCompleteSheetProps {
   onDone: () => void;
 }
 
-function AnimatedStat({
-  label,
-  value,
-  delay,
-}: {
-  label: string;
-  value: string | number;
-  delay: number;
-}) {
+// ─── Staggered stat ───────────────────────────────────────────────────────────
+
+function AnimatedStat({ label, value, delay }: { label: string; value: number; delay: number }) {
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(12);
+  const translateY = useSharedValue(14);
 
   useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 350 }));
-    translateY.value = withDelay(delay, withSpring(0, { damping: 18, stiffness: 200 }));
+    opacity.value = withDelay(delay, withTiming(1, { duration: 320 }));
+    translateY.value = withDelay(delay, withSpring(0, { damping: 20, stiffness: 220 }));
   }, [delay, opacity, translateY]);
 
   const style = useAnimatedStyle(() => ({
@@ -48,12 +41,14 @@ function AnimatedStat({
   }));
 
   return (
-    <Animated.View style={style} className="items-center">
+    <Animated.View style={style} className="items-center flex-1">
       <Text className="text-white text-2xl font-bold">{value}</Text>
       <Text className="text-white/50 text-xs mt-0.5">{label}</Text>
     </Animated.View>
   );
 }
+
+// ─── Sheet ────────────────────────────────────────────────────────────────────
 
 export function SessionCompleteSheet({
   totalCount,
@@ -64,8 +59,12 @@ export function SessionCompleteSheet({
   onDone,
 }: SessionCompleteSheetProps) {
   const lottieRef = useRef<LottieView>(null);
+
   const sheetOpacity = useSharedValue(0);
-  const sheetTranslateY = useSharedValue(40);
+  const sheetTranslateY = useSharedValue(50);
+  const titleOpacity = useSharedValue(0);
+  const titleScale = useSharedValue(0.82);
+
   const { animatedStyle: trashBtnStyle, onPressIn: trashIn, onPressOut: trashOut } = useSpringPress(0.96);
   const { animatedStyle: doneBtnStyle, onPressIn: doneIn, onPressOut: doneOut } = useSpringPress(0.96);
 
@@ -73,62 +72,56 @@ export function SessionCompleteSheet({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     lottieRef.current?.play();
 
-    sheetOpacity.value = withTiming(1, { duration: 300 });
-    sheetTranslateY.value = withSpring(0, { damping: 20, stiffness: 180 });
-  }, [sheetOpacity, sheetTranslateY]);
+    sheetOpacity.value = withTiming(1, { duration: 280 });
+    sheetTranslateY.value = withSpring(0, SPRING.modal);
+    titleOpacity.value = withDelay(180, withTiming(1, { duration: 300 }));
+    titleScale.value = withDelay(180, withSpring(1, { damping: 16, stiffness: 260 }));
+  }, [sheetOpacity, sheetTranslateY, titleOpacity, titleScale]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     opacity: sheetOpacity.value,
     transform: [{ translateY: sheetTranslateY.value }],
   }));
 
-  const estimatedSavings = formatBytes(stagedCount * AVG_PHOTO_SIZE_BYTES);
+  const titleStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ scale: titleScale.value }],
+  }));
 
   return (
-    <View className="absolute inset-0 justify-end">
-      {/* Confetti layer behind the sheet */}
+    <View className="absolute inset-0 justify-end bg-black/80">
+      {/* Full-screen confetti behind the sheet */}
       <LottieView
         ref={lottieRef}
         source={confettiSource}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 200 }}
-        resizeMode="cover"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+        resizeMode="contain"
         loop={false}
         autoPlay={false}
       />
-
-      {/* Dim overlay */}
-      <View className="absolute inset-0 bg-black/40" />
 
       {/* Sheet */}
       <Animated.View style={sheetStyle}>
         <GlassSheet>
           {/* Title */}
-          <View className="items-center mb-5">
+          <Animated.View style={titleStyle} className="items-center mb-5">
             <Text className="text-white text-3xl font-bold">All Done!</Text>
             <Text className="text-white/50 text-sm mt-1">
-              {totalCount} photos reviewed
+              {totalCount} photo{totalCount === 1 ? '' : 's'} reviewed
             </Text>
-          </View>
+          </Animated.View>
 
-          {/* Stats row */}
+          {/* Stats row — staggered in */}
           <View className="flex-row justify-around mb-6">
-            <AnimatedStat label="To Delete" value={stagedCount} delay={150} />
+            <AnimatedStat label="To Delete" value={stagedCount} delay={200} />
             <View className="w-px bg-white/10" />
-            <AnimatedStat label="Kept" value={keptCount} delay={250} />
+            <AnimatedStat label="Kept" value={keptCount} delay={310} />
             <View className="w-px bg-white/10" />
-            <AnimatedStat label="Favorited" value={favoritedCount} delay={350} />
+            <AnimatedStat label="Favorited" value={favoritedCount} delay={420} />
           </View>
-
-          {/* Savings estimate */}
-          {stagedCount > 0 && (
-            <View className="bg-white/10 rounded-2xl px-4 py-3 mb-5 items-center">
-              <Text className="text-white/40 text-xs">Estimated savings</Text>
-              <Text className="text-white font-bold text-lg">{estimatedSavings}</Text>
-            </View>
-          )}
 
           {/* CTAs */}
-          {stagedCount > 0 ? (
+          {stagedCount > 0 && (
             <Animated.View style={trashBtnStyle}>
               <Pressable
                 onPress={onReviewTrash}
@@ -141,7 +134,7 @@ export function SessionCompleteSheet({
                 </Text>
               </Pressable>
             </Animated.View>
-          ) : null}
+          )}
 
           <Animated.View style={doneBtnStyle}>
             <Pressable
