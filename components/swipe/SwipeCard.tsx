@@ -44,17 +44,22 @@ export function SwipeCard({
   const hasPassedThreshold = useSharedValue(false);
 
   const isTopCard = stackIndex === 0;
+  const isDeparting = stackIndex === -1;
 
   // Animated stack position — spring into new position when stackIndex changes (promote effect)
-  const animScale = useSharedValue(SWIPE.stackScale[stackIndex] ?? 1);
-  const animOffsetY = useSharedValue(SWIPE.stackOffsetY[stackIndex] ?? 0);
-  const animOpacity = useSharedValue(SWIPE.stackOpacity[stackIndex] ?? 1);
+  // Use stackIndex 0 values as fallback for departing card (it won't animate, just retains fly-off)
+  const resolvedIndex = isDeparting ? 0 : stackIndex;
+  const animScale = useSharedValue(SWIPE.stackScale[resolvedIndex] ?? 1);
+  const animOffsetY = useSharedValue(SWIPE.stackOffsetY[resolvedIndex] ?? 0);
+  const animOpacity = useSharedValue(SWIPE.stackOpacity[resolvedIndex] ?? 1);
 
   useEffect(() => {
+    // Departing card: skip stack promotion — it retains its fly-off translateX/Y
+    if (isDeparting) return;
     animScale.value = withSpring(SWIPE.stackScale[stackIndex] ?? 1, SPRING.promote);
     animOffsetY.value = withSpring(SWIPE.stackOffsetY[stackIndex] ?? 0, SPRING.promote);
     animOpacity.value = withTiming(SWIPE.stackOpacity[stackIndex] ?? 1, { duration: 220 });
-  }, [stackIndex, animScale, animOffsetY, animOpacity]);
+  }, [stackIndex, isDeparting, animScale, animOffsetY, animOpacity]);
 
   const pan = Gesture.Pan()
     .enabled(isTopCard)
@@ -132,6 +137,7 @@ export function SwipeCard({
     <GestureDetector gesture={composed}>
       <Animated.View
         className="absolute rounded-3xl overflow-hidden"
+        pointerEvents={isDeparting ? 'none' : 'auto'}
         style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24 }, cardStyle]}
       >
         <Image

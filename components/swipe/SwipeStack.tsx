@@ -29,6 +29,9 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
 
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
+  // Include one card behind currentIndex so the just-swiped card stays mounted during its fly-off
+  const renderSliceStart = Math.max(0, currentIndex - 1);
+  const allRenderIds = session?.assetIds.slice(renderSliceStart, currentIndex + 3) ?? [];
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
   // Build uri lookup once — only rebuilds when gallery index changes, NOT on every swipe
@@ -79,8 +82,9 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
     );
   }
 
-  // Render back-to-front so top card (stackIndex 0) is visually on top
-  const renderIds = [...visibleAssetIds].reverse();
+  // Render back-to-front so top card (stackIndex 0) is visually on top.
+  // Departing card (index < currentIndex) is rendered first = behind everything.
+  const renderIds = [...allRenderIds].reverse();
 
   return (
     <View
@@ -89,14 +93,15 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
         height: CARD_HEIGHT + SWIPE.stackOffsetY[SWIPE.stackSize - 1],
       }}
     >
-      {renderIds.map((assetId, reversedIndex) => {
-        const stackIndex = visibleAssetIds.length - 1 - reversedIndex;
-        const absoluteIndex = currentIndex + stackIndex;
+      {renderIds.map((assetId) => {
+        const positionInVisible = visibleAssetIds.indexOf(assetId);
+        // -1 means this card is the just-departed one — keep mounted for fly-off, not interactive
+        const stackIndex = positionInVisible === -1 ? -1 : positionInVisible;
         const uri = uriById.get(assetId) ?? '';
 
         return (
           <SwipeCard
-            key={`${absoluteIndex}-${assetId}`}
+            key={assetId}
             uri={uri}
             stackIndex={stackIndex}
             onSwipeLeft={() => {
