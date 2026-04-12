@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, memo } from 'react';
 import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -16,7 +16,7 @@ interface SwipeStackProps {
   onSessionComplete: () => void;
 }
 
-export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) {
+export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) {
   // Select only the primitives we need — avoids full re-render on unrelated store changes
   const session = useSessionStore((s) => s.session);
   const currentIndex = useSessionStore((s) => s.currentIndex);
@@ -123,6 +123,6 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
       })}
     </View>
   );
-}
+});
 
 const SESSION_PREFETCH = 5;

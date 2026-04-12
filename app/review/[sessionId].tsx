@@ -38,11 +38,25 @@ export default function ReviewScreen() {
   } = useSession();
 
   const galleryIndex = useGalleryStore((s) => s.index);
-  const uriById = useMemo(
-    () => new Map(galleryIndex.map((a) => [a.id, a.uri])),
-    [galleryIndex],
+
+  // Look up only the one URI we need (background) — no full Map required here
+  const topAssetId = visibleAssetIds[0] ?? null;
+  const currentUri = useMemo(
+    () => topAssetId ? galleryIndex.find((a) => a.id === topAssetId)?.uri ?? null : null,
+    [topAssetId, galleryIndex],
   );
-  const currentUri = visibleAssetIds[0] ? (uriById.get(visibleAssetIds[0]) ?? null) : null;
+
+  // Debounce background URI: only update after 350ms of inactivity so rapid swipes
+  // don't trigger expensive Image + BlurView re-renders on every card change.
+  // The fly-off animation leaves the screen in ~200–250ms, so 350ms ensures the
+  // background updates after the departing card is already gone.
+  const [bgUri, setBgUri] = useState<string | null>(currentUri);
+  const bgTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    clearTimeout(bgTimerRef.current);
+    bgTimerRef.current = setTimeout(() => setBgUri(currentUri), 350);
+    return () => clearTimeout(bgTimerRef.current);
+  }, [currentUri]);
 
   const [showComplete, setShowComplete] = useState(false);
 
@@ -116,7 +130,7 @@ export default function ReviewScreen() {
     if (deleteIds.length > 0) {
       // Navigate to trash with session's delete decisions
       // router.back() first so trash sits on top of home (not review)
-      router.back();
+      // router.back();
       router.push('/trash');
     } else {
       // No deletions — save all as kept and show summary inline
@@ -179,14 +193,13 @@ export default function ReviewScreen() {
 
   return (
     <View className="flex-1 bg-black">
-      {/* Blurred dynamic background */}
-      {currentUri && (
+      {/* Blurred dynamic background — driven by debounced bgUri to avoid per-swipe re-renders */}
+      {bgUri && (
         <View className="absolute inset-0">
           <Image
-            source={{ uri: currentUri }}
+            source={{ uri: bgUri }}
             style={{ flex: 1 }}
             contentFit="cover"
-            transition={{ duration: 500, effect: 'cross-dissolve', timing: 'ease-in-out' }}
             blurRadius={18}
           />
           <BlurView
