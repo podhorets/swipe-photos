@@ -27,6 +27,7 @@ export function createSession(
   request: SessionRequest,
   index: AssetMeta[],
   favoriteIds: Set<string>,
+  reviewedIds: Set<string> = new Set(),
 ): Session {
   const { category, yearFilter, monthFilter, batchSize = GALLERY.defaultBatchSize } = request;
   let assets: AssetMeta[] = [];
@@ -74,9 +75,15 @@ export function createSession(
       label = 'Favorites';
       break;
     case 'random':
-      assets = getRandom(index, batchSize);
+      // For random: filter reviewed IDs before shuffle so the sample draws from unreviewed only
+      assets = getRandom(index.filter((a) => !reviewedIds.has(a.id)), batchSize);
       label = 'Random Review';
       break;
+  }
+
+  // For all non-random categories: exclude already-reviewed photos, then take one batch
+  if (category !== 'random') {
+    assets = assets.filter((a) => !reviewedIds.has(a.id)).slice(0, batchSize);
   }
 
   return {

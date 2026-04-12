@@ -3,6 +3,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useDeletionStore } from '@/stores/deletionStore';
 import { useReviewedStore } from '@/stores/reviewedStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { createSession, type SessionRequest } from '@/lib/session/sessionFactory';
 
 export function useSession() {
@@ -11,7 +12,14 @@ export function useSession() {
 
   function startSession(request: SessionRequest) {
     const { index, favoriteIds } = useGalleryStore.getState();
-    const session = createSession(request, index, favoriteIds);
+    const reviewedIds = new Set(useReviewedStore.getState().decisions.keys());
+    const batchSize = useSettingsStore.getState().batchSize;
+    const session = createSession(
+      { ...request, batchSize: request.batchSize ?? batchSize },
+      index,
+      favoriteIds,
+      reviewedIds,
+    );
     store.startSession(session);
     return session;
   }
