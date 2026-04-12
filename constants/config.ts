@@ -3,6 +3,7 @@ export const STORAGE_KEYS = {
   galleryIndex: 'gallery:index',
   favoriteIds: 'gallery:favoriteIds',
   deletionStaged: 'deletion:staged',
+  reviewed: 'reviewed:decisions',
   settings: 'settings',
   hasCompletedOnboarding: 'onboarding:completed',
 };
