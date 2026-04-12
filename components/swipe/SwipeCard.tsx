@@ -71,8 +71,12 @@ export function SwipeCard({
       }
     })
     .onEnd((e) => {
-      const swipedLeft = e.translationX < -SWIPE.thresholdPx;
-      const swipedRight = e.translationX > SWIPE.thresholdPx;
+      const swipedLeft =
+        e.translationX < -SWIPE.thresholdPx ||
+        (e.translationX < -SWIPE.thresholdPx * 0.5 && e.velocityX < -SWIPE.velocityThresholdX);
+      const swipedRight =
+        e.translationX > SWIPE.thresholdPx ||
+        (e.translationX > SWIPE.thresholdPx * 0.5 && e.velocityX > SWIPE.velocityThresholdX);
       const swipedUp =
         e.translationY < -SWIPE.upThresholdPx &&
         Math.abs(e.translationX) < SWIPE.thresholdPx;

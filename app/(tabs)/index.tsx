@@ -88,6 +88,13 @@ export default function HomeScreen() {
       Alert.alert('Nothing Here', `No photos in "${cat?.label ?? category}" yet.`);
       return;
     }
+    const progress = categoryProgress[category];
+    if (progress !== undefined && progress >= 1) {
+      Alert.alert('All Photos Reviewed', 'You\'ve reviewed all photos in this category.', [
+        { text: 'OK' },
+      ]);
+      return;
+    }
     if (category === 'year') {
       setYearPickerVisible(true);
       return;

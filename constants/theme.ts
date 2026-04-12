@@ -89,8 +89,10 @@ export const SPRING = {
 
 export const SWIPE = {
   // Fraction of screen width to trigger a swipe commit
-  threshold: 0.35,
-  thresholdPx: SCREEN_WIDTH * 0.35,
+  threshold: 0.25,
+  thresholdPx: SCREEN_WIDTH * 0.25,
+  // Fast flick (px/s) completes a swipe at half the distance threshold
+  velocityThresholdX: 800,
   // Upward swipe threshold for favorite
   upThresholdPx: 100,
   // Cards in the stack
