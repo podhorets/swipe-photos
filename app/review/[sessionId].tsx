@@ -8,6 +8,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
 import { useGalleryStore } from '@/stores/galleryStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { SwipeStack } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -106,7 +107,18 @@ export default function ReviewScreen() {
   }
 
   const handleSessionComplete = useCallback(() => {
-    setShowComplete(true);
+    const currentDecisions = useSessionStore.getState().decisions;
+    const staged = Object.values(currentDecisions).filter((d) => d === 'delete').length;
+
+    if (staged > 0) {
+      // Signal to trash that it should build the summary after deletion
+      useSessionStore.getState().setSessionFlowPending(true);
+      router.back();
+      router.push('/trash');
+    } else {
+      // No deletions — show summary inline immediately
+      setShowComplete(true);
+    }
   }, []);
 
   const handleDoubleTap = useCallback((assetId: string) => {
@@ -196,17 +208,14 @@ export default function ReviewScreen() {
         <ActionButton type="favorite" onPress={handleSwipeUp} />
       </View>
 
-      {/* Session complete sheet */}
+      {/* Session complete sheet — only shown when zero deletions (trash path skips this) */}
       {showComplete && (
         <SessionCompleteSheet
           totalCount={totalCount}
           stagedCount={stagedCount}
           keptCount={keptCount}
           favoritedCount={favoritedCount}
-          onReviewTrash={() => {
-            router.back();
-            router.push('/trash');
-          }}
+          showReviewTrash={false}
           onDone={() => router.back()}
         />
       )}

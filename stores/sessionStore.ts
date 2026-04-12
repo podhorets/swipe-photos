@@ -3,17 +3,30 @@ import { immer } from 'zustand/middleware/immer';
 import type { Session, SwipeDecision } from '@/types';
 import { SESSION } from '@/constants/config';
 
+export interface SessionSummary {
+  totalCount: number;
+  stagedCount: number;
+  keptCount: number;
+  favoritedCount: number;
+}
+
 interface SessionState {
   session: Session | null;
   currentIndex: number;
   decisions: Record<string, SwipeDecision>; // assetId → decision
   undoStack: string[]; // assetId LIFO, max SESSION.maxUndo
+  pendingSummary: SessionSummary | null;
+  // True while the user is in trash after completing a session — home waits for this to show summary
+  sessionFlowPending: boolean;
 
   // Actions
   startSession: (session: Session) => void;
   decide: (assetId: string, decision: SwipeDecision) => void;
   undoLast: () => string | null; // returns the restored assetId or null
   resetSession: () => void;
+  setPendingSummary: (summary: SessionSummary) => void;
+  clearPendingSummary: () => void;
+  setSessionFlowPending: (pending: boolean) => void;
 
   // Derived (stable primitives — safe to select directly)
   getCurrentAssetId: () => string | null;
@@ -25,6 +38,8 @@ export const useSessionStore = create<SessionState>()(
     currentIndex: 0,
     decisions: {},
     undoStack: [],
+    pendingSummary: null,
+    sessionFlowPending: false,
 
     startSession: (session) =>
       set((state) => {
@@ -69,6 +84,23 @@ export const useSessionStore = create<SessionState>()(
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
+        state.pendingSummary = null;
+        state.sessionFlowPending = false;
+      }),
+
+    setPendingSummary: (summary) =>
+      set((state) => {
+        state.pendingSummary = summary;
+      }),
+
+    clearPendingSummary: () =>
+      set((state) => {
+        state.pendingSummary = null;
+      }),
+
+    setSessionFlowPending: (pending) =>
+      set((state) => {
+        state.sessionFlowPending = pending;
       }),
 
     getCurrentAssetId: () => {

@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useDeletionStore } from '@/stores/deletionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import type { AssetMeta } from '@/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -157,7 +158,20 @@ export default function TrashScreen() {
       confirmDeletion(ids);
       removeAssets(ids);
       setIsDeleting(false);
-      if (staged.size - ids.length <= 0) {
+
+      const store = useSessionStore.getState();
+      if (store.sessionFlowPending) {
+        // Build the full summary using session decisions + actual deleted count
+        const decisions = store.decisions;
+        store.setPendingSummary({
+          totalCount: Object.keys(decisions).length,
+          stagedCount: ids.length,
+          keptCount: Object.values(decisions).filter((d) => d === 'keep').length,
+          favoritedCount: Object.values(decisions).filter((d) => d === 'favorite').length,
+        });
+        store.setSessionFlowPending(false);
+        router.back();
+      } else if (staged.size - ids.length <= 0) {
         router.back();
       }
     }

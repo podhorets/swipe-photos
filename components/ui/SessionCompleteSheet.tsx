@@ -20,8 +20,10 @@ interface SessionCompleteSheetProps {
   stagedCount: number;
   keptCount: number;
   favoritedCount: number;
-  onReviewTrash: () => void;
   onDone: () => void;
+  // When false the "Review Trash" button is hidden (e.g. summary shown after trash is already done)
+  showReviewTrash?: boolean;
+  onReviewTrash?: () => void;
 }
 
 // ─── Staggered stat ───────────────────────────────────────────────────────────
@@ -55,8 +57,9 @@ export function SessionCompleteSheet({
   stagedCount,
   keptCount,
   favoritedCount,
-  onReviewTrash,
   onDone,
+  showReviewTrash = true,
+  onReviewTrash,
 }: SessionCompleteSheetProps) {
   const lottieRef = useRef<LottieView>(null);
 
@@ -121,7 +124,7 @@ export function SessionCompleteSheet({
           </View>
 
           {/* CTAs */}
-          {stagedCount > 0 && (
+          {showReviewTrash && stagedCount > 0 && (
             <Animated.View style={trashBtnStyle}>
               <Pressable
                 onPress={onReviewTrash}
@@ -144,7 +147,7 @@ export function SessionCompleteSheet({
               className="py-3 items-center"
             >
               <Text className="text-white/60 text-base">
-                {stagedCount > 0 ? 'Done' : 'Back to Home'}
+                {showReviewTrash && stagedCount > 0 ? 'Done' : 'Back to Home'}
               </Text>
             </Pressable>
           </Animated.View>

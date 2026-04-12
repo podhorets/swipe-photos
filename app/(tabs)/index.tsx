@@ -6,9 +6,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useDeletionStore } from '@/stores/deletionStore';
 import { useReviewedStore } from '@/stores/reviewedStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
+import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import { YearPicker, MonthPicker } from '@/components/ui/YearMonthPicker';
 import {
   getOnThisDay,
@@ -45,6 +47,8 @@ export default function HomeScreen() {
   const { isMediaGranted, isMediaLimited } = usePermissions();
 
   const reviewedDecisions = useReviewedStore((s) => s.decisions);
+  const pendingSummary = useSessionStore((s) => s.pendingSummary);
+  const clearPendingSummary = useSessionStore((s) => s.clearPendingSummary);
 
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
@@ -233,6 +237,18 @@ export default function HomeScreen() {
         onSelect={handleMonthSelect}
         onClose={() => setMonthPickerVisible(false)}
       />
+
+      {/* Post-trash session summary — shown after user returns from trash screen */}
+      {pendingSummary && (
+        <SessionCompleteSheet
+          totalCount={pendingSummary.totalCount}
+          stagedCount={pendingSummary.stagedCount}
+          keptCount={pendingSummary.keptCount}
+          favoritedCount={pendingSummary.favoritedCount}
+          showReviewTrash={false}
+          onDone={clearPendingSummary}
+        />
+      )}
     </View>
   );
 }
