@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useDeletionStore } from '@/stores/deletionStore';
+import { useReviewedStore } from '@/stores/reviewedStore';
 import { createSession, type SessionRequest } from '@/lib/session/sessionFactory';
 
 export function useSession() {
@@ -18,16 +19,19 @@ export function useSession() {
   function swipeLeft(assetId: string) {
     store.decide(assetId, 'delete');
     stage(assetId); // persist to MMKV-backed deletion queue
+    useReviewedStore.getState().record(assetId, 'delete');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }
 
   function swipeRight(assetId: string) {
     store.decide(assetId, 'keep');
+    useReviewedStore.getState().record(assetId, 'keep');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
   function swipeUp(assetId: string) {
     store.decide(assetId, 'favorite');
+    useReviewedStore.getState().record(assetId, 'favorite');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
@@ -37,6 +41,7 @@ export function useSession() {
       // If the undone decision was 'delete', remove from staging
       const previousDecision = store.decisions[restoredId];
       if (previousDecision === 'delete') unstage(restoredId);
+      useReviewedStore.getState().remove(restoredId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     return restoredId;
