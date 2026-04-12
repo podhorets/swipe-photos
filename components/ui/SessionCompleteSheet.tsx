@@ -92,7 +92,7 @@ export function SessionCompleteSheet({
   }));
 
   return (
-    <View className="absolute inset-0 justify-end bg-black/80">
+    <View className="absolute inset-0 justify-end bg-black/80 mb-10">
       {/* Full-screen confetti behind the sheet */}
       <LottieView
         ref={lottieRef}
@@ -144,9 +144,9 @@ export function SessionCompleteSheet({
               onPress={onDone}
               onPressIn={doneIn}
               onPressOut={doneOut}
-              className="py-3 items-center"
+              className="bg-gray-500/80 rounded-2xl py-4 items-center mb-3"
             >
-              <Text className="text-white/60 text-base">
+              <Text className="text-white text-base">
                 {showReviewTrash && stagedCount > 0 ? 'Done' : 'Back to Home'}
               </Text>
             </Pressable>

@@ -110,6 +110,8 @@ export default function ReviewScreen() {
     const currentDecisions = useSessionStore.getState().decisions;
     const staged = Object.values(currentDecisions).filter((d) => d === 'delete').length;
 
+    // TODO decisions are not updated after session is finished (click on category after finished session)
+    console.log(staged, 'staged');
     if (staged > 0) {
       // Signal to trash that it should build the summary after deletion
       useSessionStore.getState().setSessionFlowPending(true);
