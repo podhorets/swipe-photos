@@ -30,7 +30,6 @@ export default function ReviewScreen() {
     remainingCount,
     totalCount,
     visibleAssetIds,
-    decisions,
     startSession,
     swipeLeft,
     swipeRight,
@@ -110,8 +109,6 @@ export default function ReviewScreen() {
     const currentDecisions = useSessionStore.getState().decisions;
     const staged = Object.values(currentDecisions).filter((d) => d === 'delete').length;
 
-    // TODO decisions are not updated after session is finished (click on category after finished session)
-    console.log(staged, 'staged');
     if (staged > 0) {
       // Signal to trash that it should build the summary after deletion
       useSessionStore.getState().setSessionFlowPending(true);
@@ -127,9 +124,16 @@ export default function ReviewScreen() {
     router.push(`/review/preview/${assetId}`);
   }, []);
 
-  const stagedCount = Object.values(decisions).filter((d) => d === 'delete').length;
-  const keptCount = Object.values(decisions).filter((d) => d === 'keep').length;
-  const favoritedCount = Object.values(decisions).filter((d) => d === 'favorite').length;
+  // Only computed when the completion sheet is actually visible — not on every swipe
+  const completionCounts = useMemo(() => {
+    if (!showComplete) return { stagedCount: 0, keptCount: 0, favoritedCount: 0 };
+    const d = Object.values(useSessionStore.getState().decisions);
+    return {
+      stagedCount: d.filter((v) => v === 'delete').length,
+      keptCount: d.filter((v) => v === 'keep').length,
+      favoritedCount: d.filter((v) => v === 'favorite').length,
+    };
+  }, [showComplete]);
 
   if (!session) {
     return (
@@ -214,9 +218,9 @@ export default function ReviewScreen() {
       {showComplete && (
         <SessionCompleteSheet
           totalCount={totalCount}
-          stagedCount={stagedCount}
-          keptCount={keptCount}
-          favoritedCount={favoritedCount}
+          stagedCount={completionCounts.stagedCount}
+          keptCount={completionCounts.keptCount}
+          favoritedCount={completionCounts.favoritedCount}
           showReviewTrash={false}
           onDone={() => router.back()}
         />

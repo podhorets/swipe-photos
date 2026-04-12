@@ -9,7 +9,6 @@ import { createSession, type SessionRequest } from '@/lib/session/sessionFactory
 export function useSession() {
   const session = useSessionStore((s) => s.session);
   const currentIndex = useSessionStore((s) => s.currentIndex);
-  const decisions = useSessionStore((s) => s.decisions);
   const startSessionAction = useSessionStore((s) => s.startSession);
   const decideAction = useSessionStore((s) => s.decide);
   const undoLastAction = useSessionStore((s) => s.undoLast);
@@ -52,7 +51,7 @@ export function useSession() {
     const restoredId = undoLastAction();
     if (restoredId) {
       // If the undone decision was 'delete', remove from staging
-      const previousDecision = decisions[restoredId];
+      const previousDecision = useSessionStore.getState().decisions[restoredId];
       if (previousDecision === 'delete') unstage(restoredId);
       useReviewedStore.getState().remove(restoredId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -69,7 +68,6 @@ export function useSession() {
   return {
     session,
     currentIndex,
-    decisions,
     totalCount,
     remainingCount,
     progressFraction,
