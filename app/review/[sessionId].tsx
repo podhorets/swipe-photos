@@ -59,16 +59,18 @@ export default function ReviewScreen() {
     }, SESSION.undoPillDuration);
   }, [undoOpacity]);
 
-  const didStart = useRef(false);
+  const sessionKey = `${sessionId}-${year ?? ''}-${month ?? ''}`;
+  const lastStartedKey = useRef('');
   useEffect(() => {
-    if (didStart.current) return;
-    didStart.current = true;
+    if (lastStartedKey.current === sessionKey) return;
+    lastStartedKey.current = sessionKey;
+    setShowComplete(false);
     startSession({
       category: sessionId as Category,
       yearFilter: year ? Number(year) : undefined,
       monthFilter: month,
     });
-  }, [sessionId, year, month, startSession]);
+  }, [sessionKey, startSession]);
 
   const currentIndex = totalCount - remainingCount;
   useEffect(() => {
