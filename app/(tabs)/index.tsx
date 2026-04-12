@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useDeletionStore } from '@/stores/deletionStore';
+import { useReviewedStore } from '@/stores/reviewedStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
@@ -43,6 +44,8 @@ export default function HomeScreen() {
   const stagedCount = staged.size;
   const { isMediaGranted, isMediaLimited } = usePermissions();
 
+  const reviewedDecisions = useReviewedStore((s) => s.decisions);
+
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
 
@@ -56,6 +59,23 @@ export default function HomeScreen() {
     favorites:   getFavorites(index, favoriteIds).length,
     random:      index.length,
   }), [index, favoriteIds]);
+
+  // Per-category progress (0–1). year/month/random are sub-grouped or infinite — no progress bar.
+  const categoryProgress = useMemo(() => {
+    const reviewedIds = new Set(reviewedDecisions.keys());
+
+    function ratio(assets: { id: string }[]): number {
+      if (assets.length === 0) return 0;
+      return assets.filter((a) => reviewedIds.has(a.id)).length / assets.length;
+    }
+
+    return {
+      screenshots: ratio(getScreenshots(index)),
+      videos:      ratio(getVideos(index)),
+      favorites:   ratio(getFavorites(index, favoriteIds)),
+      'on-this-day': ratio(getOnThisDay(index)),
+    } as Partial<Record<Category, number>>;
+  }, [index, favoriteIds, reviewedDecisions]);
 
   function countFor(id: Category): number {
     return counts[id === 'on-this-day' ? 'onThisDay' : id] ?? 0;
@@ -176,6 +196,7 @@ export default function HomeScreen() {
 
         {CATEGORIES.map((cat) => {
           const count = countFor(cat.id);
+          const progress = categoryProgress[cat.id];
           return (
             <CategoryCard
               key={cat.id}
@@ -184,6 +205,8 @@ export default function HomeScreen() {
               icon={cat.icon}
               count={count}
               subtitle={cat.subtitle}
+              progress={progress}
+              isComplete={progress !== undefined && progress >= 1}
               disabled={!isIndexing && count === 0}
               loading={isIndexing && count === 0}
               onPress={() => handleCategoryPress(cat.id)}

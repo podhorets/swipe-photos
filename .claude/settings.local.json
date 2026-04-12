@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx expo:*)",
       "Bash(npx eslint:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(grep -v \"Use \\\\`node\")"
     ]
   }
 }
