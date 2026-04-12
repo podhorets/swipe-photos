@@ -57,7 +57,11 @@ export function SwipeCard({
     animScale.value = withSpring(SWIPE.stackScale[stackIndex] ?? 1, SPRING.promote);
     animOffsetY.value = withSpring(SWIPE.stackOffsetY[stackIndex] ?? 0, SPRING.promote);
     animOpacity.value = withTiming(SWIPE.stackOpacity[stackIndex] ?? 1, { duration: 220 });
-  }, [stackIndex, isDeparting, animScale, animOffsetY, animOpacity]);
+    // Reset translate — critical for undo: the restored card's translateX/Y is still
+    // at the fly-off position (±SCREEN_WIDTH * 1.5) and must spring back to centre.
+    translateX.value = withSpring(0, SPRING.snappy);
+    translateY.value = withSpring(0, SPRING.snappy);
+  }, [stackIndex, isDeparting, animScale, animOffsetY, animOpacity, translateX, translateY]);
 
   const pan = Gesture.Pan()
     .enabled(isTopCard)

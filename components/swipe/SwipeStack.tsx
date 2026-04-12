@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -25,8 +25,17 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
 
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
-  // Include one card behind currentIndex so the just-swiped card stays mounted during its fly-off
-  const renderSliceStart = Math.max(0, currentIndex - 1);
+
+  // Track direction of currentIndex change: undo moves it backward, swipe moves it forward.
+  // After undo we must NOT include the slot before currentIndex — that would mount a fresh
+  // SwipeCard (translateX=0) in the departing position, rendering it on top as a ghost card.
+  const prevIndexRef = useRef(currentIndex);
+  const isUndo = currentIndex < prevIndexRef.current;
+  prevIndexRef.current = currentIndex;
+
+  // After a forward swipe keep the just-swiped card mounted one slot behind so its
+  // fly-off animation can finish. After undo, start the slice at currentIndex directly.
+  const renderSliceStart = isUndo ? currentIndex : Math.max(0, currentIndex - 1);
   const allRenderIds = session?.assetIds.slice(renderSliceStart, currentIndex + 3) ?? [];
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
