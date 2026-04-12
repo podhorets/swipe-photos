@@ -7,7 +7,6 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
@@ -16,7 +15,6 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as Notifications from 'expo-notifications';
 import { BlurView } from 'expo-blur';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useDeletionStore } from '@/stores/deletionStore';
 import { cancelOnThisDayNotification, scheduleOnThisDayNotification } from '@/lib/notifications';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { GLASS } from '@/constants/theme';
@@ -164,11 +162,8 @@ export default function SettingsScreen() {
   const analyticsOptIn = useSettingsStore((s) => s.analyticsOptIn);
   const setAnalyticsOptIn = useSettingsStore((s) => s.setAnalyticsOptIn);
 
-  const staged = useDeletionStore((s) => s.staged);
-  const unstageAll = useDeletionStore((s) => s.unstageAll);
   const index = useGalleryStore((s) => s.index);
 
-  const stagedCount = staged.size;
   const appVersion = Application.nativeApplicationVersion ?? '—';
 
   // ── Face ID toggle ──────────────────────────────────────────────────────────
@@ -215,23 +210,6 @@ export default function SettingsScreen() {
       setNotificationsEnabled(false);
       cancelOnThisDayNotification().catch(() => {});
     }
-  }
-
-  // ── Clear staged ────────────────────────────────────────────────────────────
-
-  function handleClearStaged() {
-    Alert.alert(
-      'Clear All Staged?',
-      `Remove ${stagedCount} photo${stagedCount === 1 ? '' : 's'} from the delete queue? They will NOT be deleted from your library.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () => unstageAll(),
-        },
-      ],
-    );
   }
 
   return (
@@ -282,35 +260,12 @@ export default function SettingsScreen() {
         />
       </Section>
 
-      {/* Storage */}
-      <Section title="Storage">
-        <NavRow
-          icon="trash-outline"
-          label="Photos Staged for Deletion"
-          value={String(stagedCount)}
-          onPress={() => router.push('/trash')}
-        />
-        {stagedCount > 0 && (
-          <>
-            <RowDivider />
-            <NavRow
-              icon="close-circle-outline"
-              label="Clear All Staged"
-              subtitle="Removes from queue without deleting"
-              onPress={handleClearStaged}
-              destructive
-            />
-          </>
-        )}
-      </Section>
-
       {/* About */}
       <Section title="About">
         <NavRow
           icon="star-outline"
           label="Rate Swipe Photos"
           onPress={() => {
-            // Opens App Store review prompt — URL provided at App Store listing time
             WebBrowser.openBrowserAsync('https://apps.apple.com').catch(() => {});
           }}
         />

@@ -101,17 +101,6 @@ export function getVideos(index: AssetMeta[]): AssetMeta[] {
     .sort((a, b) => b.duration - a.duration);
 }
 
-// ─── Favorites ───────────────────────────────────────────────────────────────
-
-/** Assets whose IDs are in the iOS Favorites smart album. */
-export function getFavorites(
-  index: AssetMeta[],
-  favoriteIds: Set<string>,
-): AssetMeta[] {
-  if (favoriteIds.size === 0) return [];
-  return index.filter((a) => favoriteIds.has(a.id));
-}
-
 // ─── Random Review ───────────────────────────────────────────────────────────
 
 /** Fisher-Yates shuffle, returns `count` random assets. */

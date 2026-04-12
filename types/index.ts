@@ -24,7 +24,6 @@ export type Category =
   | 'on-this-day'
   | 'screenshots'
   | 'videos'
-  | 'favorites'
   | 'random';
 
 export interface CategoryInfo {
@@ -36,8 +35,8 @@ export interface CategoryInfo {
 
 // ─── Session ─────────────────────────────────────────────────────────────────
 
-export type SwipeDirection = 'left' | 'right' | 'up';
-export type SwipeDecision = 'delete' | 'keep' | 'favorite';
+export type SwipeDirection = 'left' | 'right';
+export type SwipeDecision = 'delete' | 'keep';
 
 export interface Session {
   id: string;
@@ -47,10 +46,3 @@ export interface Session {
   createdAt: number;
 }
 
-// ─── Deletion ────────────────────────────────────────────────────────────────
-
-export interface DeletionResult {
-  success: boolean;
-  deletedIds: string[];
-  failedIds: string[];
-}

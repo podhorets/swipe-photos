@@ -27,11 +27,6 @@ export const COLORS = {
     solid: '#30D158',
     label: '#FFFFFF',
   },
-  favorite: {
-    tint: 'rgba(255, 214, 10, 0.82)',
-    solid: '#FFD60A',
-    label: '#FFFFFF',
-  },
   // UI accents
   accent: '#0A84FF',
   accentMuted: 'rgba(10, 132, 255, 0.7)',
@@ -93,8 +88,6 @@ export const SWIPE = {
   thresholdPx: SCREEN_WIDTH * 0.25,
   // Fast flick (px/s) completes a swipe at half the distance threshold
   velocityThresholdX: 800,
-  // Upward swipe threshold for favorite
-  upThresholdPx: 100,
   // Cards in the stack
   stackSize: 3,
   // Scale / translateY offsets per stack depth

@@ -3,8 +3,6 @@ import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
-import { useDeletionStore } from '@/stores/deletionStore';
-import { useReviewedStore } from '@/stores/reviewedStore';
 import { SwipeCard } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
@@ -24,8 +22,6 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
   const currentIndex = useSessionStore((s) => s.currentIndex);
   const decide = useSessionStore((s) => s.decide);
   const index = useGalleryStore((s) => s.index);
-  const stage = useDeletionStore((s) => s.stage);
-  const record = useReviewedStore((s) => s.record);
 
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
@@ -106,18 +102,10 @@ export function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) 
             stackIndex={stackIndex}
             onSwipeLeft={() => {
               decide(assetId, 'delete');
-              stage(assetId);
-              record(assetId, 'delete');
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             }}
             onSwipeRight={() => {
               decide(assetId, 'keep');
-              record(assetId, 'keep');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            }}
-            onSwipeUp={() => {
-              decide(assetId, 'favorite');
-              record(assetId, 'favorite');
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             }}
             onDoubleTap={() => onDoubleTap(assetId)}

@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSpringPress } from '@/hooks/useSpringPress';
 
 interface ActionButtonProps {
-  type: 'delete' | 'keep' | 'favorite';
+  type: 'delete' | 'keep';
   onPress: () => void;
 }
 
@@ -15,7 +15,7 @@ const CONFIG = {
     bg: 'bg-red-500/20',
     border: 'border-red-500/40',
     color: '#FF453A',
-    size: 52,
+    size: 56,
   },
   keep: {
     icon: 'checkmark-outline' as const,
@@ -23,15 +23,7 @@ const CONFIG = {
     bg: 'bg-green-500/20',
     border: 'border-green-500/40',
     color: '#30D158',
-    size: 60,
-  },
-  favorite: {
-    icon: 'heart-outline' as const,
-    label: 'Fav',
-    bg: 'bg-yellow-400/20',
-    border: 'border-yellow-400/40',
-    color: '#FFD60A',
-    size: 48,
+    size: 56,
   },
 };
 

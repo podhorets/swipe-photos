@@ -26,7 +26,7 @@ const STEPS = [
   {
     emoji: '👆',
     title: 'Swipe to\ndecide',
-    subtitle: 'Left to delete. Right to keep. Up to favorite. Review by year, month, screenshots, videos, and more.',
+    subtitle: 'Left to delete. Right to keep. Review by year, month, screenshots, videos, and more.',
   },
   {
     emoji: '🔒',
@@ -105,7 +105,7 @@ export default function OnboardingScreen() {
                   {[
                     { icon: '📅', label: 'By year, month, or On This Day' },
                     { icon: '📸', label: 'Screenshots & videos sorted for you' },
-                    { icon: '⭐️', label: 'Favorites protected automatically' },
+                    { icon: '✅', label: 'Kept photos never show up again' },
                   ].map((f) => (
                     <GlassCard key={f.label} className="flex-row items-center gap-3 p-3">
                       <Text className="text-2xl">{f.icon}</Text>

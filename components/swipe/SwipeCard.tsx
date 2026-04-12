@@ -22,7 +22,6 @@ interface SwipeCardProps {
   uri: string;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
-  onSwipeUp: () => void;
   onDoubleTap: () => void;
   stackIndex: number; // 0 = top (interactive), 1/2 = background
 }
@@ -35,7 +34,6 @@ export function SwipeCard({
   uri,
   onSwipeLeft,
   onSwipeRight,
-  onSwipeUp,
   onDoubleTap,
   stackIndex,
 }: SwipeCardProps) {
@@ -82,9 +80,6 @@ export function SwipeCard({
       const swipedRight =
         e.translationX > SWIPE.thresholdPx ||
         (e.translationX > SWIPE.thresholdPx * 0.5 && e.velocityX > SWIPE.velocityThresholdX);
-      const swipedUp =
-        e.translationY < -SWIPE.upThresholdPx &&
-        Math.abs(e.translationX) < SWIPE.thresholdPx;
 
       if (swipedLeft) {
         scheduleOnRN(onSwipeLeft);
@@ -92,9 +87,6 @@ export function SwipeCard({
       } else if (swipedRight) {
         scheduleOnRN(onSwipeRight);
         translateX.value = withSpring(SCREEN_WIDTH * 1.5, SPRING.flyOff);
-      } else if (swipedUp) {
-        scheduleOnRN(onSwipeUp);
-        translateY.value = withSpring(-SCREEN_HEIGHT, SPRING.flyOff);
       } else {
         // Snap back with spring overshoot
         translateX.value = withSpring(0, SPRING.snappy);
@@ -148,7 +140,7 @@ export function SwipeCard({
           recyclingKey={uri}
         />
         {isTopCard && (
-          <ActionOverlay translateX={translateX} translateY={translateY} />
+          <ActionOverlay translateX={translateX} />
         )}
       </Animated.View>
     </GestureDetector>

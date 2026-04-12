@@ -4,14 +4,12 @@ import type { AssetMeta } from '@/types';
 
 interface GalleryState {
   index: AssetMeta[];
-  favoriteIds: Set<string>;
   isIndexing: boolean;
   indexProgress: number; // 0–1
   lastIndexed: number;   // unix ms, 0 = never
 
   // Actions
   setIndex: (index: AssetMeta[]) => void;
-  setFavoriteIds: (ids: Set<string>) => void;
   setIndexing: (indexing: boolean, progress?: number) => void;
   removeAssets: (ids: string[]) => void;
   applyDelta: (index: AssetMeta[]) => void;
@@ -20,7 +18,6 @@ interface GalleryState {
 export const useGalleryStore = create<GalleryState>()(
   immer((set) => ({
     index: [],
-    favoriteIds: new Set<string>(),
     isIndexing: false,
     indexProgress: 0,
     lastIndexed: 0,
@@ -31,11 +28,6 @@ export const useGalleryStore = create<GalleryState>()(
         state.lastIndexed = Date.now();
         state.isIndexing = false;
         state.indexProgress = 1;
-      }),
-
-    setFavoriteIds: (ids) =>
-      set((state) => {
-        state.favoriteIds = ids;
       }),
 
     setIndexing: (indexing, progress = 0) =>

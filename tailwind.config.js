@@ -19,7 +19,6 @@ module.exports = {
         // Swipe decisions
         delete: '#FF453A',
         keep: '#30D158',
-        favorite: '#FFD60A',
         // Accent
         accent: '#0A84FF',
         // Backgrounds

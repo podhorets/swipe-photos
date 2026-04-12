@@ -1,9 +1,7 @@
 // MMKV storage keys
 export const STORAGE_KEYS = {
   galleryIndex: 'gallery:index',
-  favoriteIds: 'gallery:favoriteIds',
-  deletionStaged: 'deletion:staged',
-  reviewed: 'reviewed:decisions',
+  keep: 'keep:ids',
   settings: 'settings',
   hasCompletedOnboarding: 'onboarding:completed',
 };

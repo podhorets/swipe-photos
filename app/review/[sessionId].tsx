@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -9,6 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useKeepStore } from '@/stores/keepStore';
 import { SwipeStack } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -33,7 +34,6 @@ export default function ReviewScreen() {
     startSession,
     swipeLeft,
     swipeRight,
-    swipeUp,
     undoLast,
   } = useSession();
 
@@ -94,29 +94,59 @@ export default function ReviewScreen() {
     if (assetId) swipeRight(assetId);
   }
 
-  function handleSwipeUp() {
-    const assetId = visibleAssetIds[0];
-    if (assetId) swipeUp(assetId);
-  }
-
   function handleUndo() {
     undoOpacity.value = withTiming(0, { duration: 150 });
     if (undoDismissTimer.current) clearTimeout(undoDismissTimer.current);
     undoLast();
   }
 
+  // Called by SwipeStack when all cards have been swiped
   const handleSessionComplete = useCallback(() => {
-    const currentDecisions = useSessionStore.getState().decisions;
-    const staged = Object.values(currentDecisions).filter((d) => d === 'delete').length;
+    const decisions = useSessionStore.getState().decisions;
+    const deleteIds = Object.entries(decisions)
+      .filter(([, d]) => d === 'delete')
+      .map(([id]) => id);
 
-    if (staged > 0) {
-      // Signal to trash that it should build the summary after deletion
-      useSessionStore.getState().setSessionFlowPending(true);
+    if (deleteIds.length > 0) {
+      // Navigate to trash with session's delete decisions
+      // router.back() first so trash sits on top of home (not review)
       router.back();
       router.push('/trash');
     } else {
-      // No deletions — show summary inline immediately
+      // No deletions — save all as kept and show summary inline
+      const allIds = Object.keys(decisions);
+      if (allIds.length > 0) useKeepStore.getState().addMany(allIds);
       setShowComplete(true);
+    }
+  }, []);
+
+  // X button — handle mid-session close
+  const handleClose = useCallback(() => {
+    const decisions = useSessionStore.getState().decisions;
+    const deleteCount = Object.values(decisions).filter((d) => d === 'delete').length;
+
+    if (deleteCount > 0) {
+      Alert.alert(
+        'You have photos marked for deletion',
+        `${deleteCount} photo${deleteCount === 1 ? '' : 's'} marked to delete.`,
+        [
+          {
+            text: 'Discard & Close',
+            style: 'cancel',
+            onPress: () => router.back(),
+          },
+          {
+            text: 'Review Trash',
+            onPress: () => {
+              router.back();
+              router.push('/trash');
+            },
+          },
+        ],
+      );
+    } else {
+      // No deletes — just close without saving (abandoned session)
+      router.back();
     }
   }, []);
 
@@ -124,14 +154,12 @@ export default function ReviewScreen() {
     router.push(`/review/preview/${assetId}`);
   }, []);
 
-  // Only computed when the completion sheet is actually visible — not on every swipe
+  // Counts for completion sheet (only computed when sheet is actually shown)
   const completionCounts = useMemo(() => {
-    if (!showComplete) return { stagedCount: 0, keptCount: 0, favoritedCount: 0 };
+    if (!showComplete) return { keptCount: 0 };
     const d = Object.values(useSessionStore.getState().decisions);
     return {
-      stagedCount: d.filter((v) => v === 'delete').length,
       keptCount: d.filter((v) => v === 'keep').length,
-      favoritedCount: d.filter((v) => v === 'favorite').length,
     };
   }, [showComplete]);
 
@@ -170,7 +198,7 @@ export default function ReviewScreen() {
         style={{ paddingTop: insets.top + 12 }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleClose}
           className="w-9 h-9 items-center justify-center rounded-full bg-white/10 mr-3"
         >
           <Ionicons name="close" size={20} color="white" />
@@ -204,24 +232,20 @@ export default function ReviewScreen() {
         />
       </View>
 
-      {/* Action buttons */}
+      {/* Action buttons — delete and keep only */}
       <View
-        className="flex-row items-center justify-center gap-8"
+        className="flex-row items-center justify-center gap-12"
         style={{ paddingBottom: insets.bottom + 24 }}
       >
         <ActionButton type="delete" onPress={handleSwipeLeft} />
         <ActionButton type="keep" onPress={handleSwipeRight} />
-        <ActionButton type="favorite" onPress={handleSwipeUp} />
       </View>
 
       {/* Session complete sheet — only shown when zero deletions (trash path skips this) */}
       {showComplete && (
         <SessionCompleteSheet
           totalCount={totalCount}
-          stagedCount={completionCounts.stagedCount}
           keptCount={completionCounts.keptCount}
-          favoritedCount={completionCounts.favoritedCount}
-          showReviewTrash={false}
           onDone={() => router.back()}
         />
       )}

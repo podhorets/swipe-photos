@@ -13,10 +13,11 @@ import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import * as LocalAuthentication from 'expo-local-authentication';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useDeletionStore } from '@/stores/deletionStore';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useKeepStore } from '@/stores/keepStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useSessionStore } from '@/stores/sessionStore';
+import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import type { AssetMeta } from '@/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -74,7 +75,7 @@ function EmptyTrash() {
   return (
     <View className="flex-1 items-center justify-center gap-3">
       <Ionicons name="trash-outline" size={56} color="rgba(255,255,255,0.15)" />
-      <Text className="text-white/30 text-base">No photos staged for deletion</Text>
+      <Text className="text-white/30 text-base">No photos marked for deletion</Text>
       <Pressable onPress={() => router.back()} className="mt-2">
         <Text className="text-white/50 text-sm">Go back</Text>
       </Pressable>
@@ -87,25 +88,35 @@ function EmptyTrash() {
 export default function TrashScreen() {
   const insets = useSafeAreaInsets();
 
-  const staged = useDeletionStore((s) => s.staged);
-  const confirmDeletion = useDeletionStore((s) => s.confirmDeletion);
   const index = useGalleryStore((s) => s.index);
   const removeAssets = useGalleryStore((s) => s.removeAssets);
   const faceIdEnabled = useSettingsStore((s) => s.faceIdEnabled);
 
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryStats, setSummaryStats] = useState({ total: 0, kept: 0 });
 
-  // Resolve staged IDs → AssetMeta (skip any no longer in index)
-  const stagedAssets = useMemo(() => {
+  // Get delete decisions from the current session (session-scoped trash).
+  // Captured once on mount — session decisions don't change while we're in trash.
+  const [sessionDecisions] = useState(() => useSessionStore.getState().decisions);
+  const deleteIds = useMemo(
+    () => Object.entries(sessionDecisions)
+      .filter(([, d]) => d === 'delete')
+      .map(([id]) => id),
+    [sessionDecisions],
+  );
+
+  // Resolve delete IDs → AssetMeta (skip any no longer in index)
+  const deleteAssets = useMemo(() => {
     const byId = new Map<string, AssetMeta>(index.map((a) => [a.id, a]));
-    return Array.from(staged)
+    return deleteIds
       .map((id) => byId.get(id))
       .filter((a): a is AssetMeta => a !== undefined);
-  }, [staged, index]);
+  }, [deleteIds, index]);
 
-  // All staged assets are selected for deletion by default
+  // All delete assets are selected by default
   const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(Array.from(staged)),
+    () => new Set(deleteIds),
   );
 
   const toggleSelect = useCallback((id: string) => {
@@ -120,26 +131,26 @@ export default function TrashScreen() {
     });
   }, []);
 
-  const allSelected = selected.size === stagedAssets.length;
+  const allSelected = selected.size === deleteAssets.length;
 
   function toggleSelectAll() {
     if (allSelected) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(stagedAssets.map((a) => a.id)));
+      setSelected(new Set(deleteAssets.map((a) => a.id)));
     }
   }
 
   async function handleDelete() {
-    const ids = Array.from(selected);
-    if (ids.length === 0) return;
+    const idsToDelete = Array.from(selected);
+    if (idsToDelete.length === 0) return;
 
     // Face ID gate
     if (faceIdEnabled) {
       const supported = await LocalAuthentication.hasHardwareAsync();
       if (supported) {
         const result = await LocalAuthentication.authenticateAsync({
-          promptMessage: `Delete ${ids.length} photo${ids.length === 1 ? '' : 's'}`,
+          promptMessage: `Delete ${idsToDelete.length} photo${idsToDelete.length === 1 ? '' : 's'}`,
           fallbackLabel: 'Use Passcode',
           cancelLabel: 'Cancel',
         });
@@ -150,34 +161,35 @@ export default function TrashScreen() {
     setIsDeleting(true);
     try {
       // deleteAssetsAsync shows a native iOS "Delete X Photos?" confirmation dialog
-      await MediaLibrary.deleteAssetsAsync(ids);
+      await MediaLibrary.deleteAssetsAsync(idsToDelete);
     } catch {
-      // Asset was already deleted externally — fall through to clean up staging
+      // Asset was already deleted externally — fall through to clean up
     } finally {
-      // Always remove from staged regardless of whether deletion succeeded or asset was already gone
-      confirmDeletion(ids);
-      removeAssets(ids);
+      // Remove deleted assets from gallery index
+      removeAssets(idsToDelete);
+
+      // IDs that were deselected (user changed mind) + all 'keep' decisions from session
+      const deselectedIds = deleteIds.filter((id) => !selected.has(id));
+      const sessionKeepIds = Object.entries(sessionDecisions)
+        .filter(([, d]) => d === 'keep')
+        .map(([id]) => id);
+      const allKeptIds = [...deselectedIds, ...sessionKeepIds];
+      if (allKeptIds.length > 0) {
+        useKeepStore.getState().addMany(allKeptIds);
+      }
+
       setIsDeleting(false);
 
-      const store = useSessionStore.getState();
-      if (store.sessionFlowPending) {
-        // Build the full summary using session decisions + actual deleted count
-        const decisions = store.decisions;
-        store.setPendingSummary({
-          totalCount: Object.keys(decisions).length,
-          stagedCount: ids.length,
-          keptCount: Object.values(decisions).filter((d) => d === 'keep').length,
-          favoritedCount: Object.values(decisions).filter((d) => d === 'favorite').length,
-        });
-        store.setSessionFlowPending(false);
-        router.back();
-      } else if (staged.size - ids.length <= 0) {
-        router.back();
-      }
+      // Show inline summary
+      setSummaryStats({
+        total: Object.keys(sessionDecisions).length,
+        kept: allKeptIds.length,
+      });
+      setShowSummary(true);
     }
   }
 
-  if (stagedAssets.length === 0) {
+  if (deleteAssets.length === 0 && !showSummary) {
     return (
       <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
         <View className="flex-row items-center px-6 py-4">
@@ -208,9 +220,9 @@ export default function TrashScreen() {
           <Ionicons name="chevron-back" size={20} color="white" />
         </Pressable>
         <View className="flex-1">
-          <Text className="text-white text-2xl font-bold">Trash</Text>
+          <Text className="text-white text-2xl font-bold">Review Trash</Text>
           <Text className="text-white/40 text-xs mt-0.5">
-            {stagedAssets.length} photo{stagedAssets.length === 1 ? '' : 's'} staged
+            {deleteAssets.length} photo{deleteAssets.length === 1 ? '' : 's'} marked for deletion
           </Text>
         </View>
         {/* Select all toggle */}
@@ -226,12 +238,12 @@ export default function TrashScreen() {
 
       {/* Hint */}
       <Text className="text-white/30 text-xs text-center mb-2">
-        Tap photos to deselect · {selected.size} selected
+        Tap to deselect · {selected.size} selected for deletion
       </Text>
 
       {/* Photo grid */}
       <FlatList
-        data={stagedAssets}
+        data={deleteAssets}
         keyExtractor={(item) => item.id}
         numColumns={3}
         renderItem={({ item }) => (
@@ -272,6 +284,15 @@ export default function TrashScreen() {
           )}
         </Pressable>
       </View>
+
+      {/* Post-deletion summary overlay */}
+      {showSummary && (
+        <SessionCompleteSheet
+          totalCount={summaryStats.total}
+          keptCount={summaryStats.kept}
+          onDone={() => router.back()}
+        />
+      )}
     </View>
   );
 }

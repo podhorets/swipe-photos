@@ -22,23 +22,6 @@ function saveIndex(index: AssetMeta[]): void {
   storage.set(STORAGE_KEYS.galleryIndex, JSON.stringify(index));
 }
 
-export function loadCachedFavoriteIds(): Set<string> {
-  const raw = storage.getString(STORAGE_KEYS.favoriteIds);
-  if (!raw) return new Set();
-  try {
-    return new Set(JSON.parse(raw) as string[]);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveFavoriteIds(ids: Set<string>): void {
-  storage.set(
-    STORAGE_KEYS.favoriteIds,
-    JSON.stringify(Array.from(ids)),
-  );
-}
-
 // ─── Mapping ─────────────────────────────────────────────────────────────────
 
 function assetToMeta(asset: MediaLibrary.Asset): AssetMeta {
@@ -96,31 +79,6 @@ export async function buildIndex(
 
   saveIndex(allAssets);
   return allAssets;
-}
-
-// ─── Favorites smart album ───────────────────────────────────────────────────
-
-export async function fetchFavoriteIds(): Promise<Set<string>> {
-  try {
-    const albums = await MediaLibrary.getAlbumsAsync({
-      includeSmartAlbums: true,
-    });
-    const favAlbum = albums.find((a) => a.title === 'Favorites');
-    if (!favAlbum) return new Set();
-
-    // Favorites album can be large — fetch all IDs in one call
-    const result = await MediaLibrary.getAssetsAsync({
-      album: favAlbum,
-      first: 99999,
-      mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
-    });
-
-    const ids = new Set(result.assets.map((a) => a.id));
-    saveFavoriteIds(ids);
-    return ids;
-  } catch {
-    return new Set();
-  }
 }
 
 // ─── Incremental update ──────────────────────────────────────────────────────

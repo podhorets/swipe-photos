@@ -10,13 +10,11 @@ import { COLORS, SWIPE } from '@/constants/theme';
 
 interface ActionOverlayProps {
   translateX: SharedValue<number>;
-  translateY: SharedValue<number>;
 }
 
 const T = SWIPE.thresholdPx;
-const U = SWIPE.upThresholdPx;
 
-export function ActionOverlay({ translateX, translateY }: ActionOverlayProps) {
+export function ActionOverlay({ translateX }: ActionOverlayProps) {
 
   // ── DELETE (swipe left) ────────────────────────────────────────────────────
   const deleteOverlayStyle = useAnimatedStyle(() => ({
@@ -31,7 +29,6 @@ export function ActionOverlay({ translateX, translateY }: ActionOverlayProps) {
 
   const deleteLabelStyle = useAnimatedStyle(() => ({
     transform: [{
-      // Pumps from 0.8 → 1.15 as drag crosses the threshold
       scale: interpolate(
         translateX.value,
         [-T, -T * 0.8, 0],
@@ -58,28 +55,6 @@ export function ActionOverlay({ translateX, translateY }: ActionOverlayProps) {
         translateX.value,
         [0, T * 0.8, T],
         [0.8, 0.8, 1.15],
-        Extrapolation.CLAMP,
-      ),
-    }],
-  }));
-
-  // ── FAVORITE (swipe up) ────────────────────────────────────────────────────
-  const favoriteOverlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [-U, -U * 0.4], [1, 0], Extrapolation.CLAMP),
-  }));
-
-  const favoriteIconStyle = useAnimatedStyle(() => ({
-    transform: [{
-      scale: interpolate(translateY.value, [-U, -U * 0.6], [1.15, 0.8], Extrapolation.CLAMP),
-    }],
-  }));
-
-  const favoriteLabelStyle = useAnimatedStyle(() => ({
-    transform: [{
-      scale: interpolate(
-        translateY.value,
-        [-U, -U * 0.8, 0],
-        [1.15, 0.8, 0.8],
         Extrapolation.CLAMP,
       ),
     }],
@@ -121,25 +96,6 @@ export function ActionOverlay({ translateX, translateY }: ActionOverlayProps) {
             style={keepLabelStyle}
           >
             KEEP
-          </Animated.Text>
-        </View>
-      </Animated.View>
-
-      {/* FAVORITE */}
-      <Animated.View
-        className="absolute inset-0 items-center justify-center"
-        style={[{ backgroundColor: COLORS.favorite.tint }, favoriteOverlayStyle]}
-        pointerEvents="none"
-      >
-        <View className="items-center gap-2">
-          <Animated.View style={favoriteIconStyle}>
-            <Ionicons name="heart" size={48} color="white" />
-          </Animated.View>
-          <Animated.Text
-            className="text-white font-bold text-2xl tracking-widest"
-            style={favoriteLabelStyle}
-          >
-            FAVORITE
           </Animated.Text>
         </View>
       </Animated.View>

@@ -4,19 +4,15 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGalleryStore } from '@/stores/galleryStore';
-import { useDeletionStore } from '@/stores/deletionStore';
-import { useReviewedStore } from '@/stores/reviewedStore';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useKeepStore } from '@/stores/keepStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
-import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import { YearPicker, MonthPicker } from '@/components/ui/YearMonthPicker';
 import {
   getOnThisDay,
   getScreenshots,
   getVideos,
-  getFavorites,
 } from '@/lib/gallery/grouper';
 import type { Category } from '@/types';
 
@@ -33,53 +29,43 @@ const CATEGORIES: CategoryDef[] = [
   { id: 'on-this-day', label: 'On This Day',   icon: 'sparkles-outline', subtitle: 'Memories from past years' },
   { id: 'screenshots', label: 'Screenshots',   icon: 'phone-portrait-outline' },
   { id: 'videos',      label: 'Videos',        icon: 'videocam-outline' },
-  { id: 'favorites',   label: 'Favorites',     icon: 'heart-outline' },
   { id: 'random',      label: 'Random Review', icon: 'shuffle-outline', subtitle: 'Random 50 from your library' },
 ];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const index = useGalleryStore((s) => s.index);
-  const favoriteIds = useGalleryStore((s) => s.favoriteIds);
   const isIndexing = useGalleryStore((s) => s.isIndexing);
-  const staged = useDeletionStore((s) => s.staged);
-  const stagedCount = staged.size;
+  const keepIds = useKeepStore((s) => s.keepIds);
   const { isMediaGranted, isMediaLimited } = usePermissions();
-
-  const reviewedDecisions = useReviewedStore((s) => s.decisions);
-  const pendingSummary = useSessionStore((s) => s.pendingSummary);
-  const clearPendingSummary = useSessionStore((s) => s.clearPendingSummary);
 
   const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
 
-  // Memoize counts so grouper functions only re-run when index/favoriteIds change
+  // Memoize counts so grouper functions only re-run when index changes
   const counts = useMemo(() => ({
     year:        index.length,
     month:       index.length,
     onThisDay:   getOnThisDay(index).length,
     screenshots: getScreenshots(index).length,
     videos:      getVideos(index).length,
-    favorites:   getFavorites(index, favoriteIds).length,
     random:      index.length,
-  }), [index, favoriteIds]);
+  }), [index]);
 
-  // Per-category progress (0–1). year/month/random are sub-grouped or infinite — no progress bar.
+  // Per-category progress (0–1): ratio of kept items to total in category.
+  // year/month/random are sub-grouped or infinite — no progress bar.
   const categoryProgress = useMemo(() => {
-    const reviewedIds = new Set(reviewedDecisions.keys());
-
     function ratio(assets: { id: string }[]): number {
       if (assets.length === 0) return 0;
-      return assets.filter((a) => reviewedIds.has(a.id)).length / assets.length;
+      return assets.filter((a) => keepIds.has(a.id)).length / assets.length;
     }
 
     return {
-      screenshots: ratio(getScreenshots(index)),
-      videos:      ratio(getVideos(index)),
-      favorites:   ratio(getFavorites(index, favoriteIds)),
+      screenshots:   ratio(getScreenshots(index)),
+      videos:        ratio(getVideos(index)),
       'on-this-day': ratio(getOnThisDay(index)),
     } as Partial<Record<Category, number>>;
-  }, [index, favoriteIds, reviewedDecisions]);
+  }, [index, keepIds]);
 
   function countFor(id: Category): number {
     return counts[id === 'on-this-day' ? 'onThisDay' : id] ?? 0;
@@ -160,23 +146,6 @@ export default function HomeScreen() {
                 : 'Loading your library…'}
             </Text>
           </View>
-
-          {/* Trash badge — only shown when photos are staged */}
-          {stagedCount > 0 && (
-            <Pressable
-              onPress={() => router.push('/trash')}
-              className="items-center justify-center mt-1"
-            >
-              <View className="relative">
-                <Ionicons name="trash-outline" size={28} color="rgba(255,255,255,0.7)" />
-                <View className="absolute -top-1.5 -right-2 bg-red-500 rounded-full min-w-[18px] h-[18px] items-center justify-center px-1">
-                  <Text className="text-white text-xs font-bold leading-none">
-                    {stagedCount > 99 ? '99+' : String(stagedCount)}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-          )}
         </View>
 
         {/* Limited access banner */}
@@ -237,18 +206,6 @@ export default function HomeScreen() {
         onSelect={handleMonthSelect}
         onClose={() => setMonthPickerVisible(false)}
       />
-
-      {/* Post-trash session summary — shown after user returns from trash screen */}
-      {pendingSummary && (
-        <SessionCompleteSheet
-          totalCount={pendingSummary.totalCount}
-          stagedCount={pendingSummary.stagedCount}
-          keptCount={pendingSummary.keptCount}
-          favoritedCount={pendingSummary.favoritedCount}
-          showReviewTrash={false}
-          onDone={clearPendingSummary}
-        />
-      )}
     </View>
   );
 }

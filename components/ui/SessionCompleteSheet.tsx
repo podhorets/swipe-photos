@@ -17,13 +17,8 @@ import confettiSource from '@/assets/animations/confetti.json';
 
 interface SessionCompleteSheetProps {
   totalCount: number;
-  stagedCount: number;
   keptCount: number;
-  favoritedCount: number;
   onDone: () => void;
-  // When false the "Review Trash" button is hidden (e.g. summary shown after trash is already done)
-  showReviewTrash?: boolean;
-  onReviewTrash?: () => void;
 }
 
 // ─── Staggered stat ───────────────────────────────────────────────────────────
@@ -54,12 +49,8 @@ function AnimatedStat({ label, value, delay }: { label: string; value: number; d
 
 export function SessionCompleteSheet({
   totalCount,
-  stagedCount,
   keptCount,
-  favoritedCount,
   onDone,
-  showReviewTrash = true,
-  onReviewTrash,
 }: SessionCompleteSheetProps) {
   const lottieRef = useRef<LottieView>(null);
 
@@ -68,7 +59,6 @@ export function SessionCompleteSheet({
   const titleOpacity = useSharedValue(0);
   const titleScale = useSharedValue(0.82);
 
-  const { animatedStyle: trashBtnStyle, onPressIn: trashIn, onPressOut: trashOut } = useSpringPress(0.96);
   const { animatedStyle: doneBtnStyle, onPressIn: doneIn, onPressOut: doneOut } = useSpringPress(0.96);
 
   useEffect(() => {
@@ -116,28 +106,10 @@ export function SessionCompleteSheet({
 
           {/* Stats row — staggered in */}
           <View className="flex-row justify-around mb-6">
-            <AnimatedStat label="To Delete" value={stagedCount} delay={200} />
+            <AnimatedStat label="Kept" value={keptCount} delay={200} />
             <View className="w-px bg-white/10" />
-            <AnimatedStat label="Kept" value={keptCount} delay={310} />
-            <View className="w-px bg-white/10" />
-            <AnimatedStat label="Favorited" value={favoritedCount} delay={420} />
+            <AnimatedStat label="Deleted" value={totalCount - keptCount} delay={310} />
           </View>
-
-          {/* CTAs */}
-          {showReviewTrash && stagedCount > 0 && (
-            <Animated.View style={trashBtnStyle}>
-              <Pressable
-                onPress={onReviewTrash}
-                onPressIn={trashIn}
-                onPressOut={trashOut}
-                className="bg-red-500/80 rounded-2xl py-4 items-center mb-3"
-              >
-                <Text className="text-white font-semibold text-base">
-                  Review Trash ({stagedCount})
-                </Text>
-              </Pressable>
-            </Animated.View>
-          )}
 
           <Animated.View style={doneBtnStyle}>
             <Pressable
@@ -146,9 +118,7 @@ export function SessionCompleteSheet({
               onPressOut={doneOut}
               className="bg-gray-500/80 rounded-2xl py-4 items-center mb-3"
             >
-              <Text className="text-white text-base">
-                {showReviewTrash && stagedCount > 0 ? 'Done' : 'Back to Home'}
-              </Text>
+              <Text className="text-white text-base">Back to Home</Text>
             </Pressable>
           </Animated.View>
         </GlassSheet>
