@@ -7,47 +7,52 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { createSession, type SessionRequest } from '@/lib/session/sessionFactory';
 
 export function useSession() {
-  const store = useSessionStore();
+  const session = useSessionStore((s) => s.session);
+  const currentIndex = useSessionStore((s) => s.currentIndex);
+  const decisions = useSessionStore((s) => s.decisions);
+  const startSessionAction = useSessionStore((s) => s.startSession);
+  const decideAction = useSessionStore((s) => s.decide);
+  const undoLastAction = useSessionStore((s) => s.undoLast);
   const { stage, unstage } = useDeletionStore();
 
   function startSession(request: SessionRequest) {
     const { index, favoriteIds } = useGalleryStore.getState();
     const reviewedIds = new Set(useReviewedStore.getState().decisions.keys());
     const batchSize = useSettingsStore.getState().batchSize;
-    const session = createSession(
+    const newSession = createSession(
       { ...request, batchSize: request.batchSize ?? batchSize },
       index,
       favoriteIds,
       reviewedIds,
     );
-    store.startSession(session);
-    return session;
+    startSessionAction(newSession);
+    return newSession;
   }
 
   function swipeLeft(assetId: string) {
-    store.decide(assetId, 'delete');
+    decideAction(assetId, 'delete');
     stage(assetId); // persist to MMKV-backed deletion queue
     useReviewedStore.getState().record(assetId, 'delete');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }
 
   function swipeRight(assetId: string) {
-    store.decide(assetId, 'keep');
+    decideAction(assetId, 'keep');
     useReviewedStore.getState().record(assetId, 'keep');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
   function swipeUp(assetId: string) {
-    store.decide(assetId, 'favorite');
+    decideAction(assetId, 'favorite');
     useReviewedStore.getState().record(assetId, 'favorite');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
   function undoLast() {
-    const restoredId = store.undoLast();
+    const restoredId = undoLastAction();
     if (restoredId) {
       // If the undone decision was 'delete', remove from staging
-      const previousDecision = store.decisions[restoredId];
+      const previousDecision = decisions[restoredId];
       if (previousDecision === 'delete') unstage(restoredId);
       useReviewedStore.getState().remove(restoredId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -55,7 +60,6 @@ export function useSession() {
     return restoredId;
   }
 
-  const { session, currentIndex, decisions } = store;
   const totalCount = session?.assetIds.length ?? 0;
   const remainingCount = totalCount - currentIndex;
   const progressFraction = totalCount > 0 ? currentIndex / totalCount : 0;
