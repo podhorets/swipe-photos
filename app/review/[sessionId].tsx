@@ -102,6 +102,12 @@ export default function ReviewScreen() {
 
   // Called by SwipeStack when all cards have been swiped
   const handleSessionComplete = useCallback(() => {
+    // Guard against stale isComplete firing before startSession runs on fresh mount.
+    // lastStartedKey is '' until ReviewScreen's own effect sets it — SwipeStack's
+    // effect fires first (child before parent), so if it's still empty the signal
+    // is from the previous session and should be ignored.
+    if (!lastStartedKey.current) return;
+
     const decisions = useSessionStore.getState().decisions;
     const deleteIds = Object.entries(decisions)
       .filter(([, d]) => d === 'delete')
