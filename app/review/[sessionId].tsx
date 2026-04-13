@@ -7,7 +7,6 @@ import { BlurView } from 'expo-blur';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
-import { useGalleryStore } from '@/stores/galleryStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { SwipeStack } from '@/components/swipe/SwipeStack';
@@ -37,14 +36,11 @@ export default function ReviewScreen() {
     undoLast,
   } = useSession();
 
-  const galleryIndex = useGalleryStore((s) => s.index);
-
-  // Look up only the one URI we need (background) — no full Map required here
+  // Read from the session URI snapshot — O(1) Map lookup, no gallery subscription.
+  // This screen never touches galleryStore.index during an active session.
+  const uriById = useSessionStore((s) => s.uriSnapshot);
   const topAssetId = visibleAssetIds[0] ?? null;
-  const currentUri = useMemo(
-    () => topAssetId ? galleryIndex.find((a) => a.id === topAssetId)?.uri ?? null : null,
-    [topAssetId, galleryIndex],
-  );
+  const currentUri = topAssetId ? (uriById.get(topAssetId) ?? null) : null;
 
   // Debounce background URI: only update after 350ms of inactivity so rapid swipes
   // don't trigger expensive Image + BlurView re-renders on every card change.
@@ -130,7 +126,7 @@ export default function ReviewScreen() {
     if (deleteIds.length > 0) {
       // Navigate to trash with session's delete decisions
       // router.back() first so trash sits on top of home (not review)
-      // router.back();
+      router.back();
       router.push('/trash');
     } else {
       // No deletions — save all as kept and show summary inline

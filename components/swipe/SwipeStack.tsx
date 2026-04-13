@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, memo } from 'react';
 import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useGalleryStore } from '@/stores/galleryStore';
 import { SwipeCard } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
@@ -21,7 +20,9 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   const session = useSessionStore((s) => s.session);
   const currentIndex = useSessionStore((s) => s.currentIndex);
   const decide = useSessionStore((s) => s.decide);
-  const index = useGalleryStore((s) => s.index);
+  // URI snapshot captured at session-start — stable for the entire session lifetime.
+  // Never rebuilds due to gallery index changes, so no O(50k) Map builds during swiping.
+  const uriById = useSessionStore((s) => s.uriSnapshot);
 
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
@@ -38,12 +39,6 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   const renderSliceStart = isUndo ? currentIndex : Math.max(0, currentIndex - 1);
   const allRenderIds = session?.assetIds.slice(renderSliceStart, currentIndex + 3) ?? [];
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
-
-  // Build uri lookup once — only rebuilds when gallery index changes, NOT on every swipe
-  const uriById = useMemo(
-    () => new Map(index.map((a) => [a.id, a.uri])),
-    [index],
-  );
 
   // Prefetch the next few cards beyond the visible stack
   useMemo(() => {

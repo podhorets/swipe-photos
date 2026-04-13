@@ -21,7 +21,21 @@ export function useSession() {
       index,
       keepIds,
     );
-    startSessionAction(newSession);
+
+    // Snapshot URIs for exactly the session's assets at creation time.
+    // SwipeStack and ReviewScreen read from this snapshot for the entire
+    // session lifetime — never from the live galleryStore index — so that
+    // buildIndex() completing or MediaLibrary delta events mid-session cannot
+    // trigger 50k-entry Map rebuilds or spurious auto-skips during swiping.
+    const sessionIdSet = new Set(newSession.assetIds);
+    const uriSnapshot = new Map<string, string>();
+    for (const a of index) {
+      if (sessionIdSet.has(a.id)) {
+        uriSnapshot.set(a.id, a.uri);
+      }
+    }
+
+    startSessionAction(newSession, uriSnapshot);
     return newSession;
   }
 

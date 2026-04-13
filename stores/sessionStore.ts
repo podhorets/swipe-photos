@@ -8,9 +8,14 @@ interface SessionState {
   currentIndex: number;
   decisions: Record<string, SwipeDecision>; // assetId → decision
   undoStack: string[]; // assetId LIFO, max SESSION.maxUndo
+  // URI snapshot captured at session-start from the gallery index at that moment.
+  // SwipeStack reads URIs from here instead of subscribing to the live galleryStore,
+  // so buildIndex() completing or MediaLibrary delta events mid-session cannot
+  // trigger uriById rebuilds or spurious auto-skips during swiping.
+  uriSnapshot: Map<string, string>;
 
   // Actions
-  startSession: (session: Session) => void;
+  startSession: (session: Session, uriSnapshot: Map<string, string>) => void;
   decide: (assetId: string, decision: SwipeDecision) => void;
   undoLast: () => string | null; // returns the restored assetId or null
   resetSession: () => void;
@@ -25,10 +30,12 @@ export const useSessionStore = create<SessionState>()(
     currentIndex: 0,
     decisions: {},
     undoStack: [],
+    uriSnapshot: new Map(),
 
-    startSession: (session) =>
+    startSession: (session, uriSnapshot) =>
       set((state) => {
         state.session = session;
+        state.uriSnapshot = uriSnapshot;
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
@@ -36,6 +43,11 @@ export const useSessionStore = create<SessionState>()(
 
     decide: (assetId, decision) =>
       set((state) => {
+        // Idempotent guard: if this asset was already decided, do nothing.
+        // Prevents double-advance when scheduleOnRN fires twice for the same
+        // card (user swipes again before the first decide has committed).
+        // undoLast() clears the decision, so re-deciding after undo works correctly.
+        if (assetId in state.decisions) return;
         state.decisions[assetId] = decision;
         state.currentIndex = Math.min(
           state.currentIndex + 1,
@@ -66,6 +78,7 @@ export const useSessionStore = create<SessionState>()(
     resetSession: () =>
       set((state) => {
         state.session = null;
+        state.uriSnapshot = new Map();
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
