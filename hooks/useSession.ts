@@ -26,7 +26,7 @@ export function useSession() {
     // SwipeStack and ReviewScreen read from this snapshot for the entire
     // session lifetime — never from the live galleryStore index — so that
     // buildIndex() completing or MediaLibrary delta events mid-session cannot
-    // trigger 50k-entry Map rebuilds or spurious auto-skips during swiping.
+    // trigger spurious re-renders or auto-skips during swiping.
     const sessionIdSet = new Set(newSession.assetIds);
     const uriSnapshot = new Map<string, string>();
     for (const a of index) {

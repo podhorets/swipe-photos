@@ -82,10 +82,6 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
     );
   }
 
-  // Render back-to-front so top card (stackIndex 0) is visually on top.
-  // Departing card (index < currentIndex) is rendered first = behind everything.
-  const renderIds = [...allRenderIds].reverse();
-
   return (
     <View
       style={{
@@ -93,10 +89,16 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         height: CARD_HEIGHT + SWIPE.stackOffsetY[SWIPE.stackSize - 1],
       }}
     >
-      {renderIds.map((assetId) => {
+      {/* Render front-to-back — top card first — so the native layer creates it first.
+          zIndex handles visual stacking order, eliminating the brief flash of back
+          cards during initial mount when the top card hasn't been created yet. */}
+      {allRenderIds.map((assetId) => {
         const positionInVisible = visibleAssetIds.indexOf(assetId);
         // -1 means this card is the just-departed one — keep mounted for fly-off, not interactive
         const stackIndex = positionInVisible === -1 ? -1 : positionInVisible;
+        // Departing card stays above everything during its fly-off animation;
+        // visible cards are ordered top-to-bottom by decreasing zIndex.
+        const zIndex = stackIndex === -1 ? 10 : (3 - stackIndex);
         const uri = uriById.get(assetId) ?? '';
 
         return (
@@ -104,6 +106,7 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
             key={assetId}
             uri={uri}
             stackIndex={stackIndex}
+            zIndex={zIndex}
             onSwipeLeft={() => {
               decide(assetId, 'delete');
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);

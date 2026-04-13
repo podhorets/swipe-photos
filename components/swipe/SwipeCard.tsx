@@ -24,6 +24,7 @@ interface SwipeCardProps {
   onSwipeRight: () => void;
   onDoubleTap: () => void;
   stackIndex: number; // 0 = top (interactive), 1/2 = background
+  zIndex: number;     // explicit native layer order — top card always highest
 }
 
 function triggerHaptic(style: Haptics.ImpactFeedbackStyle) {
@@ -36,6 +37,7 @@ export function SwipeCard({
   onSwipeRight,
   onDoubleTap,
   stackIndex,
+  zIndex,
 }: SwipeCardProps) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -134,13 +136,13 @@ export function SwipeCard({
       <Animated.View
         className="absolute rounded-3xl overflow-hidden"
         pointerEvents={isDeparting ? 'none' : 'auto'}
-        style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24 }, cardStyle]}
+        style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24, zIndex }, cardStyle]}
       >
         <Image
           source={{ uri }}
           style={{ flex: 1 }}
           contentFit="cover"
-          transition={200}
+          transition={isTopCard ? 0 : 200}
           recyclingKey={uri}
         />
         {isTopCard && (

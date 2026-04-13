@@ -38,6 +38,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="by-month"
+          options={{
+            title: 'By Month',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="calendar-number-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="on-this-day"
           options={{
             title: 'On This Day',

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import { useKeepStore } from '@/stores/keepStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
-import { YearPicker, MonthPicker } from '@/components/ui/YearMonthPicker';
+import { GlassCard } from '@/components/glass/GlassCard';
 import {
   getOnThisDay,
   getScreenshots,
@@ -24,8 +24,6 @@ interface CategoryDef {
 }
 
 const CATEGORIES: CategoryDef[] = [
-  { id: 'year',        label: 'By Year',       icon: 'file-tray-stacked-outline' },
-  { id: 'month',       label: 'By Month',      icon: 'calendar-number-outline' },
   { id: 'on-this-day', label: 'On This Day',   icon: 'sparkles-outline', subtitle: 'Memories from past years' },
   { id: 'screenshots', label: 'Screenshots',   icon: 'phone-portrait-outline' },
   { id: 'videos',      label: 'Videos',        icon: 'videocam-outline' },
@@ -39,21 +37,15 @@ export default function HomeScreen() {
   const keepIds = useKeepStore((s) => s.keepIds);
   const { isMediaGranted, isMediaLimited } = usePermissions();
 
-  const [yearPickerVisible, setYearPickerVisible] = useState(false);
-  const [monthPickerVisible, setMonthPickerVisible] = useState(false);
-
   // Memoize counts so grouper functions only re-run when index changes
   const counts = useMemo(() => ({
-    year:        index.length,
-    month:       index.length,
-    onThisDay:   getOnThisDay(index).length,
-    screenshots: getScreenshots(index).length,
-    videos:      getVideos(index).length,
-    random:      index.length,
+    'on-this-day': getOnThisDay(index).length,
+    screenshots:   getScreenshots(index).length,
+    videos:        getVideos(index).length,
+    random:        index.length,
   }), [index]);
 
   // Per-category progress (0–1): ratio of kept items to total in category.
-  // year/month/random are sub-grouped or infinite — no progress bar.
   const categoryProgress = useMemo(() => {
     function ratio(assets: { id: string }[]): number {
       if (assets.length === 0) return 0;
@@ -68,7 +60,7 @@ export default function HomeScreen() {
   }, [index, keepIds]);
 
   function countFor(id: Category): number {
-    return counts[id === 'on-this-day' ? 'onThisDay' : id] ?? 0;
+    return counts[id as keyof typeof counts] ?? 0;
   }
 
   function handleCategoryPress(category: Category) {
@@ -85,25 +77,7 @@ export default function HomeScreen() {
       ]);
       return;
     }
-    if (category === 'year') {
-      setYearPickerVisible(true);
-      return;
-    }
-    if (category === 'month') {
-      setMonthPickerVisible(true);
-      return;
-    }
     router.push(`/review/${category}`);
-  }
-
-  function handleYearSelect(year: number) {
-    setYearPickerVisible(false);
-    router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'year', year: String(year) } });
-  }
-
-  function handleMonthSelect(yyyymm: string) {
-    setMonthPickerVisible(false);
-    router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'month', month: yyyymm } });
   }
 
   // Permission denied — show locked state with Settings deep link
@@ -169,8 +143,31 @@ export default function HomeScreen() {
         {/* Storage summary */}
         <StorageSummary />
 
-        {/* Category list */}
+        {/* By Month — navigates to dedicated tab */}
         <Text className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-3">
+          Browse by time
+        </Text>
+        <Pressable onPress={() => router.navigate('/(tabs)/by-month')} className="active:opacity-70">
+          <GlassCard className="mb-3">
+            <View className="p-4 flex-row items-center gap-4">
+              <View className="w-12 h-12 rounded-2xl bg-white/10 items-center justify-center">
+                <Ionicons name="calendar-number-outline" size={24} color="white" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-white font-semibold text-base">By Month</Text>
+                <Text className="text-white/50 text-sm mt-0.5">
+                  {index.length > 0
+                    ? `${index.length.toLocaleString()} items across your library`
+                    : 'Browse photos month by month'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.3)" />
+            </View>
+          </GlassCard>
+        </Pressable>
+
+        {/* Category list */}
+        <Text className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-3 mt-2">
           Review by category
         </Text>
 
@@ -194,18 +191,6 @@ export default function HomeScreen() {
           );
         })}
       </ScrollView>
-
-      <YearPicker
-        visible={yearPickerVisible}
-        onSelect={handleYearSelect}
-        onClose={() => setYearPickerVisible(false)}
-      />
-
-      <MonthPicker
-        visible={monthPickerVisible}
-        onSelect={handleMonthSelect}
-        onClose={() => setMonthPickerVisible(false)}
-      />
     </View>
   );
 }
