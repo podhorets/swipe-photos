@@ -9,6 +9,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { GlassCard } from '@/components/glass/GlassCard';
+import { StreakWidget } from '@/components/ui/StreakWidget';
 import {
   getOnThisDay,
   getScreenshots,
@@ -142,6 +143,9 @@ export default function HomeScreen() {
 
         {/* Storage summary */}
         <StorageSummary />
+
+        {/* Streak widget */}
+        <StreakWidget />
 
         {/* By Month — navigates to dedicated tab */}
         <Text className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-3">

@@ -9,6 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useKeepStore } from '@/stores/keepStore';
+import { useStreakStore } from '@/stores/streakStore';
 import { SwipeStack } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -132,6 +133,7 @@ export default function ReviewScreen() {
       // No deletions — save all as kept and show summary inline
       const allIds = Object.keys(decisions);
       if (allIds.length > 0) useKeepStore.getState().addMany(allIds);
+      useStreakStore.getState().recordSession();
       setShowComplete(true);
     }
   }, []);

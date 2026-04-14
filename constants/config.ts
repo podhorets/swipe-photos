@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   keep: 'keep:ids',
   settings: 'settings',
   hasCompletedOnboarding: 'onboarding:completed',
+  streakDates: 'streak:dates',
 };
 
 // Gallery indexing

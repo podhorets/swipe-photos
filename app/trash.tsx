@@ -17,6 +17,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useStreakStore } from '@/stores/streakStore';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import type { AssetMeta } from '@/types';
 
@@ -179,6 +180,8 @@ export default function TrashScreen() {
       }
 
       setIsDeleting(false);
+
+      useStreakStore.getState().recordSession();
 
       // Show inline summary
       setSummaryStats({
