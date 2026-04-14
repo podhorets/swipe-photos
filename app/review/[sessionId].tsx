@@ -263,6 +263,7 @@ export default function ReviewScreen() {
         <SessionCompleteSheet
           totalCount={totalCount}
           keptCount={completionCounts.keptCount}
+          freedBytes={0}
           onDone={() => router.back()}
         />
       )}

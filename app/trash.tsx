@@ -18,7 +18,9 @@ import { useKeepStore } from '@/stores/keepStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useStreakStore } from '@/stores/streakStore';
+import { useStatsStore } from '@/stores/statsStore';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
+import { getEstimatedSize } from '@/lib/sizeUtils';
 import type { AssetMeta } from '@/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -95,7 +97,7 @@ export default function TrashScreen() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [summaryStats, setSummaryStats] = useState({ total: 0, kept: 0 });
+  const [summaryStats, setSummaryStats] = useState({ total: 0, kept: 0, freedBytes: 0 });
 
   // Get delete decisions from the current session (session-scoped trash).
   // Captured once on mount — session decisions don't change while we're in trash.
@@ -183,10 +185,20 @@ export default function TrashScreen() {
 
       useStreakStore.getState().recordSession();
 
+      const sizeSnapshot = useSessionStore.getState().sizeSnapshot;
+      const freedBytes = idsToDelete.reduce((sum, id) => {
+        const real = sizeSnapshot.get(id);
+        const asset = deleteAssets.find(a => a.id === id);
+        return sum + (real ?? getEstimatedSize(asset?.mediaType ?? 'photo'));
+      }, 0);
+
+      useStatsStore.getState().addFreedBytes(freedBytes);
+
       // Show inline summary
       setSummaryStats({
         total: Object.keys(sessionDecisions).length,
         kept: allKeptIds.length,
+        freedBytes,
       });
       setShowSummary(true);
     }
@@ -293,6 +305,7 @@ export default function TrashScreen() {
         <SessionCompleteSheet
           totalCount={summaryStats.total}
           keptCount={summaryStats.kept}
+          freedBytes={summaryStats.freedBytes}
           onDone={() => router.back()}
         />
       )}

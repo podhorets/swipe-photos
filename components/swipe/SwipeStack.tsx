@@ -6,6 +6,8 @@ import { SwipeCard } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
+import { getEstimatedSize } from '@/lib/sizeUtils';
+import { formatBytes } from '@/lib/dateUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
@@ -23,6 +25,8 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   // URI snapshot captured at session-start — stable for the entire session lifetime.
   // Never rebuilds due to gallery index changes, so no O(50k) Map builds during swiping.
   const uriById = useSessionStore((s) => s.uriSnapshot);
+  const sizeSnapshot = useSessionStore((s) => s.sizeSnapshot);
+  const mediaTypeSnapshot = useSessionStore((s) => s.mediaTypeSnapshot);
 
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
@@ -101,10 +105,15 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         const zIndex = stackIndex === -1 ? 10 : (3 - stackIndex);
         const uri = uriById.get(assetId) ?? '';
 
+        const realSize = sizeSnapshot.get(assetId);
+        const estimatedSize = getEstimatedSize(mediaTypeSnapshot.get(assetId) ?? 'photo');
+        const sizeLabel = `~${formatBytes(realSize ?? estimatedSize)}`;
+
         return (
           <SwipeCard
             key={assetId}
             uri={uri}
+            sizeLabel={sizeLabel}
             stackIndex={stackIndex}
             zIndex={zIndex}
             onSwipeLeft={() => {

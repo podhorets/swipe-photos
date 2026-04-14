@@ -1,11 +1,13 @@
 import { View, Text } from 'react-native';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { useGalleryStore } from '@/stores/galleryStore';
+import { useStatsStore } from '@/stores/statsStore';
 import { formatBytes } from '@/lib/dateUtils';
 import { AVG_PHOTO_SIZE_BYTES, AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 
 export function StorageSummary() {
   const { index, isIndexing, indexProgress } = useGalleryStore();
+  const lifetimeFreedBytes = useStatsStore((s) => s.lifetimeFreedBytes);
 
   const photoCount = index.filter((a) => a.mediaType === 'photo').length;
   const videoCount = index.filter((a) => a.mediaType === 'video').length;
@@ -34,21 +36,32 @@ export function StorageSummary() {
             )}
           </>
         ) : (
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-white text-2xl font-bold">
-                {index.length.toLocaleString()}
-              </Text>
-              <Text className="text-white/50 text-sm mt-0.5">
-                {photoCount.toLocaleString()} photos · {videoCount.toLocaleString()} videos
-              </Text>
+          <View>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-white text-2xl font-bold">
+                  {index.length.toLocaleString()}
+                </Text>
+                <Text className="text-white/50 text-sm mt-0.5">
+                  {photoCount.toLocaleString()} photos · {videoCount.toLocaleString()} videos
+                </Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-white/40 text-xs">Est. size</Text>
+                <Text className="text-white/70 text-base font-semibold mt-0.5">
+                  {formatBytes(estimatedSize)}
+                </Text>
+              </View>
             </View>
-            <View className="items-end">
-              <Text className="text-white/40 text-xs">Est. size</Text>
-              <Text className="text-white/70 text-base font-semibold mt-0.5">
-                {formatBytes(estimatedSize)}
-              </Text>
-            </View>
+            
+            {lifetimeFreedBytes > 0 && (
+              <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-white/10">
+                <Text className="text-white/50 text-sm">Storage freed</Text>
+                <Text className="text-green-400/90 text-base font-semibold">
+                  {formatBytes(lifetimeFreedBytes)}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>

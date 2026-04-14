@@ -1,9 +1,13 @@
-import * as Haptics from 'expo-haptics';
-import { useSessionStore } from '@/stores/sessionStore';
-import { useGalleryStore } from '@/stores/galleryStore';
-import { useKeepStore } from '@/stores/keepStore';
-import { useSettingsStore } from '@/stores/settingsStore';
-import { createSession, type SessionRequest } from '@/lib/session/sessionFactory';
+import {
+  createSession,
+  type SessionRequest,
+} from "@/lib/session/sessionFactory";
+import { fetchAssetSizesInBackground } from "@/lib/sizeUtils";
+import { useGalleryStore } from "@/stores/galleryStore";
+import { useKeepStore } from "@/stores/keepStore";
+import { useSessionStore } from "@/stores/sessionStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import * as Haptics from "expo-haptics";
 
 export function useSession() {
   const session = useSessionStore((s) => s.session);
@@ -29,23 +33,31 @@ export function useSession() {
     // trigger spurious re-renders or auto-skips during swiping.
     const sessionIdSet = new Set(newSession.assetIds);
     const uriSnapshot = new Map<string, string>();
+    const mediaTypeSnapshot = new Map<string, string>();
     for (const a of index) {
       if (sessionIdSet.has(a.id)) {
         uriSnapshot.set(a.id, a.uri);
+        mediaTypeSnapshot.set(a.id, a.mediaType);
       }
     }
 
-    startSessionAction(newSession, uriSnapshot);
+    startSessionAction(newSession, uriSnapshot, mediaTypeSnapshot);
+
+    // Run fetch in background to avoid freezing the UI on the first card
+    fetchAssetSizesInBackground(mediaTypeSnapshot, (assetId, size) => {
+      useSessionStore.getState().setSize(assetId, size);
+    });
+
     return newSession;
   }
 
   function swipeLeft(assetId: string) {
-    decideAction(assetId, 'delete');
+    decideAction(assetId, "delete");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }
 
   function swipeRight(assetId: string) {
-    decideAction(assetId, 'keep');
+    decideAction(assetId, "keep");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
@@ -61,7 +73,8 @@ export function useSession() {
   const remainingCount = totalCount - currentIndex;
   const progressFraction = totalCount > 0 ? currentIndex / totalCount : 0;
   const isComplete = totalCount > 0 && remainingCount === 0;
-  const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
+  const visibleAssetIds =
+    session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
   return {
     session,

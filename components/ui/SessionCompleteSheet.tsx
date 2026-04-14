@@ -12,18 +12,20 @@ import Animated, {
 import { GlassSheet } from '@/components/glass/GlassSheet';
 import { useSpringPress } from '@/hooks/useSpringPress';
 import { SPRING } from '@/constants/theme';
+import { formatBytes } from '@/lib/dateUtils';
 
 import confettiSource from '@/assets/animations/confetti.json';
 
 interface SessionCompleteSheetProps {
   totalCount: number;
   keptCount: number;
+  freedBytes?: number;
   onDone: () => void;
 }
 
 // ─── Staggered stat ───────────────────────────────────────────────────────────
 
-function AnimatedStat({ label, value, delay }: { label: string; value: number; delay: number }) {
+function AnimatedStat({ label, value, delay }: { label: string; value: string | number; delay: number }) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(14);
 
@@ -39,7 +41,9 @@ function AnimatedStat({ label, value, delay }: { label: string; value: number; d
 
   return (
     <Animated.View style={style} className="items-center flex-1">
-      <Text className="text-white text-2xl font-bold">{value}</Text>
+      <Text className="text-white text-2xl font-bold">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </Text>
       <Text className="text-white/50 text-xs mt-0.5">{label}</Text>
     </Animated.View>
   );
@@ -50,6 +54,7 @@ function AnimatedStat({ label, value, delay }: { label: string; value: number; d
 export function SessionCompleteSheet({
   totalCount,
   keptCount,
+  freedBytes,
   onDone,
 }: SessionCompleteSheetProps) {
   const lottieRef = useRef<LottieView>(null);
@@ -109,6 +114,12 @@ export function SessionCompleteSheet({
             <AnimatedStat label="Kept" value={keptCount} delay={200} />
             <View className="w-px bg-white/10" />
             <AnimatedStat label="Deleted" value={totalCount - keptCount} delay={310} />
+            {freedBytes !== undefined && freedBytes > 0 && (
+              <>
+                <View className="w-px bg-white/10" />
+                <AnimatedStat label="Freed" value={formatBytes(freedBytes)} delay={420} />
+              </>
+            )}
           </View>
 
           <Animated.View style={doneBtnStyle}>

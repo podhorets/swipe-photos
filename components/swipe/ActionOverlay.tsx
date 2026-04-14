@@ -10,11 +10,12 @@ import { COLORS, SWIPE } from '@/constants/theme';
 
 interface ActionOverlayProps {
   translateX: SharedValue<number>;
+  sizeLabel?: string;
 }
 
 const T = SWIPE.thresholdPx;
 
-export function ActionOverlay({ translateX }: ActionOverlayProps) {
+export function ActionOverlay({ translateX, sizeLabel }: ActionOverlayProps) {
 
   // ── DELETE (swipe left) ────────────────────────────────────────────────────
   const deleteOverlayStyle = useAnimatedStyle(() => ({
@@ -78,6 +79,11 @@ export function ActionOverlay({ translateX }: ActionOverlayProps) {
           >
             DELETE
           </Animated.Text>
+          {sizeLabel && (
+            <Animated.Text className="text-white/70 text-sm mt-1" style={deleteLabelStyle}>
+              {sizeLabel}
+            </Animated.Text>
+          )}
         </View>
       </Animated.View>
 

@@ -20,6 +20,7 @@ const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
 
 interface SwipeCardProps {
   uri: string;
+  sizeLabel?: string;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onDoubleTap: () => void;
@@ -33,6 +34,7 @@ function triggerHaptic(style: Haptics.ImpactFeedbackStyle) {
 
 export function SwipeCard({
   uri,
+  sizeLabel,
   onSwipeLeft,
   onSwipeRight,
   onDoubleTap,
@@ -146,7 +148,7 @@ export function SwipeCard({
           recyclingKey={uri}
         />
         {isTopCard && (
-          <ActionOverlay translateX={translateX} />
+          <ActionOverlay translateX={translateX} sizeLabel={sizeLabel} />
         )}
       </Animated.View>
     </GestureDetector>

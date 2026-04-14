@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
-import type { Session, SwipeDecision } from '@/types';
-import { SESSION } from '@/constants/config';
+import { SESSION } from "@/constants/config";
+import type { Session, SwipeDecision } from "@/types";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
 interface SessionState {
   session: Session | null;
@@ -13,9 +13,17 @@ interface SessionState {
   // so buildIndex() completing or MediaLibrary delta events mid-session cannot
   // trigger uriById rebuilds or spurious auto-skips during swiping.
   uriSnapshot: Map<string, string>;
+  mediaTypeSnapshot: Map<string, string>;
+  sizeSnapshot: Map<string, number>;
 
   // Actions
-  startSession: (session: Session, uriSnapshot: Map<string, string>) => void;
+  startSession: (
+    session: Session,
+    uriSnapshot: Map<string, string>,
+    mediaTypeSnapshot: Map<string, string>,
+  ) => void;
+  setSizeSnapshot: (sizes: Map<string, number>) => void;
+  setSize: (assetId: string, size: number) => void;
   decide: (assetId: string, decision: SwipeDecision) => void;
   undoLast: () => string | null; // returns the restored assetId or null
   resetSession: () => void;
@@ -31,14 +39,28 @@ export const useSessionStore = create<SessionState>()(
     decisions: {},
     undoStack: [],
     uriSnapshot: new Map(),
+    mediaTypeSnapshot: new Map(),
+    sizeSnapshot: new Map(),
 
-    startSession: (session, uriSnapshot) =>
+    startSession: (session, uriSnapshot, mediaTypeSnapshot) =>
       set((state) => {
         state.session = session;
         state.uriSnapshot = uriSnapshot;
+        state.mediaTypeSnapshot = mediaTypeSnapshot;
+        state.sizeSnapshot = new Map();
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
+      }),
+
+    setSizeSnapshot: (sizes) =>
+      set((state) => {
+        state.sizeSnapshot = sizes;
+      }),
+
+    setSize: (assetId, size) =>
+      set((state) => {
+        state.sizeSnapshot.set(assetId, size);
       }),
 
     decide: (assetId, decision) =>
@@ -51,7 +73,7 @@ export const useSessionStore = create<SessionState>()(
         state.decisions[assetId] = decision;
         state.currentIndex = Math.min(
           state.currentIndex + 1,
-          (state.session?.assetIds.length ?? 0),
+          state.session?.assetIds.length ?? 0,
         );
         // Push to undo stack, cap at maxUndo
         state.undoStack.push(assetId);
@@ -79,6 +101,8 @@ export const useSessionStore = create<SessionState>()(
       set((state) => {
         state.session = null;
         state.uriSnapshot = new Map();
+        state.mediaTypeSnapshot = new Map();
+        state.sizeSnapshot = new Map();
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
