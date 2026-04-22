@@ -41,6 +41,7 @@ export default function ReviewScreen() {
 
   // Read from the session URI snapshot — O(1) Map lookup, no gallery subscription.
   // This screen never touches galleryStore.index during an active session.
+  const phase = useSessionStore((s) => s.phase);
   const uriById = useSessionStore((s) => s.uriSnapshot);
   const topAssetId = visibleAssetIds[0] ?? null;
   const currentUri = topAssetId ? (uriById.get(topAssetId) ?? null) : null;
@@ -128,7 +129,7 @@ export default function ReviewScreen() {
     // lastStartedKey is '' until ReviewScreen's own effect sets it — SwipeStack's
     // effect fires first (child before parent), so if it's still empty the signal
     // is from the previous session and should be ignored.
-    if (!lastStartedKey.current) return;
+    if (useSessionStore.getState().phase !== 'active') return;
 
     const decisions = useSessionStore.getState().decisions;
     const deleteIds = Object.entries(decisions)
@@ -189,7 +190,7 @@ export default function ReviewScreen() {
     };
   }, [showComplete]);
 
-  if (!session) {
+  if (phase !== 'active' || !session) {
     return (
       <View className="flex-1 bg-black items-center justify-center">
         <Text className="text-white/50">Loading session…</Text>

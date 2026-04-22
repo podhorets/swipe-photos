@@ -4,8 +4,12 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 export type LastAction = 'swipe' | 'undo' | null;
+// 'idle'   — no session active (initial state, or after resetSession)
+// 'active' — startSession was called; cards are being reviewed
+export type SessionPhase = 'idle' | 'active';
 
 interface SessionState {
+  phase: SessionPhase;
   session: Session | null;
   currentIndex: number;
   decisions: Record<string, SwipeDecision>; // assetId → decision
@@ -39,6 +43,7 @@ interface SessionState {
 
 export const useSessionStore = create<SessionState>()(
   immer((set, get) => ({
+    phase: 'idle' as SessionPhase,
     session: null,
     currentIndex: 0,
     decisions: {},
@@ -50,6 +55,7 @@ export const useSessionStore = create<SessionState>()(
 
     startSession: (session, uriSnapshot, mediaTypeSnapshot) =>
       set((state) => {
+        state.phase = 'active';
         state.session = session;
         state.uriSnapshot = uriSnapshot;
         state.mediaTypeSnapshot = mediaTypeSnapshot;
@@ -108,6 +114,7 @@ export const useSessionStore = create<SessionState>()(
 
     resetSession: () =>
       set((state) => {
+        state.phase = 'idle';
         state.session = null;
         state.uriSnapshot = new Map();
         state.mediaTypeSnapshot = new Map();
