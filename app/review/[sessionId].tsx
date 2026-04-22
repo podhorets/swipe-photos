@@ -136,10 +136,10 @@ export default function ReviewScreen() {
       .map(([id]) => id);
 
     if (deleteIds.length > 0) {
-      // Navigate to trash with session's delete decisions
-      // router.back() first so trash sits on top of home (not review)
-      router.back();
-      router.push('/trash');
+      // replace() is a single nav mutation: review → trash, home beneath.
+      // back() + push() would mutate the stack twice in the same frame while
+      // Reanimated is tearing down, which is a documented crash site.
+      router.replace('/trash');
     } else {
       // No deletions — save all as kept and show summary inline
       const allIds = Object.keys(decisions);
@@ -166,10 +166,7 @@ export default function ReviewScreen() {
           },
           {
             text: 'Review Trash',
-            onPress: () => {
-              router.back();
-              router.push('/trash');
-            },
+            onPress: () => router.replace('/trash'),
           },
         ],
       );

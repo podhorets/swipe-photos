@@ -6,8 +6,6 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { SwipeCard, type SwipeCardHandle, type SwipeDirection } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
-import { getEstimatedSize } from '@/lib/sizeUtils';
-import { formatBytes } from '@/lib/dateUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
@@ -33,8 +31,9 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   // URI snapshot captured at session-start — stable for the entire session lifetime.
   // Never rebuilds due to gallery index changes, so no O(50k) Map builds during swiping.
   const uriById = useSessionStore((s) => s.uriSnapshot);
-  const sizeSnapshot = useSessionStore((s) => s.sizeSnapshot);
-  const mediaTypeSnapshot = useSessionStore((s) => s.mediaTypeSnapshot);
+  // sizeSnapshot and mediaTypeSnapshot are NOT selected here — each SwipeCard reads
+  // its own size via narrow per-asset selectors so only that card re-renders when
+  // a size arrives from the background fetch, not the entire stack.
 
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
@@ -75,6 +74,20 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   // currently the top card. React clears entries automatically on unmount via the
   // null callback.
   const cardRefs = useRef<Map<string, SwipeCardHandle | null>>(new Map());
+
+  // Stable ref-callback per assetId. In React 19 `ref` is a regular prop, so an
+  // inline arrow would break SwipeCard's memo comparison on every SwipeStack render.
+  // These callbacks are created once per assetId and reused for the session lifetime.
+  const refCallbacks = useRef<Map<string, (h: SwipeCardHandle | null) => void>>(new Map());
+  const getRefCallback = useCallback((assetId: string) => {
+    if (!refCallbacks.current.has(assetId)) {
+      refCallbacks.current.set(assetId, (h) => {
+        if (h) cardRefs.current.set(assetId, h);
+        else cardRefs.current.delete(assetId);
+      });
+    }
+    return refCallbacks.current.get(assetId)!;
+  }, []);
 
   useImperativeHandle(
     ref,
@@ -134,24 +147,16 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         const zIndex = stackIndex === -1 ? 10 : (3 - stackIndex);
         const uri = uriById.get(assetId) ?? '';
 
-        const realSize = sizeSnapshot.get(assetId);
-        const estimatedSize = getEstimatedSize(mediaTypeSnapshot.get(assetId) ?? 'photo');
-        const sizeLabel = `~${formatBytes(realSize ?? estimatedSize)}`;
-
         return (
           <SwipeCard
             key={assetId}
-            ref={(handle) => {
-              if (handle) cardRefs.current.set(assetId, handle);
-              else cardRefs.current.delete(assetId);
-            }}
+            ref={getRefCallback(assetId)}
             assetId={assetId}
             uri={uri}
-            sizeLabel={sizeLabel}
             stackIndex={stackIndex}
             zIndex={zIndex}
             onDecide={onDecide}
-            onDoubleTap={() => onDoubleTap(assetId)}
+            onDoubleTap={onDoubleTap}
           />
         );
       })}

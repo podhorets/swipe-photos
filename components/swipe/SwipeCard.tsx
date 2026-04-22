@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle } from 'react';
+import { memo, useCallback, useEffect, useImperativeHandle } from 'react';
 import type { Ref } from 'react';
 import { Dimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -15,6 +15,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { SPRING, SWIPE } from '@/constants/theme';
 import { gatedHaptic } from '@/lib/haptics';
+import { getEstimatedSize } from '@/lib/sizeUtils';
+import { formatBytes } from '@/lib/dateUtils';
+import { useSessionStore } from '@/stores/sessionStore';
 import { ActionOverlay } from './ActionOverlay';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -29,24 +32,27 @@ export interface SwipeCardHandle {
 interface SwipeCardProps {
   assetId: string;
   uri: string;
-  sizeLabel?: string;
   onDecide: (assetId: string, direction: SwipeDirection) => void;
-  onDoubleTap: () => void;
+  onDoubleTap: (assetId: string) => void;
   stackIndex: number; // 0 = top (interactive), 1/2 = background, -1 = departing
   zIndex: number;     // explicit native layer order — top card always highest
   ref?: Ref<SwipeCardHandle>;
 }
 
-export function SwipeCard({
+export const SwipeCard = memo(function SwipeCard({
   assetId,
   uri,
-  sizeLabel,
   onDecide,
   onDoubleTap,
   stackIndex,
   zIndex,
   ref,
 }: SwipeCardProps) {
+  // Narrow per-asset selectors — only this card re-renders when its own size
+  // arrives from the background fetch, not the entire SwipeStack.
+  const realSize = useSessionStore((s) => s.sizeSnapshot.get(assetId));
+  const mediaType = useSessionStore((s) => s.mediaTypeSnapshot.get(assetId));
+  const sizeLabel = `~${formatBytes(realSize ?? getEstimatedSize(mediaType ?? 'photo'))}`;
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const hasPassedThreshold = useSharedValue(false);
@@ -137,7 +143,7 @@ export function SwipeCard({
     .numberOfTaps(2)
     .enabled(isTopCard)
     .onEnd(() => {
-      scheduleOnRN(onDoubleTap);
+      scheduleOnRN(onDoubleTap, assetId);
     });
 
   // Race: pan activates immediately, doubleTap wins on second tap
@@ -183,4 +189,4 @@ export function SwipeCard({
       </Animated.View>
     </GestureDetector>
   );
-}
+});
