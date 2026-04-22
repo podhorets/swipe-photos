@@ -102,6 +102,7 @@ export default function TrashScreen() {
   // Get delete decisions from the current session (session-scoped trash).
   // Captured once on mount — session decisions don't change while we're in trash.
   const [sessionDecisions] = useState(() => useSessionStore.getState().decisions);
+  const [sessionSizeSnapshot] = useState(() => useSessionStore.getState().sizeSnapshot);
   const deleteIds = useMemo(
     () => Object.entries(sessionDecisions)
       .filter(([, d]) => d === 'delete')
@@ -185,9 +186,8 @@ export default function TrashScreen() {
 
       useStreakStore.getState().recordSession();
 
-      const sizeSnapshot = useSessionStore.getState().sizeSnapshot;
       const freedBytes = idsToDelete.reduce((sum, id) => {
-        const real = sizeSnapshot.get(id);
+        const real = sessionSizeSnapshot.get(id);
         const asset = deleteAssets.find(a => a.id === id);
         return sum + (real ?? getEstimatedSize(asset?.mediaType ?? 'photo'));
       }, 0);
