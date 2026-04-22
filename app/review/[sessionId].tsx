@@ -10,7 +10,7 @@ import { useSession } from '@/hooks/useSession';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useStreakStore } from '@/stores/streakStore';
-import { SwipeStack } from '@/components/swipe/SwipeStack';
+import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
@@ -32,10 +32,12 @@ export default function ReviewScreen() {
     totalCount,
     visibleAssetIds,
     startSession,
-    swipeLeft,
-    swipeRight,
     undoLast,
   } = useSession();
+
+  // Imperative handle on SwipeStack — button path calls dismiss() so the top
+  // card's fly-off spring fires identically to a gesture swipe.
+  const swipeStackRef = useRef<SwipeStackHandle>(null);
 
   // Read from the session URI snapshot — O(1) Map lookup, no gallery subscription.
   // This screen never touches galleryStore.index during an active session.
@@ -95,14 +97,23 @@ export default function ReviewScreen() {
     };
   }, []);
 
+  // Clear session store on unmount so the next ReviewScreen mount can't paint
+  // the previous session's cards for one commit before its startSession effect
+  // runs. The trash screen captures `decisions` synchronously in its own
+  // useState initializer, which runs on its mount — which happens before this
+  // cleanup fires — so deletion data is preserved across the navigation.
+  useEffect(() => {
+    return () => {
+      useSessionStore.getState().resetSession();
+    };
+  }, []);
+
   function handleSwipeLeft() {
-    const assetId = visibleAssetIds[0];
-    if (assetId) swipeLeft(assetId);
+    swipeStackRef.current?.dismiss('left');
   }
 
   function handleSwipeRight() {
-    const assetId = visibleAssetIds[0];
-    if (assetId) swipeRight(assetId);
+    swipeStackRef.current?.dismiss('right');
   }
 
   function handleUndo() {
@@ -244,6 +255,7 @@ export default function ReviewScreen() {
       {/* Swipe stack */}
       <View className="flex-1 items-center justify-center mt-4">
         <SwipeStack
+          ref={swipeStackRef}
           onDoubleTap={handleDoubleTap}
           onSessionComplete={handleSessionComplete}
         />

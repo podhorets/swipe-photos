@@ -2,6 +2,7 @@ import {
   createSession,
   type SessionRequest,
 } from "@/lib/session/sessionFactory";
+import { gatedHaptic } from "@/lib/haptics";
 import { fetchAssetSizesInBackground } from "@/lib/sizeUtils";
 import { useGalleryStore } from "@/stores/galleryStore";
 import { useKeepStore } from "@/stores/keepStore";
@@ -53,18 +54,18 @@ export function useSession() {
 
   function swipeLeft(assetId: string) {
     decideAction(assetId, "delete");
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    gatedHaptic(Haptics.ImpactFeedbackStyle.Heavy);
   }
 
   function swipeRight(assetId: string) {
     decideAction(assetId, "keep");
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    gatedHaptic(Haptics.ImpactFeedbackStyle.Medium);
   }
 
   function undoLast() {
     const restoredId = undoLastAction();
     if (restoredId) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
     }
     return restoredId;
   }

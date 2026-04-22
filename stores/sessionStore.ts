@@ -3,11 +3,16 @@ import type { Session, SwipeDecision } from "@/types";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+export type LastAction = 'swipe' | 'undo' | null;
+
 interface SessionState {
   session: Session | null;
   currentIndex: number;
   decisions: Record<string, SwipeDecision>; // assetId → decision
   undoStack: string[]; // assetId LIFO, max SESSION.maxUndo
+  // Direction of the most recent currentIndex transition. SwipeStack reads this
+  // to decide its render slice without mutating a ref during render.
+  lastAction: LastAction;
   // URI snapshot captured at session-start from the gallery index at that moment.
   // SwipeStack reads URIs from here instead of subscribing to the live galleryStore,
   // so buildIndex() completing or MediaLibrary delta events mid-session cannot
@@ -38,6 +43,7 @@ export const useSessionStore = create<SessionState>()(
     currentIndex: 0,
     decisions: {},
     undoStack: [],
+    lastAction: null,
     uriSnapshot: new Map(),
     mediaTypeSnapshot: new Map(),
     sizeSnapshot: new Map(),
@@ -51,6 +57,7 @@ export const useSessionStore = create<SessionState>()(
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
+        state.lastAction = null;
       }),
 
     setSizeSnapshot: (sizes) =>
@@ -80,6 +87,7 @@ export const useSessionStore = create<SessionState>()(
         if (state.undoStack.length > SESSION.maxUndo) {
           state.undoStack.shift();
         }
+        state.lastAction = 'swipe';
       }),
 
     undoLast: () => {
@@ -93,6 +101,7 @@ export const useSessionStore = create<SessionState>()(
         restoredId = id;
         delete state.decisions[id];
         state.currentIndex = Math.max(0, state.currentIndex - 1);
+        state.lastAction = 'undo';
       });
       return restoredId;
     },
@@ -106,6 +115,7 @@ export const useSessionStore = create<SessionState>()(
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
+        state.lastAction = null;
       }),
 
     getCurrentAssetId: () => {

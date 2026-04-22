@@ -1,27 +1,35 @@
-import { useEffect, useMemo, useRef, memo } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, memo } from 'react';
+import type { Ref } from 'react';
 import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
-import { SwipeCard } from './SwipeCard';
+import { SwipeCard, type SwipeCardHandle, type SwipeDirection } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
-import * as Haptics from 'expo-haptics';
 import { getEstimatedSize } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
 
+export interface SwipeStackHandle {
+  dismiss: (direction: SwipeDirection) => void;
+}
+
 interface SwipeStackProps {
   onDoubleTap: (assetId: string) => void;
   onSessionComplete: () => void;
+  ref?: Ref<SwipeStackHandle>;
 }
 
-export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionComplete }: SwipeStackProps) {
+export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionComplete, ref }: SwipeStackProps) {
   // Select only the primitives we need — avoids full re-render on unrelated store changes
   const session = useSessionStore((s) => s.session);
   const currentIndex = useSessionStore((s) => s.currentIndex);
-  const decide = useSessionStore((s) => s.decide);
+  // Direction of the most recent currentIndex transition. Sourced from the store
+  // rather than a render-phase ref mutation so it stays deterministic under
+  // StrictMode / concurrent rendering.
+  const lastAction = useSessionStore((s) => s.lastAction);
   // URI snapshot captured at session-start — stable for the entire session lifetime.
   // Never rebuilds due to gallery index changes, so no O(50k) Map builds during swiping.
   const uriById = useSessionStore((s) => s.uriSnapshot);
@@ -31,15 +39,11 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   const totalCount = session?.assetIds.length ?? 0;
   const isComplete = totalCount > 0 && currentIndex >= totalCount;
 
-  // Track direction of currentIndex change: undo moves it backward, swipe moves it forward.
-  // After undo we must NOT include the slot before currentIndex — that would mount a fresh
-  // SwipeCard (translateX=0) in the departing position, rendering it on top as a ghost card.
-  const prevIndexRef = useRef(currentIndex);
-  const isUndo = currentIndex < prevIndexRef.current;
-  prevIndexRef.current = currentIndex;
-
   // After a forward swipe keep the just-swiped card mounted one slot behind so its
-  // fly-off animation can finish. After undo, start the slice at currentIndex directly.
+  // fly-off animation can finish. After undo, start the slice at currentIndex directly
+  // — otherwise we'd mount a fresh SwipeCard (translateX=0) in the departing position
+  // and render it on top as a ghost card.
+  const isUndo = lastAction === 'undo';
   const renderSliceStart = isUndo ? currentIndex : Math.max(0, currentIndex - 1);
   const allRenderIds = session?.assetIds.slice(renderSliceStart, currentIndex + 3) ?? [];
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
@@ -61,13 +65,38 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
     if (isComplete) onSessionComplete();
   }, [isComplete, onSessionComplete]);
 
+  // Stable decide handler — reads the store via getState so we avoid stale closures
+  // and don't need to re-memoize when session identity changes.
+  const onDecide = useCallback((assetId: string, direction: SwipeDirection) => {
+    useSessionStore.getState().decide(assetId, direction === 'left' ? 'delete' : 'keep');
+  }, []);
+
+  // Per-asset ref map so the imperative dismiss() can look up whichever card is
+  // currently the top card. React clears entries automatically on unmount via the
+  // null callback.
+  const cardRefs = useRef<Map<string, SwipeCardHandle | null>>(new Map());
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      dismiss: (direction) => {
+        const state = useSessionStore.getState();
+        const topId = state.session?.assetIds[state.currentIndex];
+        if (!topId) return;
+        const handle = cardRefs.current.get(topId);
+        handle?.dismiss(direction);
+      },
+    }),
+    [],
+  );
+
   // Auto-skip assets that were deleted externally (no longer in gallery index)
   const topAssetId = visibleAssetIds[0];
   useEffect(() => {
     if (topAssetId && !uriById.has(topAssetId)) {
-      decide(topAssetId, 'keep');
+      useSessionStore.getState().decide(topAssetId, 'keep');
     }
-  }, [topAssetId, uriById, decide]);
+  }, [topAssetId, uriById]);
 
   // Session complete — nothing to render (sheet is shown by parent)
   if (isComplete) return null;
@@ -112,18 +141,16 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         return (
           <SwipeCard
             key={assetId}
+            ref={(handle) => {
+              if (handle) cardRefs.current.set(assetId, handle);
+              else cardRefs.current.delete(assetId);
+            }}
+            assetId={assetId}
             uri={uri}
             sizeLabel={sizeLabel}
             stackIndex={stackIndex}
             zIndex={zIndex}
-            onSwipeLeft={() => {
-              decide(assetId, 'delete');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            }}
-            onSwipeRight={() => {
-              decide(assetId, 'keep');
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            }}
+            onDecide={onDecide}
             onDoubleTap={() => onDoubleTap(assetId)}
           />
         );

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useImperativeHandle } from 'react';
+import type { Ref } from 'react';
 import { Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
@@ -13,33 +14,38 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { SPRING, SWIPE } from '@/constants/theme';
+import { gatedHaptic } from '@/lib/haptics';
 import { ActionOverlay } from './ActionOverlay';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
 
-interface SwipeCardProps {
-  uri: string;
-  sizeLabel?: string;
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
-  onDoubleTap: () => void;
-  stackIndex: number; // 0 = top (interactive), 1/2 = background
-  zIndex: number;     // explicit native layer order — top card always highest
+export type SwipeDirection = 'left' | 'right';
+
+export interface SwipeCardHandle {
+  dismiss: (direction: SwipeDirection) => void;
 }
 
-function triggerHaptic(style: Haptics.ImpactFeedbackStyle) {
-  Haptics.impactAsync(style);
+interface SwipeCardProps {
+  assetId: string;
+  uri: string;
+  sizeLabel?: string;
+  onDecide: (assetId: string, direction: SwipeDirection) => void;
+  onDoubleTap: () => void;
+  stackIndex: number; // 0 = top (interactive), 1/2 = background, -1 = departing
+  zIndex: number;     // explicit native layer order — top card always highest
+  ref?: Ref<SwipeCardHandle>;
 }
 
 export function SwipeCard({
+  assetId,
   uri,
   sizeLabel,
-  onSwipeLeft,
-  onSwipeRight,
+  onDecide,
   onDoubleTap,
   stackIndex,
   zIndex,
+  ref,
 }: SwipeCardProps) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -67,6 +73,26 @@ export function SwipeCard({
     translateY.value = withSpring(0, SPRING.snappy);
   }, [stackIndex, isDeparting, animScale, animOffsetY, animOpacity, translateX, translateY]);
 
+  // Unified dismiss path — used by both the gesture handler and the imperative
+  // handle exposed to parents. Drives the fly-off spring AND advances session
+  // state. Button and gesture paths converge here, so their visual behavior is
+  // guaranteed identical.
+  const dismiss = useCallback(
+    (direction: SwipeDirection) => {
+      const dist = direction === 'left' ? -SCREEN_WIDTH * 1.5 : SCREEN_WIDTH * 1.5;
+      translateX.value = withSpring(dist, SPRING.flyOff);
+      onDecide(assetId, direction);
+      gatedHaptic(
+        direction === 'left'
+          ? Haptics.ImpactFeedbackStyle.Heavy
+          : Haptics.ImpactFeedbackStyle.Medium,
+      );
+    },
+    [assetId, onDecide, translateX],
+  );
+
+  useImperativeHandle(ref, () => ({ dismiss }), [dismiss]);
+
   const pan = Gesture.Pan()
     .enabled(isTopCard)
     .onUpdate((e) => {
@@ -76,7 +102,7 @@ export function SwipeCard({
       const crossed = Math.abs(e.translationX) > SWIPE.thresholdPx;
       if (crossed && !hasPassedThreshold.value) {
         hasPassedThreshold.value = true;
-        scheduleOnRN(triggerHaptic, Haptics.ImpactFeedbackStyle.Medium);
+        scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Medium);
       } else if (!crossed) {
         hasPassedThreshold.value = false;
       }
@@ -90,11 +116,15 @@ export function SwipeCard({
         (e.translationX > SWIPE.thresholdPx * 0.5 && e.velocityX > SWIPE.velocityThresholdX);
 
       if (swipedLeft) {
-        scheduleOnRN(onSwipeLeft);
+        // Set the spring synchronously in the worklet for instant UI-thread animation,
+        // then schedule the JS-side decision + haptic.
         translateX.value = withSpring(-SCREEN_WIDTH * 1.5, SPRING.flyOff);
+        scheduleOnRN(onDecide, assetId, 'left' as SwipeDirection);
+        scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Heavy);
       } else if (swipedRight) {
-        scheduleOnRN(onSwipeRight);
         translateX.value = withSpring(SCREEN_WIDTH * 1.5, SPRING.flyOff);
+        scheduleOnRN(onDecide, assetId, 'right' as SwipeDirection);
+        scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Medium);
       } else {
         // Snap back with spring overshoot
         translateX.value = withSpring(0, SPRING.snappy);
