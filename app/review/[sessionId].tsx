@@ -3,7 +3,6 @@ import { View, Text, Pressable, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { BlurView } from 'expo-blur';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
@@ -46,17 +45,6 @@ export default function ReviewScreen() {
   const topAssetId = visibleAssetIds[0] ?? null;
   const currentUri = topAssetId ? (uriById.get(topAssetId) ?? null) : null;
 
-  // Debounce background URI: only update after 350ms of inactivity so rapid swipes
-  // don't trigger expensive Image + BlurView re-renders on every card change.
-  // The fly-off animation leaves the screen in ~200–250ms, so 350ms ensures the
-  // background updates after the departing card is already gone.
-  const [bgUri, setBgUri] = useState<string | null>(currentUri);
-  const bgTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => {
-    clearTimeout(bgTimerRef.current);
-    bgTimerRef.current = setTimeout(() => setBgUri(currentUri), 350);
-    return () => clearTimeout(bgTimerRef.current);
-  }, [currentUri]);
 
   const [showComplete, setShowComplete] = useState(false);
 
@@ -200,24 +188,6 @@ export default function ReviewScreen() {
 
   return (
     <View className="flex-1 bg-black">
-      {/* Blurred dynamic background — driven by debounced bgUri to avoid per-swipe re-renders */}
-      {bgUri && (
-        <View className="absolute inset-0">
-          <Image
-            source={{ uri: bgUri }}
-            style={{ flex: 1 }}
-            contentFit="cover"
-            blurRadius={18}
-          />
-          <BlurView
-            intensity={60}
-            tint="dark"
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
-          <View className="absolute inset-0 bg-black/50" />
-        </View>
-      )}
-
       {/* Header */}
       <View
         className="flex-row items-center px-6 pb-3"

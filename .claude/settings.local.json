@@ -5,7 +5,8 @@
       "Bash(npx eslint:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
-      "Bash(grep -v \"Use \\\\`node\")"
+      "Bash(grep -v \"Use \\\\`node\")",
+      "WebFetch(domain:claude.ai)"
     ]
   }
 }
