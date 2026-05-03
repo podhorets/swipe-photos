@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, memo } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, memo } from 'react';
 import type { Ref } from 'react';
 import { View, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
@@ -48,7 +48,7 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
   // Prefetch the next few cards beyond the visible stack
-  useMemo(() => {
+  useEffect(() => {
     if (!session) return;
     const prefetchSlice = session.assetIds.slice(
       currentIndex + SWIPE.stackSize,

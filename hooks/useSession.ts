@@ -46,9 +46,9 @@ export function useSession() {
 
     // TODO: remove it or rework, because it makes first swipes laggy (while this calculation is performed
     // Run fetch in background to avoid freezing the UI on the first card
-    fetchAssetSizesInBackground(mediaTypeSnapshot, (assetId, size) => {
-      useSessionStore.getState().setSize(assetId, size);
-    });
+    // fetchAssetSizesInBackground(mediaTypeSnapshot, (assetId, size) => {
+    //   useSessionStore.getState().setSize(assetId, size);
+    // });
 
     return newSession;
   }

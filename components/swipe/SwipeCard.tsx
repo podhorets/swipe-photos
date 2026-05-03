@@ -180,7 +180,7 @@ export const SwipeCard = memo(function SwipeCard({
           source={{ uri }}
           style={{ flex: 1 }}
           contentFit="cover"
-          transition={isTopCard ? 0 : 200}
+          transition={0}
           recyclingKey={uri}
         />
         {isTopCard && (
