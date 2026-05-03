@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useImperativeHandle } from 'react';
 import type { Ref } from 'react';
 import { Dimensions } from 'react-native';
 import { Image } from 'expo-image';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -59,6 +60,17 @@ export const SwipeCard = memo(function SwipeCard({
 
   const isTopCard = stackIndex === 0;
   const isDeparting = stackIndex === -1;
+  const isVideo = mediaType === 'video';
+
+  const videoPlayer = useVideoPlayer(isVideo ? uri : null, (p) => {
+    p.loop = true;
+  });
+
+  useEffect(() => {
+    if (!isVideo) return;
+    if (isTopCard) videoPlayer.play();
+    else videoPlayer.pause();
+  }, [isTopCard, isVideo, videoPlayer]);
 
   // Animated stack position — spring into new position when stackIndex changes (promote effect)
   // Use stackIndex 0 values as fallback for departing card (it won't animate, just retains fly-off)
@@ -176,13 +188,22 @@ export const SwipeCard = memo(function SwipeCard({
         pointerEvents={isDeparting ? 'none' : 'auto'}
         style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24, zIndex }, cardStyle]}
       >
-        <Image
-          source={{ uri }}
-          style={{ flex: 1 }}
-          contentFit="cover"
-          transition={0}
-          recyclingKey={uri}
-        />
+        {isVideo ? (
+          <VideoView
+            player={videoPlayer}
+            style={{ flex: 1 }}
+            contentFit="cover"
+            nativeControls={false}
+          />
+        ) : (
+          <Image
+            source={{ uri }}
+            style={{ flex: 1 }}
+            contentFit="cover"
+            transition={0}
+            recyclingKey={uri}
+          />
+        )}
         {isTopCard && (
           <ActionOverlay translateX={translateX} sizeLabel={sizeLabel} />
         )}

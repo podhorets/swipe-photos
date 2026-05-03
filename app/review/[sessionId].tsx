@@ -13,7 +13,6 @@ import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
-import { SESSION } from '@/constants/config';
 import type { Category } from '@/types';
 
 export default function ReviewScreen() {
@@ -48,17 +47,12 @@ export default function ReviewScreen() {
 
   const [showComplete, setShowComplete] = useState(false);
 
-  // Undo button visibility — animated opacity in the header
+  // Undo button visibility — fades in after first swipe and stays visible
   const undoOpacity = useSharedValue(0);
   const undoAnimStyle = useAnimatedStyle(() => ({ opacity: undoOpacity.value }));
-  const undoDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showUndo = useCallback(() => {
-    if (undoDismissTimer.current) clearTimeout(undoDismissTimer.current);
     undoOpacity.value = withTiming(1, { duration: 150 });
-    undoDismissTimer.current = setTimeout(() => {
-      undoOpacity.value = withTiming(0, { duration: 300 });
-    }, SESSION.undoPillDuration);
   }, [undoOpacity]);
 
   const sessionKey = `${sessionId}-${year ?? ''}-${month ?? ''}`;
@@ -79,12 +73,6 @@ export default function ReviewScreen() {
     if (currentIndex > 0) showUndo();
   }, [currentIndex, showUndo]);
 
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (undoDismissTimer.current) clearTimeout(undoDismissTimer.current);
-    };
-  }, []);
 
   // Clear session store on unmount so the next ReviewScreen mount can't paint
   // the previous session's cards for one commit before its startSession effect
@@ -107,7 +95,6 @@ export default function ReviewScreen() {
 
   function handleUndo() {
     undoOpacity.value = withTiming(0, { duration: 150 });
-    if (undoDismissTimer.current) clearTimeout(undoDismissTimer.current);
     undoLast();
   }
 
