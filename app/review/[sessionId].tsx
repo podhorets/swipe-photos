@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable, Alert, Dimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -14,6 +14,13 @@ import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import type { Category } from '@/types';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// Must match SwipeCard/SwipeStack so the off-screen decode happens at the same size
+// that SDWebImage will serve from its memory cache when the stack renders.
+const PRELOAD_CARD_WIDTH = SCREEN_WIDTH - 48;
+const PRELOAD_CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
+const PRELOAD_TIMEOUT_MS = 2000;
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
@@ -41,11 +48,36 @@ export default function ReviewScreen() {
   // This screen never touches galleryStore.index during an active session.
   const phase = useSessionStore((s) => s.phase);
   const uriById = useSessionStore((s) => s.uriSnapshot);
-  const topAssetId = visibleAssetIds[0] ?? null;
-  const currentUri = topAssetId ? (uriById.get(topAssetId) ?? null) : null;
-
 
   const [showComplete, setShowComplete] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const preloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // First 3 URIs to pre-decode off-screen before showing the stack.
+  // Stable for the session lifetime since uriById is a snapshot.
+  const preloadUris = useMemo(
+    () => session?.assetIds.slice(0, 3).map(id => uriById.get(id)).filter((u): u is string => !!u) ?? [],
+    [session?.id, uriById],
+  );
+
+  // Reset when session identity changes (navigating to a new session)
+  useEffect(() => {
+    setSessionReady(false);
+  }, [session?.id]);
+
+  // Fallback: show the stack after PRELOAD_TIMEOUT_MS even if onLoad never fires
+  // (e.g. iCloud-only asset that needs to download before decode).
+  useEffect(() => {
+    if (phase !== 'active' || sessionReady) return;
+    clearTimeout(preloadTimeoutRef.current);
+    preloadTimeoutRef.current = setTimeout(() => setSessionReady(true), PRELOAD_TIMEOUT_MS);
+    return () => clearTimeout(preloadTimeoutRef.current);
+  }, [phase, session?.id, sessionReady]);
+
+  const handleTopCardPreloaded = useCallback(() => {
+    clearTimeout(preloadTimeoutRef.current);
+    setSessionReady(true);
+  }, []);
 
   // Undo button visibility — fades in after first swipe and stays visible
   const undoOpacity = useSharedValue(0);
@@ -165,10 +197,22 @@ export default function ReviewScreen() {
     };
   }, [showComplete]);
 
-  if (phase !== 'active' || !session) {
+  if (phase !== 'active' || !session || !sessionReady) {
     return (
       <View className="flex-1 bg-black items-center justify-center">
         <Text className="text-white/50">Loading session…</Text>
+        {/* Off-screen pre-decode: render first 3 cards at exact card size so SDWebImage
+            populates its memory cache before SwipeStack mounts. Once the top card fires
+            onLoad, sessionReady → true and the stack replaces this view. */}
+        {phase === 'active' && preloadUris.map((uri, i) => (
+          <Image
+            key={uri}
+            source={{ uri }}
+            style={{ position: 'absolute', top: -9999, width: PRELOAD_CARD_WIDTH, height: PRELOAD_CARD_HEIGHT }}
+            contentFit="cover"
+            onLoad={i === 0 ? handleTopCardPreloaded : undefined}
+          />
+        ))}
       </View>
     );
   }

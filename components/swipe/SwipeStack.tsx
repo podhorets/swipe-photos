@@ -47,17 +47,26 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   const allRenderIds = session?.assetIds.slice(renderSliceStart, currentIndex + 3) ?? [];
   const visibleAssetIds = session?.assetIds.slice(currentIndex, currentIndex + 3) ?? [];
 
-  // Prefetch the next few cards beyond the visible stack
+  // Off-screen decode pool: render upcoming cards at exact card dimensions so
+  // SDWebImage fully decodes them into memory cache before they enter the visible
+  // stack. Image.prefetch only warms the disk cache; this forces the decode step.
+  const offScreenIds = session?.assetIds
+    .slice(currentIndex + SWIPE.stackSize, currentIndex + SWIPE.stackSize + DECODE_POOL_AHEAD)
+    .filter(id => !!uriById.get(id)) ?? [];
+
+  // Disk-prefetch cards beyond the decode pool so they warm from the Photos
+  // library into SDWebImage's disk cache before they enter the decode pool.
   useEffect(() => {
     if (!session) return;
-    const prefetchSlice = session.assetIds.slice(
-      currentIndex + SWIPE.stackSize,
-      currentIndex + SWIPE.stackSize + SESSION_PREFETCH,
-    );
-    prefetchSlice.forEach((id) => {
-      const uri = uriById.get(id);
-      if (uri) Image.prefetch(uri);
-    });
+    session.assetIds
+      .slice(
+        currentIndex + SWIPE.stackSize + DECODE_POOL_AHEAD,
+        currentIndex + SWIPE.stackSize + DECODE_POOL_AHEAD + DISK_PREFETCH_AHEAD,
+      )
+      .forEach((id) => {
+        const uri = uriById.get(id);
+        if (uri) Image.prefetch(uri);
+      });
   }, [currentIndex, session?.id, uriById]);
 
   useEffect(() => {
@@ -135,6 +144,19 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         height: CARD_HEIGHT + SWIPE.stackOffsetY[SWIPE.stackSize - 1],
       }}
     >
+      {/* Off-screen decode pool — all images absolutely overlap at the same
+          position above the viewport. Forces SDWebImage to decode each image
+          at card size into memory cache before it enters the visible stack. */}
+      {offScreenIds.map((id) => (
+        <Image
+          key={`decode-${id}`}
+          source={{ uri: uriById.get(id) }}
+          style={{ position: 'absolute', top: -9999, left: 24, width: SCREEN_WIDTH - 48, height: CARD_HEIGHT }}
+          contentFit="cover"
+          pointerEvents="none"
+        />
+      ))}
+
       {/* Render front-to-back — top card first — so the native layer creates it first.
           zIndex handles visual stacking order, eliminating the brief flash of back
           cards during initial mount when the top card hasn't been created yet. */}
@@ -164,4 +186,8 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
   );
 });
 
-const SESSION_PREFETCH = 5;
+// Cards rendered off-screen at card dimensions to force SDWebImage memory-cache decode.
+// Memory cost: ~750KB per card × 10 ≈ 7.5 MB — negligible on modern iPhones.
+const DECODE_POOL_AHEAD = 10;
+// Cards beyond the decode pool that get disk-prefetched from the Photos library.
+const DISK_PREFETCH_AHEAD = 8;

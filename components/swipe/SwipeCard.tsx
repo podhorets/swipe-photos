@@ -186,7 +186,7 @@ export const SwipeCard = memo(function SwipeCard({
       <Animated.View
         className="absolute rounded-3xl overflow-hidden"
         pointerEvents={isDeparting ? 'none' : 'auto'}
-        style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24, zIndex }, cardStyle]}
+        style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24, zIndex, backgroundColor: '#1C1C1E' }, cardStyle]}
       >
         {isVideo ? (
           <VideoView
