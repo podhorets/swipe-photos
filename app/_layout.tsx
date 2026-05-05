@@ -1,6 +1,13 @@
 import '../global.css';
+import * as Sentry from '@sentry/react-native';
 import { enableMapSet } from 'immer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
+  tracesSampleRate: 1.0,
+});
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
@@ -76,7 +83,7 @@ function NotificationBootstrap() {
   return null;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
   }, []);
@@ -99,3 +106,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default Sentry.wrap(RootLayout);

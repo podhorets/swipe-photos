@@ -9,6 +9,9 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_SENTRY_DSN": ""
       }
     },
     "preview": {
@@ -16,12 +19,18 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_SENTRY_DSN": ""
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_SENTRY_DSN": ""
       }
     }
   },
