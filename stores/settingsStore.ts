@@ -17,7 +17,7 @@ const DEFAULTS: Settings = {
   faceIdEnabled: false,
   batchSize: GALLERY.defaultBatchSize,
   notificationsEnabled: false,
-  analyticsOptIn: false,
+  analyticsOptIn: true,
 };
 
 function loadSettings(): Settings {

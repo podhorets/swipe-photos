@@ -22,6 +22,7 @@ import { useStatsStore } from '@/stores/statsStore';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import { getEstimatedSize } from '@/lib/sizeUtils';
 import type { AssetMeta } from '@/types';
+import { posthog } from '@/lib/posthog';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CELL_SIZE = (SCREEN_WIDTH - 4) / 3; // 3 columns, 2px gaps
@@ -193,6 +194,13 @@ export default function TrashScreen() {
       }, 0);
 
       useStatsStore.getState().addFreedBytes(freedBytes);
+
+      posthog.capture('photos_deleted', {
+        deleted_count: idsToDelete.length,
+        kept_count: allKeptIds.length,
+        freed_bytes: freedBytes,
+        face_id_used: faceIdEnabled,
+      });
 
       // Show inline summary
       setSummaryStats({

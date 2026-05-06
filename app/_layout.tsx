@@ -1,23 +1,25 @@
 import '../global.css';
 import * as Sentry from '@sentry/react-native';
-import { enableMapSet } from 'immer';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
-Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  environment: __DEV__ ? 'development' : 'production',
-  tracesSampleRate: 1.0,
-});
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PostHogProvider } from 'posthog-react-native';
+import { enableMapSet } from 'immer';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { scheduleOnThisDayNotification } from '@/lib/notifications';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { posthog } from '@/lib/posthog';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
+  tracesSampleRate: 1.0,
+});
 
 // Required for Immer to handle Set and Map in Zustand stores
 enableMapSet();
@@ -84,25 +86,41 @@ function NotificationBootstrap() {
 }
 
 function RootLayout() {
+  const analyticsOptIn = useSettingsStore((s) => s.analyticsOptIn);
+
   useEffect(() => {
     SplashScreen.hideAsync();
   }, []);
 
-  return (
+  // Sync analytics opt-in/out with PostHog
+  useEffect(() => {
+    if (analyticsOptIn) {
+      posthog.optIn();
+    } else {
+      posthog.optOut();
+    }
+  }, [analyticsOptIn]);
+
+return (
     <GestureHandlerRootView className="flex-1">
-      <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <NotificationBootstrap />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="review/[sessionId]" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="review/preview/[assetId]" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
-        </Stack>
-      </QueryClientProvider>
-      </ErrorBoundary>
+      <PostHogProvider
+        client={posthog}
+        autocapture={false}
+      >
+        <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <NotificationBootstrap />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="review/[sessionId]" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="review/preview/[assetId]" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
+          </Stack>
+        </QueryClientProvider>
+        </ErrorBoundary>
+      </PostHogProvider>
     </GestureHandlerRootView>
   );
 }

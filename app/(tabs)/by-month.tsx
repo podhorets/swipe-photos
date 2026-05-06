@@ -8,6 +8,7 @@ import { useKeepStore } from '@/stores/keepStore';
 import { getByMonth } from '@/lib/gallery/grouper';
 import { monthLabel } from '@/lib/dateUtils';
 import { MonthRow } from '@/components/ui/MonthRow';
+import { posthog } from '@/lib/posthog';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,8 @@ export default function ByMonthScreen() {
   }, [index, keepIds]);
 
   function handleMonthPress(yyyymm: string) {
+    const monthData = months.find((m) => m.monthKey === yyyymm);
+    posthog.capture('month_review_started', { month: yyyymm, photo_count: monthData?.count ?? 0 });
     router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'month', month: yyyymm } });
   }
 

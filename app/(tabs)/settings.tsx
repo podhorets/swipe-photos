@@ -18,6 +18,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { cancelOnThisDayNotification, scheduleOnThisDayNotification } from '@/lib/notifications';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { GLASS } from '@/constants/theme';
+import { posthog } from '@/lib/posthog';
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -184,11 +185,13 @@ export default function SettingsScreen() {
       setAuthInProgress(false);
       if (result.success) {
         setFaceIdEnabled(true);
+        posthog.capture('setting_changed', { setting: 'face_id', value: true });
       }
       // If cancelled/failed, leave toggle off
     } else {
       // Disabling: no auth required
       setFaceIdEnabled(false);
+      posthog.capture('setting_changed', { setting: 'face_id', value: false });
     }
   }
 
@@ -206,9 +209,11 @@ export default function SettingsScreen() {
       }
       setNotificationsEnabled(true);
       scheduleOnThisDayNotification(index).catch(() => {});
+      posthog.capture('setting_changed', { setting: 'notifications', value: true });
     } else {
       setNotificationsEnabled(false);
       cancelOnThisDayNotification().catch(() => {});
+      posthog.capture('setting_changed', { setting: 'notifications', value: false });
     }
   }
 
@@ -245,7 +250,10 @@ export default function SettingsScreen() {
           label="Analytics"
           subtitle="Help improve the app (anonymous)"
           value={analyticsOptIn}
-          onValueChange={setAnalyticsOptIn}
+          onValueChange={(v) => {
+            posthog.capture('setting_changed', { setting: 'analytics', value: v });
+            setAnalyticsOptIn(v);
+          }}
         />
       </Section>
 

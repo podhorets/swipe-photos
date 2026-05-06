@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Linking, Alert } from 'react-native';
+import {View, Text, ScrollView, Pressable, Linking, Alert, Button} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,6 +16,8 @@ import {
   getVideos,
 } from '@/lib/gallery/grouper';
 import type { Category } from '@/types';
+import * as Sentry from '@sentry/react-native';
+import { posthog } from '@/lib/posthog';
 
 interface CategoryDef {
   id: Category;
@@ -78,6 +80,7 @@ export default function HomeScreen() {
       ]);
       return;
     }
+    posthog.capture('review_session_started', { category, photo_count: countFor(category) });
     router.push(`/review/${category}`);
   }
 
@@ -122,6 +125,7 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
+        <Button title='Try!' onPress={ () => { Sentry.captureException(new Error('First error')) }}/>
 
         {/* Limited access banner */}
         {isMediaLimited && (

@@ -13,6 +13,7 @@ import { GlassCard } from '@/components/glass/GlassCard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { STORAGE_KEYS } from '@/constants/config';
 import { SPRING } from '@/constants/theme';
+import { posthog } from '@/lib/posthog';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const storage = createMMKV();
@@ -66,6 +67,7 @@ export default function OnboardingScreen() {
     await requestNotifications();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     storage.set(STORAGE_KEYS.hasCompletedOnboarding, true);
+    posthog.capture('onboarding_completed');
     router.replace('/(tabs)');
   }
 
@@ -147,7 +149,7 @@ export default function OnboardingScreen() {
 
         {/* Skip (last step only) */}
         {isLastStep && (
-          <Pressable onPress={() => router.replace('/(tabs)')} className="items-center py-2">
+          <Pressable onPress={() => { posthog.capture('onboarding_skipped'); router.replace('/(tabs)'); }} className="items-center py-2">
             <Text className="text-white/40 text-sm">Skip for now</Text>
           </Pressable>
         )}

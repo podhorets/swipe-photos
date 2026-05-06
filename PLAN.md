@@ -21,46 +21,23 @@ Step-by-step plan to get from current state → first paid iOS subscribers.
 
 ---
 
-## Phase 1 — Telemetry First (Sentry + PostHog)
+## Phase 1 — Telemetry First ✅
 
-**Why first:** you want crash + analytics data flowing *before* you ship monetization, so you have a baseline.
+### 1.1 Sentry — DONE
+- [x] Account created, DSN configured, auth token added as EAS secret
+- [x] `@sentry/react-native` installed, plugin configured with org/project in `app.json`
+- [x] `Sentry.init()` + `Sentry.wrap(RootLayout)` in `_layout.tsx`
+- [x] `EXPO_PUBLIC_SENTRY_DSN` in `eas.json` and `.env`
+- [x] ✅ Tested and working
 
-### 1.1 Sentry Setup
-- [ ] 👤 Create Sentry account at https://sentry.io (free tier: 5k errors/mo)
-- [ ] 👤 Create new project → React Native → name it `swipe-photos-ios`
-- [ ] 👤 Copy the **DSN** (looks like `https://xxx@xxx.ingest.sentry.io/xxx`)
-- [ ] 👤 Generate a Sentry auth token: Settings → Account → Auth Tokens → create with `project:releases` + `org:read` scopes. Save it.
-- [ ] 🤖 `npx expo install @sentry/react-native`
-- [ ] 🤖 Add Sentry config plugin to `app.json` under `plugins`
-- [ ] 🤖 Initialize Sentry in `app/_layout.tsx` (before any other init)
-- [ ] 🤖 Wrap root layout with `Sentry.wrap()`
-- [ ] 🤖 Add `SENTRY_AUTH_TOKEN` as an EAS secret: `eas secret:create --name SENTRY_AUTH_TOKEN --value <token>`
-- [ ] 🤖 Add `EXPO_PUBLIC_SENTRY_DSN` to `eas.json` env per profile
-- [ ] ✅ Throw a test error in dev (`Sentry.captureException(new Error('test'))`) → confirm it appears in Sentry dashboard within 1 minute
-- [ ] ✅ Make a TestFlight build, install, force a crash → confirm symbolicated stack trace appears in Sentry
-
-### 1.2 PostHog Setup
-- [ ] 👤 Create PostHog account at https://posthog.com (free: 1M events/mo, 5k recordings/mo, unlimited flags)
-- [ ] 👤 Create project → name it `swipe-photos`
-- [ ] 👤 Copy the **Project API Key** (starts with `phc_`)
-- [ ] 👤 Note the **Host URL** — `https://us.i.posthog.com` (US) or `https://eu.i.posthog.com` (EU)
-- [ ] 🤖 `npx expo install posthog-react-native expo-file-system expo-application expo-device expo-localization`
-- [ ] 🤖 Create `lib/analytics.ts` — exports `track(event, props)`, `identify(userId)`, `posthog` instance
-- [ ] 🤖 Wrap app in `<PostHogProvider apiKey={...} options={{ host: ... }}>` in `_layout.tsx`
-- [ ] 🤖 Add `EXPO_PUBLIC_POSTHOG_KEY` and `EXPO_PUBLIC_POSTHOG_HOST` to `eas.json` env
-- [ ] 🤖 Instrument these events at minimum:
-  - `app_opened` (in _layout)
-  - `onboarding_step_viewed` (with `step` prop)
-  - `onboarding_completed`
-  - `session_started` (with `source: 'main' | 'on-this-day' | 'by-month'`)
-  - `swipe_decision` (with `decision: 'keep' | 'delete' | 'maybe'`)
-  - `session_completed` (with `kept`, `deleted`, `duration_ms`)
-  - `paywall_shown` (with `trigger`)
-  - `paywall_dismissed`
-  - `paywall_purchased` (with `product_id`)
-  - `purchase_restored`
-- [ ] ✅ Fire a test event → confirm in PostHog "Live Events" within 30 seconds
-- [ ] ✅ Build a funnel: `onboarding_completed → session_started → session_completed`
+### 1.2 PostHog — DONE
+- [x] Account created, key in `.env` as `EXPO_PUBLIC_POSTHOG_KEY`
+- [x] `posthog-react-native` installed, singleton in `lib/posthog.ts`
+- [x] `PostHogProvider` + screen tracking + analytics opt-in sync in `_layout.tsx`
+- [x] Events instrumented: `onboarding_completed`, `review_session_started`, `review_session_completed`, `review_session_abandoned`, `month_review_started`, `photos_deleted`, `setting_changed`
+- [x] Pre-built dashboards live in PostHog project
+- [x] ✅ Tested and working
+- [ ] ✅ Add `paywall_shown`, `paywall_dismissed`, `paywall_purchased`, `purchase_restored` — deferred to Phase 3 (paywall screen)
 
 ---
 

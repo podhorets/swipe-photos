@@ -14,6 +14,7 @@ import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
 import type { Category } from '@/types';
+import { posthog } from '@/lib/posthog';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Must match SwipeCard/SwipeStack so the off-screen decode happens at the same size
@@ -153,6 +154,11 @@ export default function ReviewScreen() {
       const allIds = Object.keys(decisions);
       if (allIds.length > 0) useKeepStore.getState().addMany(allIds);
       useStreakStore.getState().recordSession();
+      posthog.capture('review_session_completed', {
+        category: sessionId,
+        total_count: totalCount,
+        kept_count: allIds.length,
+      });
       setShowComplete(true);
     }
   }, []);
@@ -180,6 +186,12 @@ export default function ReviewScreen() {
       );
     } else {
       // No deletes — just close without saving (abandoned session)
+      const reviewedCount = Object.keys(decisions).length;
+      posthog.capture('review_session_abandoned', {
+        category: sessionId,
+        reviewed_count: reviewedCount,
+        total_count: totalCount,
+      });
       router.back();
     }
   }, []);
