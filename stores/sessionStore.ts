@@ -30,8 +30,8 @@ interface SessionState {
     session: Session,
     uriSnapshot: Map<string, string>,
     mediaTypeSnapshot: Map<string, string>,
+    sizeSnapshot: Map<string, number>,
   ) => void;
-  setSizeSnapshot: (sizes: Map<string, number>) => void;
   setSize: (assetId: string, size: number) => void;
   decide: (assetId: string, decision: SwipeDecision) => void;
   undoLast: () => string | null; // returns the restored assetId or null
@@ -53,22 +53,17 @@ export const useSessionStore = create<SessionState>()(
     mediaTypeSnapshot: new Map(),
     sizeSnapshot: new Map(),
 
-    startSession: (session, uriSnapshot, mediaTypeSnapshot) =>
+    startSession: (session, uriSnapshot, mediaTypeSnapshot, sizeSnapshot) =>
       set((state) => {
         state.phase = 'active';
         state.session = session;
         state.uriSnapshot = uriSnapshot;
         state.mediaTypeSnapshot = mediaTypeSnapshot;
-        state.sizeSnapshot = new Map();
+        state.sizeSnapshot = sizeSnapshot;
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
         state.lastAction = null;
-      }),
-
-    setSizeSnapshot: (sizes) =>
-      set((state) => {
-        state.sizeSnapshot = sizes;
       }),
 
     setSize: (assetId, size) =>

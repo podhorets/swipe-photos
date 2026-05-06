@@ -3,7 +3,7 @@ import {
   type SessionRequest,
 } from "@/lib/session/sessionFactory";
 import { gatedHaptic } from "@/lib/haptics";
-import { fetchAssetSizesInBackground } from "@/lib/sizeUtils";
+import { estimateSizeFromAsset } from "@/lib/sizeUtils";
 import { useGalleryStore } from "@/stores/galleryStore";
 import { useKeepStore } from "@/stores/keepStore";
 import { useSessionStore } from "@/stores/sessionStore";
@@ -35,20 +35,18 @@ export function useSession() {
     const sessionIdSet = new Set(newSession.assetIds);
     const uriSnapshot = new Map<string, string>();
     const mediaTypeSnapshot = new Map<string, string>();
+    // Seed sizes synchronously from dimensions already in the index — zero I/O.
+    // Real on-disk sizes are filled in lazily as cards become visible (see SwipeStack).
+    const sizeSnapshot = new Map<string, number>();
     for (const a of index) {
       if (sessionIdSet.has(a.id)) {
         uriSnapshot.set(a.id, a.uri);
         mediaTypeSnapshot.set(a.id, a.mediaType);
+        sizeSnapshot.set(a.id, estimateSizeFromAsset(a));
       }
     }
 
-    startSessionAction(newSession, uriSnapshot, mediaTypeSnapshot);
-
-    // TODO: remove it or rework, because it makes first swipes laggy (while this calculation is performed
-    // Run fetch in background to avoid freezing the UI on the first card
-    // fetchAssetSizesInBackground(mediaTypeSnapshot, (assetId, size) => {
-    //   useSessionStore.getState().setSize(assetId, size);
-    // });
+    startSessionAction(newSession, uriSnapshot, mediaTypeSnapshot, sizeSnapshot);
 
     return newSession;
   }

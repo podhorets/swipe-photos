@@ -9,11 +9,6 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
-      },
-      "env": {
-        "EXPO_PUBLIC_SENTRY_DSN": "",
-        "EXPO_PUBLIC_POSTHOG_KEY": "",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       }
     },
     "preview": {
@@ -21,22 +16,12 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
-      },
-      "env": {
-        "EXPO_PUBLIC_SENTRY_DSN": "",
-        "EXPO_PUBLIC_POSTHOG_KEY": "",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "simulator": false
-      },
-      "env": {
-        "EXPO_PUBLIC_SENTRY_DSN": "",
-        "EXPO_PUBLIC_POSTHOG_KEY": "",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       }
     }
   },

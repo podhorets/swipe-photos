@@ -1,5 +1,4 @@
 import '../global.css';
-import * as Sentry from '@sentry/react-native';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
@@ -14,11 +13,25 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { scheduleOnThisDayNotification } from '@/lib/notifications';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { posthog } from '@/lib/posthog';
+import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  environment: __DEV__ ? 'development' : 'production',
-  tracesSampleRate: 1.0,
+  dsn: 'https://5f918fbd3f8c5901db3e4ecde4d73e35@o4511027063291904.ingest.de.sentry.io/4511338069950544',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
 });
 
 // Required for Immer to handle Set and Map in Zustand stores

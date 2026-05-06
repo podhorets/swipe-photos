@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, memo } from 'react';
 import type { Ref } from 'react';
-import { View, Dimensions } from 'react-native';
+import { View, Dimensions, InteractionManager } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
 import { SwipeCard, type SwipeCardHandle, type SwipeDirection } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
+import { fetchAssetSize } from '@/lib/sizeUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
@@ -68,6 +69,32 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         if (uri) Image.prefetch(uri);
       });
   }, [currentIndex, session?.id, uriById]);
+
+  // Lazy real-size fetch for the visible window. The store already holds a
+  // dimension-based estimate seeded at session-start, so the UI never shows a
+  // stale flat constant — this effect just upgrades estimates to real on-disk
+  // bytes as cards approach the top.
+  //
+  // Scheduled via InteractionManager so the bridge call to Photos.framework
+  // waits for the swipe gesture/animation to settle. realFetchedRef dedupes
+  // across re-renders and undo, so each asset is fetched at most once per
+  // session lifetime.
+  const realFetchedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!session) return;
+    const targets = session.assetIds.slice(currentIndex, currentIndex + SIZE_FETCH_AHEAD);
+    const handle = InteractionManager.runAfterInteractions(() => {
+      for (const id of targets) {
+        if (realFetchedRef.current.has(id)) continue;
+        realFetchedRef.current.add(id);
+        const type = useSessionStore.getState().mediaTypeSnapshot.get(id) ?? 'photo';
+        fetchAssetSize(id, type).then((bytes) => {
+          useSessionStore.getState().setSize(id, bytes);
+        });
+      }
+    });
+    return () => handle.cancel();
+  }, [currentIndex, session?.id]);
 
   useEffect(() => {
     if (isComplete) onSessionComplete();
@@ -191,3 +218,6 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
 const DECODE_POOL_AHEAD = 10;
 // Cards beyond the decode pool that get disk-prefetched from the Photos library.
 const DISK_PREFETCH_AHEAD = 8;
+// How many upcoming cards to upgrade from estimate → real on-disk size.
+// Each card costs one MediaLibrary.getAssetInfoAsync bridge call.
+const SIZE_FETCH_AHEAD = 6;
