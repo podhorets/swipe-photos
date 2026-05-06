@@ -3,6 +3,7 @@ import type { Ref } from 'react';
 import { View, Dimensions, InteractionManager } from 'react-native';
 import { Image } from 'expo-image';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useGalleryStore } from '@/stores/galleryStore';
 import { SwipeCard, type SwipeCardHandle, type SwipeDirection } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
 import { SWIPE } from '@/constants/theme';
@@ -84,11 +85,13 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
     if (!session) return;
     const targets = session.assetIds.slice(currentIndex, currentIndex + SIZE_FETCH_AHEAD);
     const handle = InteractionManager.runAfterInteractions(() => {
+      const galleryIndex = useGalleryStore.getState().index;
       for (const id of targets) {
         if (realFetchedRef.current.has(id)) continue;
+        const asset = galleryIndex.find((a) => a.id === id);
+        if (!asset) continue;
         realFetchedRef.current.add(id);
-        const type = useSessionStore.getState().mediaTypeSnapshot.get(id) ?? 'photo';
-        fetchAssetSize(id, type).then((bytes) => {
+        fetchAssetSize(asset).then((bytes) => {
           useSessionStore.getState().setSize(id, bytes);
         });
       }

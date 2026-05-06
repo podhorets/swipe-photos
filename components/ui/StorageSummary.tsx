@@ -8,6 +8,7 @@ import { AVG_PHOTO_SIZE_BYTES, AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 export function StorageSummary() {
   const { index, isIndexing, indexProgress } = useGalleryStore();
   const lifetimeFreedBytes = useStatsStore((s) => s.lifetimeFreedBytes);
+  const lifetimeDeletedCount = useStatsStore((s) => s.lifetimeDeletedCount);
 
   const photoCount = index.filter((a) => a.mediaType === 'photo').length;
   const videoCount = index.filter((a) => a.mediaType === 'video').length;
@@ -54,12 +55,24 @@ export function StorageSummary() {
               </View>
             </View>
             
-            {lifetimeFreedBytes > 0 && (
-              <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-white/10">
-                <Text className="text-white/50 text-sm">Storage freed</Text>
-                <Text className="text-green-400/90 text-base font-semibold">
-                  {formatBytes(lifetimeFreedBytes)}
-                </Text>
+            {(lifetimeFreedBytes > 0 || lifetimeDeletedCount > 0) && (
+              <View className="mt-3 pt-3 border-t border-white/10 gap-2">
+                {lifetimeDeletedCount > 0 && (
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-white/50 text-sm">Deleted</Text>
+                    <Text className="text-white/70 text-base font-semibold">
+                      {lifetimeDeletedCount.toLocaleString()} {lifetimeDeletedCount === 1 ? 'item' : 'items'}
+                    </Text>
+                  </View>
+                )}
+                {lifetimeFreedBytes > 0 && (
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-white/50 text-sm">Storage freed</Text>
+                    <Text className="text-green-400/90 text-base font-semibold">
+                      {formatBytes(lifetimeFreedBytes)}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>

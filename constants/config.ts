@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   hasCompletedOnboarding: 'onboarding:completed',
   streakDates: 'streak:dates',
   statsFreedBytes: 'stats:freedBytes',
+  statsDeletedCount: 'stats:deletedCount',
 };
 
 // Gallery indexing

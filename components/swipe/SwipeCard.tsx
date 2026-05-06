@@ -16,7 +16,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { SPRING, SWIPE } from '@/constants/theme';
 import { gatedHaptic } from '@/lib/haptics';
-import { getEstimatedSize } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
 import { useSessionStore } from '@/stores/sessionStore';
 import { ActionOverlay } from './ActionOverlay';
@@ -53,7 +52,7 @@ export const SwipeCard = memo(function SwipeCard({
   // arrives from the background fetch, not the entire SwipeStack.
   const realSize = useSessionStore((s) => s.sizeSnapshot.get(assetId));
   const mediaType = useSessionStore((s) => s.mediaTypeSnapshot.get(assetId));
-  const sizeLabel = `~${formatBytes(realSize ?? getEstimatedSize(mediaType ?? 'photo'))}`;
+  const sizeLabel = realSize != null ? `~${formatBytes(realSize)}` : '';
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const hasPassedThreshold = useSharedValue(false);

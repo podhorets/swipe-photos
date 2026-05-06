@@ -20,7 +20,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
-import { getEstimatedSize } from '@/lib/sizeUtils';
+import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import type { AssetMeta } from '@/types';
 import { posthog } from '@/lib/posthog';
 
@@ -190,10 +190,11 @@ export default function TrashScreen() {
       const freedBytes = idsToDelete.reduce((sum, id) => {
         const real = sessionSizeSnapshot.get(id);
         const asset = deleteAssets.find(a => a.id === id);
-        return sum + (real ?? getEstimatedSize(asset?.mediaType ?? 'photo'));
+        return sum + (real ?? (asset ? estimateSizeFromAsset(asset) : 0));
       }, 0);
 
       useStatsStore.getState().addFreedBytes(freedBytes);
+      useStatsStore.getState().addDeletedCount(idsToDelete.length);
 
       posthog.capture('photos_deleted', {
         deleted_count: idsToDelete.length,
