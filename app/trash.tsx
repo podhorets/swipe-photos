@@ -20,7 +20,7 @@ import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { useStatsStore } from '@/stores/statsStore';
-import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
+import { SessionComplete } from '@/components/ui/SessionComplete';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
@@ -361,7 +361,7 @@ export default function TrashScreen() {
 
       {/* Post-deletion summary overlay */}
       {showSummary && (
-        <SessionCompleteSheet
+        <SessionComplete
           totalCount={summaryStats.total}
           keptCount={summaryStats.kept}
           freedBytes={summaryStats.freedBytes}

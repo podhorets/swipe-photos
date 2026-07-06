@@ -12,7 +12,7 @@ import { useStreakStore } from '@/stores/streakStore';
 import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack';
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
+import { SessionComplete } from '@/components/ui/SessionComplete';
 import { AmbientPhotoBackdrop } from '@/components/ui/AmbientPhotoBackdrop';
 import { REVIEW_CARD } from '@/constants/theme';
 import type { Category } from '@/types';
@@ -315,9 +315,9 @@ export default function ReviewScreen() {
         <ActionButton type="keep" onPress={handleSwipeRight} />
       </View>
 
-      {/* Session complete sheet — only shown when zero deletions (trash path skips this) */}
+      {/* Session complete screen — only shown when zero deletions (trash path skips this) */}
       {showComplete && (
-        <SessionCompleteSheet
+        <SessionComplete
           totalCount={totalCount}
           keptCount={completionCounts.keptCount}
           freedBytes={0}
