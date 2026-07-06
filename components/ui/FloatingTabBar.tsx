@@ -39,7 +39,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     >
       <Animated.View
         layout={pillSpring}
-        className="flex-row rounded-full overflow-hidden p-1.5 bg-chrome"
+        className="flex-row gap-1 rounded-full overflow-hidden p-1.5 bg-chrome"
         style={[
           {
             borderWidth: 1,

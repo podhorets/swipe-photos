@@ -269,7 +269,7 @@ export default function SettingsScreen() {
           />
           <RowDivider />
           <NavRow
-            icon="shield"
+            icon="shield-checkmark"
             gradient={GRADIENTS.shield}
             label="Privacy Policy"
             onPress={() => {
@@ -278,7 +278,7 @@ export default function SettingsScreen() {
           />
           <RowDivider />
           <View className="flex-row items-center px-4 py-[13px] gap-3">
-            <IconSquircle icon="information" />
+            <IconSquircle icon="information-circle" />
             <Text className="text-white text-base font-medium flex-1">Version</Text>
             <Text className="text-white/40 text-[15px]">{appVersion}</Text>
           </View>

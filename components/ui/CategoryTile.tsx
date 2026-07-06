@@ -67,7 +67,7 @@ export function CategoryTile({
         {/* Label block */}
         <View className="absolute left-3.5 right-3.5 bottom-3">
           <Ionicons name={icon} size={20} color="#FFFFFF" style={{ marginBottom: 4 }} />
-          <Text className="text-white text-base font-bold" numberOfLines={1}>
+          <Text className="text-white text-base font-bold" style={{ letterSpacing: -0.2 }} numberOfLines={1}>
             {label}
           </Text>
           <Text className="text-white/60 text-xs mt-px" numberOfLines={1}>

@@ -50,8 +50,8 @@ function PhotoCell({
       style={{
         width: CELL_SIZE,
         height: CELL_SIZE,
-        borderWidth: selected ? 2 : 0,
-        borderColor: 'rgba(255,69,58,0.85)',
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? 'rgba(255,69,58,0.85)' : 'rgba(255,255,255,0.1)',
       }}
     >
       <Image

@@ -33,7 +33,7 @@ export function StreakWidget() {
               <View key={i} className="items-center gap-1">
                 <Text
                   className={`text-[10px] font-semibold ${
-                    isToday ? 'text-white/70' : 'text-white/35'
+                    isToday ? 'text-white/80' : 'text-white/35'
                   }`}
                 >
                   {letter}

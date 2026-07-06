@@ -21,7 +21,8 @@ import {
   getVideos,
 } from '@/lib/gallery/grouper';
 import { GRADIENTS, SCREEN } from '@/constants/theme';
-import { monthLabel } from '@/lib/dateUtils';
+import { formatBytes, monthLabel } from '@/lib/dateUtils';
+import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 
@@ -31,7 +32,6 @@ interface TileDef {
   id: Category;
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  subtitle: string;
 }
 
 export default function HomeScreen() {
@@ -44,16 +44,16 @@ export default function HomeScreen() {
 
   const tiles: TileDef[] = useMemo(
     () => [
-      { id: 'on-this-day', label: 'On This Day', icon: 'sparkles', subtitle: 'Memories from past years' },
-      { id: 'screenshots', label: 'Screenshots', icon: 'phone-portrait', subtitle: 'Clear the clutter' },
-      { id: 'videos', label: 'Videos', icon: 'videocam', subtitle: 'Biggest space savers' },
-      { id: 'random', label: `Random ${batchSize}`, icon: 'shuffle', subtitle: 'From your whole library' },
+      { id: 'on-this-day', label: 'On This Day', icon: 'sparkles' },
+      { id: 'screenshots', label: 'Screenshots', icon: 'phone-portrait-outline' },
+      { id: 'videos', label: 'Videos', icon: 'videocam' },
+      { id: 'random', label: `Random ${batchSize}`, icon: 'shuffle' },
     ],
     [batchSize],
   );
 
   // Counts + cover photos per category, and by-month meta — one pass per index change
-  const { counts, covers, monthMeta } = useMemo(() => {
+  const { counts, covers, videoBytes, monthMeta } = useMemo(() => {
     const onThisDay = getOnThisDay(index);
     const screenshots = getScreenshots(index);
     const videos = getVideos(index);
@@ -72,6 +72,7 @@ export default function HomeScreen() {
         videos: videos[0]?.uri,
         random: index[0]?.uri,
       },
+      videoBytes: videos.length * AVG_VIDEO_SIZE_BYTES,
       monthMeta: {
         count: byMonth.size,
         oldestLabel: monthKeys.length > 0 ? monthLabel(monthKeys[0]) : undefined,
@@ -120,6 +121,21 @@ export default function HomeScreen() {
     month: 'long',
     day: 'numeric',
   });
+  const monthDay = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
+  // Data-driven tile subtitles, per the design mock
+  function subtitleFor(id: Category): string {
+    switch (id) {
+      case 'on-this-day':
+        return `Memories from ${monthDay}`;
+      case 'screenshots':
+        return `${Math.round((categoryProgress.screenshots ?? 0) * 100)}% reviewed`;
+      case 'videos':
+        return `${formatBytes(videoBytes)} total`;
+      default:
+        return 'Quick 5-min session';
+    }
+  }
 
   // Permission denied — show locked state with Settings deep link
   if (!isMediaGranted) {
@@ -205,7 +221,7 @@ export default function HomeScreen() {
               <CategoryTile
                 key={tile.id}
                 label={tile.label}
-                subtitle={tile.subtitle}
+                subtitle={subtitleFor(tile.id)}
                 icon={tile.icon}
                 count={count}
                 coverUri={covers[tile.id as keyof typeof covers]}
@@ -228,6 +244,12 @@ export default function HomeScreen() {
                 size={46}
                 radius={15}
                 iconSize={22}
+                style={{
+                  shadowColor: '#0A84FF',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                  shadowOffset: { width: 0, height: 8 },
+                }}
               />
               <View className="flex-1">
                 <Text className="text-white font-bold text-base">Browse by month</Text>
