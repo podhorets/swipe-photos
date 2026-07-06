@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  <style>
+    body { margin: 0; background: #101014; font-family: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif; }
+    a { color: #7BB8FF; text-decoration: none; }
+    a:hover { color: #A8CFFF; }
+    ion-icon { pointer-events: none; }
+  </style>
+</helmet>
+
+<section id="1b" style="padding: 48px 56px 40px; display: flex; flex-direction: column; gap: 24px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <a href="#1b" style="display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #0A84FF, #5E5CE6); color: #fff; font-size: 14px; font-weight: 700; padding: 0 10px;">1b</a>
+    <div>
+      <div style="color: #fff; font-size: 20px; font-weight: 700;">Redesign — Liquid Glass, photo-forward</div>
+      <div style="color: rgba(255,255,255,0.45); font-size: 13px; margin-top: 2px;">Ambient aurora depth, photo-rich category tiles, floating glass chrome, hero storage ring · compare with <a href="#1a">1a</a></div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+
+    <!-- ═══ R-ONBOARDING ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Onboarding</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <div style="position: absolute; top: -140px; left: -80px; width: 420px; height: 420px; border-radius: 999px; background: radial-gradient(circle, rgba(94,92,230,0.35), transparent 65%);"></div>
+          <div style="position: absolute; top: 120px; right: -140px; width: 380px; height: 380px; border-radius: 999px; background: radial-gradient(circle, rgba(10,132,255,0.28), transparent 65%);"></div>
+          <div style="position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; padding-top: 62px; box-sizing: border-box;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 32px; text-align: center;">
+              <!-- fanned photo stack -->
+              <div style="position: relative; width: 220px; height: 250px; margin-bottom: 40px;">
+                <img src="https://picsum.photos/seed/ob3/300/400" style="position: absolute; left: 8px; top: 18px; width: 160px; height: 214px; object-fit: cover; border-radius: 22px; transform: rotate(-10deg); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 24px 48px rgba(0,0,0,0.5); opacity: 0.7;" alt="">
+                <img src="https://picsum.photos/seed/ob2/300/400" style="position: absolute; right: 4px; top: 10px; width: 160px; height: 214px; object-fit: cover; border-radius: 22px; transform: rotate(9deg); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 24px 48px rgba(0,0,0,0.5); opacity: 0.85;" alt="">
+                <img src="https://picsum.photos/seed/ob1/300/400" style="position: absolute; left: 30px; top: 0; width: 160px; height: 214px; object-fit: cover; border-radius: 22px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 32px 64px rgba(0,0,0,0.6);" alt="">
+                <div style="position: absolute; right: 10px; bottom: 0; width: 52px; height: 52px; border-radius: 999px; background: rgba(48,209,88,0.92); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 28px rgba(48,209,88,0.4);">
+                  <ion-icon name="checkmark" style="font-size: 26px; color: #fff;"></ion-icon>
+                </div>
+                <div style="position: absolute; left: -6px; bottom: 26px; width: 44px; height: 44px; border-radius: 999px; background: rgba(255,69,58,0.92); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 28px rgba(255,69,58,0.4);">
+                  <ion-icon name="trash-outline" style="font-size: 20px; color: #fff;"></ion-icon>
+                </div>
+              </div>
+              <div style="color: #fff; font-weight: 800; font-size: 40px; line-height: 46px; letter-spacing: -1px; margin-bottom: 16px;">Reclaim your<br>phone storage</div>
+              <div style="color: rgba(255,255,255,0.55); font-size: 17px; line-height: 26px; max-width: 300px;">Breeze through thousands of photos. Swipe left to delete, right to keep.</div>
+            </div>
+            <div style="padding: 0 32px 24px; display: flex; flex-direction: column; gap: 18px;">
+              <div style="display: flex; justify-content: center; gap: 8px;">
+                <div style="width: 26px; height: 6px; border-radius: 999px; background: linear-gradient(90deg, {{ accent }}, #5E5CE6);"></div>
+                <div style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.25);"></div>
+                <div style="width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.25);"></div>
+              </div>
+              <div style="background: linear-gradient(135deg, {{ accent }}, #5E5CE6); border-radius: 999px; padding: 17px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(10,132,255,0.35);">
+                <span style="color: #fff; font-weight: 700; font-size: 17px; letter-spacing: -0.2px;">Continue</span>
+              </div>
+              <div style="height: 22px;"></div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-HOME ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Library (Home)</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <div style="position: absolute; top: -160px; left: -100px; width: 460px; height: 460px; border-radius: 999px; background: radial-gradient(circle, rgba(94,92,230,0.30), transparent 65%);"></div>
+          <div style="position: absolute; top: 200px; right: -160px; width: 400px; height: 400px; border-radius: 999px; background: radial-gradient(circle, rgba(10,132,255,0.20), transparent 65%);"></div>
+          <div style="position: relative; z-index: 1; height: 100%; overflow: hidden; padding: 78px 20px 0; box-sizing: border-box;">
+            <!-- Header -->
+            <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px;">
+              <div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 14px; font-weight: 500;">Monday, July 6</div>
+                <div style="color: #fff; font-size: 34px; font-weight: 800; letter-spacing: -0.8px; margin-top: 2px;">Your Library</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: rgba(255,159,10,0.15); border: 1px solid rgba(255,159,10,0.3);">
+                <span style="font-size: 15px;">🔥</span>
+                <span style="color: #FF9F0A; font-size: 14px; font-weight: 700;">6</span>
+              </div>
+            </div>
+            <!-- Hero: storage ring -->
+            <div style="border-radius: 28px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-top-color: rgba(255,255,255,0.28); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); padding: 16px; display: flex; align-items: center; gap: 18px; margin-bottom: 12px;">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <defs>
+                  <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="{{ accent }}"></stop>
+                    <stop offset="1" stop-color="#5E5CE6"></stop>
+                  </linearGradient>
+                </defs>
+                <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="9"></circle>
+                <circle cx="52" cy="52" r="44" fill="none" stroke="url(#ringGrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="188" transform="rotate(-90 52 52)"></circle>
+                <text x="52" y="49" text-anchor="middle" fill="#fff" font-size="21" font-weight="800" font-family="-apple-system, system-ui">32%</text>
+                <text x="52" y="66" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="10" font-weight="600" font-family="-apple-system, system-ui">REVIEWED</text>
+              </svg>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                  <div style="color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.4px;">12,847 items</div>
+                  <div style="color: rgba(255,255,255,0.45); font-size: 13px; margin-top: 1px;">48.2 GB · 11,203 photos · 1,644 videos</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <ion-icon name="sparkles" style="font-size: 13px; color: #30D158;"></ion-icon>
+                  <span style="color: #30D158; font-size: 13px; font-weight: 600;">4.6 GB freed all-time</span>
+                </div>
+              </div>
+            </div>
+            <!-- Week streak strip -->
+            <div style="border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <span style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600;">This week</span>
+              <div style="display: flex; gap: 10px;">
+                <sc-for list="{{ weekDots }}" as="d" hint-placeholder-count="7">
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                    <span style="font-size: 10px; font-weight: 600; color: {{ d.labelColor }};">{{ d.letter }}</span>
+                    <div style="width: 18px; height: 18px; border-radius: 999px; background: {{ d.bg }}; border: {{ d.border }}; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                      <sc-if value="{{ d.done }}" hint-placeholder-val="{{ false }}">
+                        <ion-icon name="checkmark" style="font-size: 10px; color: #050508;"></ion-icon>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <!-- Category photo tiles -->
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;">
+              <span style="color: #fff; font-size: 19px; font-weight: 700; letter-spacing: -0.3px;">Review</span>
+              <span style="color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 500;">Pick a stack</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <sc-for list="{{ rCategories }}" as="cat" hint-placeholder-count="4">
+                <div style="position: relative; border-radius: 24px; overflow: hidden; height: 122px; border: 1px solid rgba(255,255,255,0.14);">
+                  <img src="{{ cat.photo }}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" alt="">
+                  <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,5,8,0.15) 0%, rgba(5,5,8,0.82) 100%);"></div>
+                  <div style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(5,5,8,0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+                    <span style="color: #fff; font-size: 12px; font-weight: 700;">{{ cat.count }}</span>
+                  </div>
+                  <div style="position: absolute; left: 14px; right: 14px; bottom: 12px;">
+                    <ion-icon name="{{ cat.icon }}" style="font-size: 20px; color: #fff; margin-bottom: 4px;"></ion-icon>
+                    <div style="color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">{{ cat.label }}</div>
+                    <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 1px;">{{ cat.subtitle }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <!-- By Month wide tile -->
+            <div style="border-radius: 24px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-top-color: rgba(255,255,255,0.28); padding: 16px; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: linear-gradient(135deg, {{ accent }}, #5E5CE6); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(10,132,255,0.3);">
+                <ion-icon name="calendar-number-outline" style="font-size: 22px; color: #fff;"></ion-icon>
+              </div>
+              <div style="flex: 1;">
+                <div style="color: #fff; font-weight: 700; font-size: 16px;">Browse by month</div>
+                <div style="color: rgba(255,255,255,0.45); font-size: 13px; margin-top: 1px;">38 months · oldest March 2021</div>
+              </div>
+              <ion-icon name="chevron-forward" style="font-size: 16px; color: rgba(255,255,255,0.35);"></ion-icon>
+            </div>
+          </div>
+          <!-- Floating pill tab bar -->
+          <div style="position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(24,24,28,0.72); backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.28); box-shadow: 0 16px 40px rgba(0,0,0,0.5);">
+            <sc-for list="{{ rTabsHome }}" as="tab" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 999px; background: {{ tab.pillBg }};">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 20px; color: {{ tab.color }};"></ion-icon>
+                <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 13px; font-weight: 700; color: #fff;">{{ tab.label }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-REVIEW ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Review session</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <!-- ambient echo of the photo -->
+          <img src="https://picsum.photos/seed/rv1/500/800" style="position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); object-fit: cover; filter: blur(60px) brightness(0.4) saturate(1.4); opacity: 0.7;" alt="">
+          <div style="position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; padding-top: 68px; box-sizing: border-box;">
+            <!-- Top chrome -->
+            <div style="display: flex; align-items: center; padding: 0 20px 10px; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 999px; background: rgba(24,24,28,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.16); display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="close" style="font-size: 20px; color: #fff;"></ion-icon>
+              </div>
+              <div style="flex: 1; text-align: center;">
+                <div style="color: #fff; font-weight: 700; font-size: 16px; letter-spacing: -0.2px;">Screenshots</div>
+                <div style="color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 1px;">247 of 763 left</div>
+              </div>
+              <div style="width: 40px; height: 40px; border-radius: 999px; background: rgba(24,24,28,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.16); display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="arrow-undo-outline" style="font-size: 18px; color: #fff;"></ion-icon>
+              </div>
+            </div>
+            <!-- Gradient progress -->
+            <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.14); margin: 4px 20px 0; overflow: hidden;">
+              <div style="height: 100%; width: 68%; border-radius: 999px; background: linear-gradient(90deg, {{ accent }}, #5E5CE6);"></div>
+            </div>
+            <!-- Card -->
+            <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center; margin-top: 14px;">
+              <div style="position: absolute; width: 330px; height: 560px; border-radius: 32px; overflow: hidden; transform: scale(0.94) translateY(18px); opacity: 0.6; border: 1px solid rgba(255,255,255,0.15);">
+                <img src="https://picsum.photos/seed/rv2/500/800" style="width: 100%; height: 100%; object-fit: cover;" alt="">
+              </div>
+              <div style="position: absolute; width: 346px; height: 580px; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 32px 80px rgba(0,0,0,0.6);">
+                <img src="https://picsum.photos/seed/rv1/500/800" style="width: 100%; height: 100%; object-fit: cover;" alt="">
+                <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 110px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.55));"></div>
+                <div style="position: absolute; left: 14px; bottom: 14px; display: flex; gap: 8px;">
+                  <div style="display: flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; background: rgba(5,5,8,0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+                    <ion-icon name="calendar-outline" style="font-size: 12px; color: rgba(255,255,255,0.7);"></ion-icon>
+                    <span style="color: #fff; font-size: 12px; font-weight: 600;">Jun 14, 2026</span>
+                  </div>
+                  <div style="padding: 6px 11px; border-radius: 999px; background: rgba(5,5,8,0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+                    <span style="color: #fff; font-size: 12px; font-weight: 600;">2.4 MB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Action bar -->
+            <div style="display: flex; align-items: center; justify-content: center; gap: 40px; padding: 18px 0 44px;">
+              <div style="width: 64px; height: 64px; border-radius: 999px; background: rgba(255,69,58,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1.5px solid rgba(255,69,58,0.5); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(255,69,58,0.25);">
+                <ion-icon name="trash" style="font-size: 26px; color: #FF453A;"></ion-icon>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                <span style="color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 600; letter-spacing: 0.08em;">SWIPE OR TAP</span>
+              </div>
+              <div style="width: 64px; height: 64px; border-radius: 999px; background: rgba(48,209,88,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1.5px solid rgba(48,209,88,0.5); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(48,209,88,0.25);">
+                <ion-icon name="heart" style="font-size: 26px; color: #30D158;"></ion-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-BY MONTH ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">By Month</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <div style="position: absolute; top: -160px; right: -100px; width: 440px; height: 440px; border-radius: 999px; background: radial-gradient(circle, rgba(10,132,255,0.22), transparent 65%);"></div>
+          <div style="position: relative; z-index: 1; height: 100%; overflow: hidden; padding: 78px 20px 0; box-sizing: border-box;">
+            <div style="margin-bottom: 20px;">
+              <div style="color: #fff; font-size: 34px; font-weight: 800; letter-spacing: -0.8px;">By Month</div>
+              <div style="color: rgba(255,255,255,0.45); font-size: 15px; margin-top: 4px;">38 months · 12,847 items</div>
+            </div>
+            <div style="color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 10px;">2026</div>
+            <sc-for list="{{ rMonths }}" as="m" hint-placeholder-count="5">
+              <div style="border-radius: 24px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); padding: 12px; display: flex; align-items: center; gap: 14px; margin-bottom: 10px;">
+                <div style="position: relative; width: 62px; height: 62px; border-radius: 16px; overflow: hidden; flex-shrink: 0;">
+                  <img src="{{ m.photo }}" style="width: 100%; height: 100%; object-fit: cover;" alt="">
+                </div>
+                <div style="flex: 1;">
+                  <div style="color: #fff; font-weight: 700; font-size: 16px; letter-spacing: -0.2px;">{{ m.label }}</div>
+                  <div style="color: rgba(255,255,255,0.45); font-size: 13px; margin-top: 2px;">{{ m.count }} items</div>
+                </div>
+                <sc-if value="{{ m.done }}" hint-placeholder-val="{{ false }}">
+                  <div style="width: 30px; height: 30px; border-radius: 999px; background: rgba(48,209,88,0.18); border: 1.5px solid rgba(48,209,88,0.6); display: flex; align-items: center; justify-content: center; margin-right: 4px;">
+                    <ion-icon name="checkmark" style="font-size: 15px; color: #30D158;"></ion-icon>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ m.notDone }}" hint-placeholder-val="{{ true }}">
+                  <svg width="34" height="34" viewBox="0 0 34 34" style="margin-right: 4px;">
+                    <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3.5"></circle>
+                    <circle cx="17" cy="17" r="14" fill="none" stroke="{{ accent }}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="88" stroke-dashoffset="{{ m.ringOffset }}" transform="rotate(-90 17 17)"></circle>
+                    <text x="17" y="21" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9.5" font-weight="700" font-family="-apple-system, system-ui">{{ m.pct }}</text>
+                  </svg>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(24,24,28,0.72); backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.28); box-shadow: 0 16px 40px rgba(0,0,0,0.5);">
+            <sc-for list="{{ rTabsByMonth }}" as="tab" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 999px; background: {{ tab.pillBg }};">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 20px; color: {{ tab.color }};"></ion-icon>
+                <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 13px; font-weight: 700; color: #fff;">{{ tab.label }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-ON THIS DAY ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">On This Day</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <div style="position: relative; z-index: 1; height: 100%; overflow: hidden; padding: 78px 20px 0; box-sizing: border-box;">
+            <div style="margin-bottom: 18px;">
+              <div style="color: #fff; font-size: 34px; font-weight: 800; letter-spacing: -0.8px;">On This Day</div>
+              <div style="color: rgba(255,255,255,0.45); font-size: 15px; margin-top: 4px;">July 6 · 4 years of memories</div>
+            </div>
+            <!-- Hero memory -->
+            <div style="position: relative; border-radius: 28px; overflow: hidden; height: 300px; border: 1px solid rgba(255,255,255,0.16); margin-bottom: 18px;">
+              <img src="https://picsum.photos/seed/hero25/600/500" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" alt="">
+              <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,5,8,0.05) 30%, rgba(5,5,8,0.85) 100%);"></div>
+              <div style="position: absolute; left: 18px; right: 18px; bottom: 16px; display: flex; align-items: flex-end; justify-content: space-between;">
+                <div>
+                  <div style="color: rgba(255,255,255,0.65); font-size: 13px; font-weight: 600; letter-spacing: 0.06em;">1 YEAR AGO</div>
+                  <div style="color: #fff; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-top: 2px;">2025</div>
+                  <div style="color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 1px;">12 photos</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; padding: 11px 18px; border-radius: 999px; background: rgba(255,255,255,0.92); box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+                  <ion-icon name="play" style="font-size: 14px; color: #050508;"></ion-icon>
+                  <span style="color: #050508; font-weight: 700; font-size: 14px;">Review</span>
+                </div>
+              </div>
+            </div>
+            <sc-for list="{{ rOtdYears }}" as="y" hint-placeholder-count="2">
+              <div style="margin-bottom: 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                  <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span style="color: #fff; font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">{{ y.year }}</span>
+                    <span style="color: rgba(255,255,255,0.4); font-size: 13px;">{{ y.sub }}</span>
+                  </div>
+                  <span style="color: {{ accent }}; font-size: 14px; font-weight: 600;">Review</span>
+                </div>
+                <div style="display: flex; gap: 8px; overflow: hidden;">
+                  <sc-for list="{{ y.photos }}" as="p" hint-placeholder-count="4">
+                    <img src="{{ p }}" style="width: 104px; height: 130px; border-radius: 16px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);" alt="">
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(24,24,28,0.72); backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.28); box-shadow: 0 16px 40px rgba(0,0,0,0.5);">
+            <sc-for list="{{ rTabsOtd }}" as="tab" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 999px; background: {{ tab.pillBg }};">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 20px; color: {{ tab.color }};"></ion-icon>
+                <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 13px; font-weight: 700; color: #fff;">{{ tab.label }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-SETTINGS ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Settings</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <div style="position: absolute; top: -140px; left: -120px; width: 420px; height: 420px; border-radius: 999px; background: radial-gradient(circle, rgba(94,92,230,0.22), transparent 65%);"></div>
+          <div style="position: relative; z-index: 1; height: 100%; overflow: hidden; padding: 78px 20px 0; box-sizing: border-box;">
+            <div style="color: #fff; font-size: 34px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 22px;">Settings</div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 0 6px; margin-bottom: 8px;">Review</div>
+            <div style="border-radius: 22px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); padding: 14px 16px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; margin-bottom: 12px; gap: 12px;">
+                <div style="width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, {{ accent }}, #5E5CE6); display: flex; align-items: center; justify-content: center;">
+                  <ion-icon name="shuffle" style="font-size: 16px; color: #fff;"></ion-icon>
+                </div>
+                <span style="color: #fff; font-size: 16px; font-weight: 500; flex: 1;">Random batch size</span>
+              </div>
+              <div style="display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: rgba(0,0,0,0.35);">
+                <div style="flex: 1; padding: 9px 0; border-radius: 11px; text-align: center;"><span style="color: rgba(255,255,255,0.5); font-size: 15px; font-weight: 600;">25</span></div>
+                <div style="flex: 1; padding: 9px 0; border-radius: 11px; text-align: center; background: rgba(255,255,255,0.16); border: 0.5px solid rgba(255,255,255,0.2);"><span style="color: #fff; font-weight: 700; font-size: 15px;">50</span></div>
+                <div style="flex: 1; padding: 9px 0; border-radius: 11px; text-align: center;"><span style="color: rgba(255,255,255,0.5); font-size: 15px; font-weight: 600;">100</span></div>
+              </div>
+            </div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 0 6px; margin-bottom: 8px;">Privacy &amp; Security</div>
+            <div style="border-radius: 22px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); margin-bottom: 20px;">
+              <sc-for list="{{ rPrivacyRows }}" as="row" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; padding: 13px 16px; gap: 12px; border-bottom: {{ row.divider }};">
+                  <div style="width: 30px; height: 30px; border-radius: 9px; background: {{ row.iconBg }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <ion-icon name="{{ row.icon }}" style="font-size: 16px; color: #fff;"></ion-icon>
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="color: #fff; font-size: 16px; font-weight: 500;">{{ row.label }}</div>
+                    <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 1px;">{{ row.sub }}</div>
+                  </div>
+                  <sc-if value="{{ row.on }}" hint-placeholder-val="{{ true }}">
+                    <div style="width: 51px; height: 31px; border-radius: 999px; background: #30D158; position: relative; flex-shrink: 0;"><div style="position: absolute; top: 2px; right: 2px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div></div>
+                  </sc-if>
+                  <sc-if value="{{ row.off }}" hint-placeholder-val="{{ false }}">
+                    <div style="width: 51px; height: 31px; border-radius: 999px; background: rgba(255,255,255,0.15); position: relative; flex-shrink: 0;"><div style="position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div></div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 0 6px; margin-bottom: 8px;">Notifications</div>
+            <div style="border-radius: 22px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; padding: 13px 16px; gap: 12px;">
+                <div style="width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, #FF9F0A, #FF6482); display: flex; align-items: center; justify-content: center;">
+                  <ion-icon name="notifications" style="font-size: 16px; color: #fff;"></ion-icon>
+                </div>
+                <div style="flex: 1;">
+                  <div style="color: #fff; font-size: 16px; font-weight: 500;">On This Day</div>
+                  <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 1px;">Daily reminder at 9:00 AM</div>
+                </div>
+                <div style="width: 51px; height: 31px; border-radius: 999px; background: #30D158; position: relative;"><div style="position: absolute; top: 2px; right: 2px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div></div>
+              </div>
+            </div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 0 6px; margin-bottom: 8px;">About</div>
+            <div style="border-radius: 22px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24);">
+              <sc-for list="{{ rAboutRows }}" as="row" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; padding: 13px 16px; gap: 12px; border-bottom: {{ row.divider }};">
+                  <div style="width: 30px; height: 30px; border-radius: 9px; background: {{ row.iconBg }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <ion-icon name="{{ row.icon }}" style="font-size: 16px; color: #fff;"></ion-icon>
+                  </div>
+                  <span style="color: #fff; font-size: 16px; font-weight: 500; flex: 1;">{{ row.label }}</span>
+                  <sc-if value="{{ row.detail }}" hint-placeholder-val="{{ false }}">
+                    <span style="color: rgba(255,255,255,0.4); font-size: 15px;">{{ row.detail }}</span>
+                  </sc-if>
+                  <sc-if value="{{ row.chevron }}" hint-placeholder-val="{{ true }}">
+                    <ion-icon name="chevron-forward" style="font-size: 15px; color: rgba(255,255,255,0.3);"></ion-icon>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(24,24,28,0.72); backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.28); box-shadow: 0 16px 40px rgba(0,0,0,0.5);">
+            <sc-for list="{{ rTabsSettings }}" as="tab" hint-placeholder-count="4">
+              <div style="display: flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 999px; background: {{ tab.pillBg }};">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 20px; color: {{ tab.color }};"></ion-icon>
+                <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 13px; font-weight: 700; color: #fff;">{{ tab.label }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-TRASH ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Trash review</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508; display: flex; flex-direction: column; padding-top: 68px; box-sizing: border-box;">
+          <div style="position: absolute; top: -140px; right: -120px; width: 420px; height: 420px; border-radius: 999px; background: radial-gradient(circle, rgba(255,69,58,0.16), transparent 65%);"></div>
+          <div style="position: relative; display: flex; align-items: center; padding: 0 20px 14px; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center;">
+              <ion-icon name="chevron-back" style="font-size: 20px; color: #fff;"></ion-icon>
+            </div>
+            <div style="flex: 1;">
+              <div style="color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Trash</div>
+              <div style="color: rgba(255,255,255,0.45); font-size: 13px; margin-top: 1px;">Last check before deleting — tap to keep instead</div>
+            </div>
+            <span style="color: {{ accent }}; font-size: 14px; font-weight: 600;">Deselect all</span>
+          </div>
+          <div style="position: relative; flex: 1; overflow: hidden; padding: 2px 20px 0;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <sc-for list="{{ rTrashPhotos }}" as="t" hint-placeholder-count="12">
+                <div style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 1; border: {{ t.ring }}; box-sizing: border-box;">
+                  <img src="{{ t.src }}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;" alt="">
+                  <sc-if value="{{ t.dim }}" hint-placeholder-val="{{ false }}">
+                    <div style="position: absolute; inset: 0; background: rgba(5,5,8,0.68); display: flex; align-items: center; justify-content: center;">
+                      <div style="display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: rgba(48,209,88,0.2); border: 1px solid rgba(48,209,88,0.5);">
+                        <ion-icon name="heart" style="font-size: 10px; color: #30D158;"></ion-icon>
+                        <span style="color: #30D158; font-size: 10px; font-weight: 700;">Kept</span>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ t.selected }}" hint-placeholder-val="{{ true }}">
+                    <div style="position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 999px; background: #FF453A; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+                      <ion-icon name="checkmark" style="font-size: 13px; color: #fff;"></ion-icon>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px 46px; background: linear-gradient(180deg, transparent, rgba(5,5,8,0.9) 40%);">
+            <div style="border-radius: 24px; background: rgba(24,24,28,0.72); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.28); padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+              <div style="flex: 1;">
+                <div style="color: #fff; font-size: 15px; font-weight: 700;">12 selected</div>
+                <div style="color: rgba(255,255,255,0.45); font-size: 12px; margin-top: 1px;">~1.2 GB will be freed</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; background: linear-gradient(135deg, #FF453A, #FF6482); box-shadow: 0 10px 26px rgba(255,69,58,0.35);">
+                <ion-icon name="lock-closed" style="font-size: 14px; color: #fff;"></ion-icon>
+                <span style="color: #fff; font-weight: 700; font-size: 15px;">Delete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══ R-SESSION COMPLETE ═══ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Session complete</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; background: #050508;">
+          <div style="position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 480px; height: 480px; border-radius: 999px; background: radial-gradient(circle, rgba(48,209,88,0.22), transparent 62%);"></div>
+          <div style="position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 28px; box-sizing: border-box; text-align: center;">
+            <div style="width: 84px; height: 84px; border-radius: 999px; background: rgba(48,209,88,0.15); border: 1.5px solid rgba(48,209,88,0.5); display: flex; align-items: center; justify-content: center; margin-bottom: 26px; box-shadow: 0 0 60px rgba(48,209,88,0.3);">
+              <ion-icon name="checkmark" style="font-size: 40px; color: #30D158;"></ion-icon>
+            </div>
+            <div style="color: #fff; font-size: 32px; font-weight: 800; letter-spacing: -0.7px;">All done!</div>
+            <div style="color: rgba(255,255,255,0.5); font-size: 15px; margin-top: 6px;">You reviewed 50 photos</div>
+            <div style="margin: 30px 0 34px;">
+              <div style="font-size: 56px; font-weight: 800; letter-spacing: -2px; background: linear-gradient(135deg, #30D158, #64D2FF); -webkit-background-clip: text; background-clip: text; color: transparent;">1.2 GB</div>
+              <div style="color: rgba(255,255,255,0.55); font-size: 15px; font-weight: 600; margin-top: 2px;">storage freed</div>
+            </div>
+            <div style="display: flex; gap: 12px; width: 100%; margin-bottom: 36px;">
+              <div style="flex: 1; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); padding: 16px 0;">
+                <div style="color: #fff; font-size: 24px; font-weight: 800;">38</div>
+                <div style="color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 600; margin-top: 2px;">Kept</div>
+              </div>
+              <div style="flex: 1; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); padding: 16px 0;">
+                <div style="color: #fff; font-size: 24px; font-weight: 800;">12</div>
+                <div style="color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 600; margin-top: 2px;">Deleted</div>
+              </div>
+              <div style="flex: 1; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-top-color: rgba(255,255,255,0.24); padding: 16px 0;">
+                <div style="color: #FF9F0A; font-size: 24px; font-weight: 800;">🔥 7</div>
+                <div style="color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 600; margin-top: 2px;">Day streak</div>
+              </div>
+            </div>
+            <div style="width: 100%; background: linear-gradient(135deg, {{ accent }}, #5E5CE6); border-radius: 999px; padding: 17px 0; box-shadow: 0 12px 32px rgba(10,132,255,0.35);">
+              <span style="color: #fff; font-weight: 700; font-size: 17px;">Back to Library</span>
+            </div>
+            <div style="color: rgba(255,255,255,0.4); font-size: 14px; font-weight: 500; margin-top: 18px;">Keep going — Screenshots has 247 left</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+
+<section id="1a" style="padding: 48px 56px 96px; display: flex; flex-direction: column; gap: 24px;">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <a href="#1a" style="display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; font-weight: 700; padding: 0 10px;">1a</a>
+    <div>
+      <div style="color: #fff; font-size: 20px; font-weight: 700;">Current UI — recreation</div>
+      <div style="color: rgba(255,255,255,0.45); font-size: 13px; margin-top: 2px;">Faithful copy of the existing Swipe Photos app, screen by screen</div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+
+    <!-- ═══════════════ ONBOARDING ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Onboarding</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="display: flex; flex-direction: column; height: 100%; padding-top: 62px; box-sizing: border-box;">
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 32px; text-align: center;">
+            <div style="font-size: 96px; margin-bottom: 32px;">🗂️</div>
+            <div style="color: #fff; font-weight: 700; font-size: 40px; line-height: 48px; margin-bottom: 16px;">Reclaim your<br>phone storage</div>
+            <div style="color: rgba(255,255,255,0.6); font-size: 18px; line-height: 28px;">Swipe Photos helps you breeze through thousands of photos and delete what you no longer need.</div>
+          </div>
+          <div style="padding: 0 32px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 8px;">
+              <div style="width: 24px; height: 6px; border-radius: 999px; background: #fff;"></div>
+              <div style="width: 8px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.3);"></div>
+              <div style="width: 8px; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.3);"></div>
+            </div>
+            <div style="background: #fff; border-radius: 16px; padding: 16px 0; display: flex; align-items: center; justify-content: center;">
+              <span style="color: #000; font-weight: 600; font-size: 18px;">Continue</span>
+            </div>
+            <div style="height: 26px;"></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ HOME / LIBRARY ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Library (Home)</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden;">
+          <div style="height: 100%; overflow: hidden; padding: 78px 24px 0; box-sizing: border-box;">
+            <!-- Header -->
+            <div style="margin-bottom: 24px;">
+              <div style="color: #fff; font-size: 36px; font-weight: 700; letter-spacing: 0.2px;">Swipe Photos</div>
+              <div style="color: rgba(255,255,255,0.5); font-size: 16px; margin-top: 4px;">Tap a category to start reviewing</div>
+            </div>
+            <!-- Storage summary -->
+            <div style="border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); padding: 16px; margin-bottom: 24px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="color: #fff; font-size: 24px; font-weight: 700;">12,847</div>
+                  <div style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 2px;">11,203 photos · 1,644 videos</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="color: rgba(255,255,255,0.4); font-size: 12px;">Est. size</div>
+                  <div style="color: rgba(255,255,255,0.7); font-size: 16px; font-weight: 600; margin-top: 2px;">48.2 GB</div>
+                </div>
+              </div>
+              <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: rgba(255,255,255,0.5); font-size: 14px;">Deleted</span>
+                  <span style="color: rgba(255,255,255,0.7); font-size: 16px; font-weight: 600;">1,208 items</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: rgba(255,255,255,0.5); font-size: 14px;">Storage freed</span>
+                  <span style="color: rgba(74,222,128,0.9); font-size: 16px; font-weight: 600;">4.6 GB</span>
+                </div>
+              </div>
+            </div>
+            <!-- Streak row -->
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+              <div style="flex: 1; border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px;">
+                <div style="font-size: 36px; line-height: 1;">🔥</div>
+                <div style="color: #fff; font-size: 30px; font-weight: 700; margin-top: 4px;">6</div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 2px;">Days Streak</div>
+              </div>
+              <div style="flex: 1; border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px;">
+                <ion-icon name="stats-chart-outline" style="font-size: 28px; color: rgba(255,255,255,0.15);"></ion-icon>
+                <div style="color: rgba(255,255,255,0.25); font-size: 14px; margin-top: 8px; text-align: center;">Coming soon</div>
+              </div>
+            </div>
+            <!-- Week row -->
+            <div style="border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); display: flex; justify-content: space-around; padding: 12px 8px; margin-bottom: 16px;">
+              <sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                  <span style="font-size: 12px; font-weight: 500; color: {{ d.labelColor }};">{{ d.label }}</span>
+                  <div style="width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: {{ d.bg }}; border: {{ d.border }};">
+                    <sc-if value="{{ d.done }}" hint-placeholder-val="{{ false }}">
+                      <ion-icon name="checkmark" style="font-size: 14px; color: #eab308;"></ion-icon>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <!-- Browse by time -->
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 12px;">Browse by time</div>
+            <div style="border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); padding: 16px; display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+              <div style="width: 48px; height: 48px; border-radius: 16px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="calendar-number-outline" style="font-size: 24px; color: #fff;"></ion-icon>
+              </div>
+              <div style="flex: 1;">
+                <div style="color: #fff; font-weight: 600; font-size: 16px;">By Month</div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 2px;">12,847 items across your library</div>
+              </div>
+              <ion-icon name="chevron-forward" style="font-size: 16px; color: rgba(255,255,255,0.3);"></ion-icon>
+            </div>
+            <!-- Review by category -->
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; margin: 8px 0 12px;">Review by category</div>
+            <sc-for list="{{ categories }}" as="cat" hint-placeholder-count="4">
+              <div style="border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <div style="width: 48px; height: 48px; border-radius: 16px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                    <ion-icon name="{{ cat.icon }}" style="font-size: 24px; color: #fff;"></ion-icon>
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="color: #fff; font-weight: 600; font-size: 16px;">{{ cat.label }}</div>
+                    <div style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 2px;">{{ cat.subtitle }}</div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 999px; padding: 4px 10px;">
+                      <span style="color: #fff; font-size: 12px; font-weight: 600;">{{ cat.count }}</span>
+                    </div>
+                    <ion-icon name="chevron-forward" style="font-size: 16px; color: rgba(255,255,255,0.3);"></ion-icon>
+                  </div>
+                </div>
+                <sc-if value="{{ cat.progress }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                      <span style="color: rgba(255,255,255,0.4); font-size: 12px;">{{ cat.progressLabel }}</span>
+                      <span style="color: rgba(255,255,255,0.4); font-size: 12px;">{{ cat.pct }}</span>
+                    </div>
+                    <div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden;">
+                      <div style="height: 100%; border-radius: 999px; background: rgba(34,197,94,0.7); width: {{ cat.pctWidth }};"></div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <!-- Tab bar -->
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 84px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); background: rgba(22,22,24,0.72); display: flex; padding-bottom: 22px; box-sizing: border-box; z-index: 40;">
+            <sc-for list="{{ tabsHome }}" as="tab" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 24px; color: {{ tab.color }};"></ion-icon>
+                <span style="font-size: 10px; color: {{ tab.color }};">{{ tab.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ REVIEW / SWIPE ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Review session</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; display: flex; flex-direction: column; padding-top: 71px; box-sizing: border-box;">
+          <!-- Header -->
+          <div style="display: flex; align-items: center; padding: 0 24px 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+              <ion-icon name="close" style="font-size: 20px; color: #fff;"></ion-icon>
+            </div>
+            <div style="flex: 1;">
+              <div style="color: #fff; font-weight: 600; font-size: 16px;">Screenshots</div>
+              <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 2px;">247 remaining</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.1);">
+              <ion-icon name="arrow-undo-outline" style="font-size: 15px; color: #fff;"></ion-icon>
+              <span style="color: #fff; font-size: 14px; font-weight: 500;">Undo</span>
+            </div>
+          </div>
+          <!-- Progress bar -->
+          <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.1); margin: 0 24px; overflow: hidden;">
+            <div style="height: 100%; width: 32%; border-radius: 999px; background: #fff;"></div>
+          </div>
+          <!-- Card stack -->
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 16px; position: relative;">
+            <div style="position: absolute; width: 354px; height: 568px; border-radius: 24px; overflow: hidden; background: #1C1C1E; transform: scale(0.92) translateY(20px); opacity: 0.7;">
+              <img src="https://picsum.photos/seed/sw3/500/800" style="width: 100%; height: 100%; object-fit: cover;" alt="">
+            </div>
+            <div style="position: absolute; width: 354px; height: 568px; border-radius: 24px; overflow: hidden; background: #1C1C1E; transform: scale(0.96) translateY(10px); opacity: 0.85;">
+              <img src="https://picsum.photos/seed/sw2/500/800" style="width: 100%; height: 100%; object-fit: cover;" alt="">
+            </div>
+            <div style="position: absolute; width: 354px; height: 568px; border-radius: 24px; overflow: hidden; background: #1C1C1E;">
+              <img src="https://picsum.photos/seed/sw1/500/800" style="width: 100%; height: 100%; object-fit: cover;" alt="">
+            </div>
+          </div>
+          <!-- Action buttons -->
+          <div style="display: flex; align-items: center; justify-content: center; gap: 48px; padding-bottom: 46px; padding-top: 16px;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+              <div style="width: 56px; height: 56px; border-radius: 999px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="trash-outline" style="font-size: 25px; color: #FF453A;"></ion-icon>
+              </div>
+              <span style="color: rgba(255,255,255,0.4); font-size: 12px;">Delete</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+              <div style="width: 56px; height: 56px; border-radius: 999px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.4); display: flex; align-items: center; justify-content: center;">
+                <ion-icon name="checkmark-outline" style="font-size: 25px; color: #30D158;"></ion-icon>
+              </div>
+              <span style="color: rgba(255,255,255,0.4); font-size: 12px;">Keep</span>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ BY MONTH ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">By Month</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden;">
+          <div style="height: 100%; overflow: hidden; padding: 78px 24px 0; box-sizing: border-box;">
+            <div style="margin-bottom: 24px;">
+              <div style="color: #fff; font-size: 36px; font-weight: 700;">By Month</div>
+              <div style="color: rgba(255,255,255,0.4); font-size: 16px; margin-top: 4px;">Browse your photos by month</div>
+              <div style="color: rgba(255,255,255,0.3); font-size: 14px; margin-top: 12px;">38 months</div>
+            </div>
+            <sc-for list="{{ months }}" as="m" hint-placeholder-count="6">
+              <div style="border-radius: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <div style="width: 48px; height: 48px; border-radius: 16px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                    <ion-icon name="calendar-number-outline" style="font-size: 24px; color: #fff;"></ion-icon>
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="color: #fff; font-weight: 600; font-size: 16px;">{{ m.label }}</div>
+                    <div style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 2px;">{{ m.count }} items</div>
+                  </div>
+                  <sc-if value="{{ m.done }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <div style="width: 24px; height: 24px; border-radius: 999px; background: rgba(34,197,94,0.8); display: flex; align-items: center; justify-content: center;">
+                        <ion-icon name="checkmark" style="font-size: 14px; color: #fff;"></ion-icon>
+                      </div>
+                      <span style="color: #4ade80; font-size: 12px; font-weight: 600;">Done</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ m.notDone }}" hint-placeholder-val="{{ true }}">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="background: rgba(255,255,255,0.15); border-radius: 999px; padding: 4px 10px;">
+                        <span style="color: #fff; font-size: 12px; font-weight: 600;">{{ m.count }}</span>
+                      </div>
+                      <ion-icon name="chevron-forward" style="font-size: 16px; color: rgba(255,255,255,0.3);"></ion-icon>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ m.progress }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                      <span style="color: rgba(255,255,255,0.4); font-size: 12px;">{{ m.progressLabel }}</span>
+                      <span style="color: rgba(255,255,255,0.4); font-size: 12px;">{{ m.pct }}</span>
+                    </div>
+                    <div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden;">
+                      <div style="height: 100%; border-radius: 999px; background: rgba(34,197,94,0.7); width: {{ m.pctWidth }};"></div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 84px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); background: rgba(22,22,24,0.72); display: flex; padding-bottom: 22px; box-sizing: border-box; z-index: 40;">
+            <sc-for list="{{ tabsByMonth }}" as="tab" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 24px; color: {{ tab.color }};"></ion-icon>
+                <span style="font-size: 10px; color: {{ tab.color }};">{{ tab.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ ON THIS DAY ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">On This Day</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden;">
+          <div style="height: 100%; overflow: hidden; padding: 78px 0 0; box-sizing: border-box;">
+            <div style="padding: 0 24px 16px;">
+              <div style="color: #fff; font-size: 36px; font-weight: 700;">On This Day</div>
+              <div style="color: rgba(255,255,255,0.4); font-size: 16px; margin-top: 4px;">July 6</div>
+              <div style="color: rgba(255,255,255,0.3); font-size: 14px; margin-top: 12px;">4 years of memories</div>
+            </div>
+            <sc-for list="{{ otdYears }}" as="y" hint-placeholder-count="3">
+              <div>
+                <div style="margin: 0 16px 8px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.15); background: rgba(28,28,30,0.85); padding: 12px 16px; display: flex; align-items: center;">
+                  <div style="flex: 1;">
+                    <div style="color: #fff; font-size: 20px; font-weight: 700;">{{ y.year }}</div>
+                    <div style="color: rgba(255,255,255,0.4); font-size: 14px; margin-top: 2px;">{{ y.sub }}</div>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.15); border-radius: 999px; padding: 8px 16px;">
+                    <span style="color: #fff; font-weight: 600; font-size: 14px;">Review</span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 4px; padding: 0 16px 20px; overflow: hidden;">
+                  <sc-for list="{{ y.photos }}" as="p" hint-placeholder-count="4">
+                    <img src="{{ p }}" style="width: 110px; height: 110px; border-radius: 8px; object-fit: cover; flex-shrink: 0;" alt="">
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 84px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); background: rgba(22,22,24,0.72); display: flex; padding-bottom: 22px; box-sizing: border-box; z-index: 40;">
+            <sc-for list="{{ tabsOtd }}" as="tab" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 24px; color: {{ tab.color }};"></ion-icon>
+                <span style="font-size: 10px; color: {{ tab.color }};">{{ tab.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ SETTINGS ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Settings</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden;">
+          <div style="height: 100%; overflow: hidden; padding: 78px 20px 0; box-sizing: border-box;">
+            <div style="color: #fff; font-size: 36px; font-weight: 700; margin-bottom: 24px;">Settings</div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; padding: 0 8px; margin-bottom: 8px;">Review Preferences</div>
+            <div style="border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 14px 16px; margin-bottom: 24px;">
+              <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                <ion-icon name="shuffle-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <span style="color: #fff; font-size: 16px; flex: 1;">Random Batch Size</span>
+                <span style="color: rgba(255,255,255,0.4); font-size: 14px;">50 photos</span>
+              </div>
+              <div style="display: flex; gap: 8px; padding-left: 32px;">
+                <div style="flex: 1; padding: 8px 0; border-radius: 12px; text-align: center; background: rgba(255,255,255,0.07);"><span style="color: rgba(255,255,255,0.5); font-size: 15px;">25</span></div>
+                <div style="flex: 1; padding: 8px 0; border-radius: 12px; text-align: center; background: rgba(255,255,255,0.2);"><span style="color: #fff; font-weight: 600; font-size: 15px;">50</span></div>
+                <div style="flex: 1; padding: 8px 0; border-radius: 12px; text-align: center; background: rgba(255,255,255,0.07);"><span style="color: rgba(255,255,255,0.5); font-size: 15px;">100</span></div>
+              </div>
+            </div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; padding: 0 8px; margin-bottom: 8px;">Privacy &amp; Security</div>
+            <div style="border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
+              <div style="display: flex; align-items: center; padding: 14px 16px;">
+                <ion-icon name="lock-closed-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <div style="flex: 1;">
+                  <div style="color: #fff; font-size: 16px;">Face ID Lock</div>
+                  <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 2px;">Require Face ID before deleting photos</div>
+                </div>
+                <div style="width: 51px; height: 31px; border-radius: 999px; background: #30D158; position: relative;"><div style="position: absolute; top: 2px; right: 2px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div></div>
+              </div>
+              <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 0 16px;"></div>
+              <div style="display: flex; align-items: center; padding: 14px 16px;">
+                <ion-icon name="bar-chart-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <div style="flex: 1;">
+                  <div style="color: #fff; font-size: 16px;">Analytics</div>
+                  <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 2px;">Help improve the app (anonymous)</div>
+                </div>
+                <div style="width: 51px; height: 31px; border-radius: 999px; background: rgba(255,255,255,0.15); position: relative;"><div style="position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div></div>
+              </div>
+            </div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; padding: 0 8px; margin-bottom: 8px;">Notifications</div>
+            <div style="border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
+              <div style="display: flex; align-items: center; padding: 14px 16px;">
+                <ion-icon name="notifications-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <div style="flex: 1;">
+                  <div style="color: #fff; font-size: 16px;">On This Day</div>
+                  <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 2px;">Daily reminder at 9:00 AM</div>
+                </div>
+                <div style="width: 51px; height: 31px; border-radius: 999px; background: #30D158; position: relative;"><div style="position: absolute; top: 2px; right: 2px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div></div>
+              </div>
+            </div>
+
+            <div style="color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; padding: 0 8px; margin-bottom: 8px;">About</div>
+            <div style="border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+              <div style="display: flex; align-items: center; padding: 14px 16px;">
+                <ion-icon name="star-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <span style="color: #fff; font-size: 16px; flex: 1;">Rate Swipe Photos</span>
+                <ion-icon name="chevron-forward" style="font-size: 16px; color: rgba(255,255,255,0.25);"></ion-icon>
+              </div>
+              <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 0 16px;"></div>
+              <div style="display: flex; align-items: center; padding: 14px 16px;">
+                <ion-icon name="shield-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <span style="color: #fff; font-size: 16px; flex: 1;">Privacy Policy</span>
+                <ion-icon name="chevron-forward" style="font-size: 16px; color: rgba(255,255,255,0.25);"></ion-icon>
+              </div>
+              <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 0 16px;"></div>
+              <div style="display: flex; align-items: center; padding: 14px 16px;">
+                <ion-icon name="information-circle-outline" style="font-size: 20px; color: rgba(255,255,255,0.6); margin-right: 12px;"></ion-icon>
+                <span style="color: rgba(255,255,255,0.4); font-size: 16px; flex: 1;">Version</span>
+                <span style="color: rgba(255,255,255,0.4); font-size: 16px;">1.4.2</span>
+              </div>
+            </div>
+          </div>
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 84px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); background: rgba(22,22,24,0.72); display: flex; padding-bottom: 22px; box-sizing: border-box; z-index: 40;">
+            <sc-for list="{{ tabsSettings }}" as="tab" hint-placeholder-count="4">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;">
+                <ion-icon name="{{ tab.icon }}" style="font-size: 24px; color: {{ tab.color }};"></ion-icon>
+                <span style="font-size: 10px; color: {{ tab.color }};">{{ tab.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ TRASH ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Trash review</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden; display: flex; flex-direction: column; padding-top: 71px; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; padding: 0 24px 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 999px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+              <ion-icon name="chevron-back" style="font-size: 20px; color: #fff;"></ion-icon>
+            </div>
+            <div style="flex: 1;">
+              <div style="color: #fff; font-size: 24px; font-weight: 700;">Review Trash</div>
+              <div style="color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 2px;">14 photos marked for deletion</div>
+            </div>
+            <div style="padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.1);">
+              <span style="color: rgba(255,255,255,0.7); font-size: 14px;">Deselect All</span>
+            </div>
+          </div>
+          <div style="color: rgba(255,255,255,0.3); font-size: 12px; text-align: center; margin-bottom: 8px;">Tap to deselect · 12 selected for deletion</div>
+          <div style="flex: 1; overflow: hidden; display: flex; flex-wrap: wrap;">
+            <sc-for list="{{ trashPhotos }}" as="t" hint-placeholder-count="12">
+              <div style="width: 132px; height: 132px; margin: 1px; position: relative;">
+                <img src="{{ t.src }}" style="width: 100%; height: 100%; object-fit: cover; display: block;" alt="">
+                <sc-if value="{{ t.dim }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.6);"></div>
+                </sc-if>
+                <div style="position: absolute; top: 6px; right: 6px;">
+                  <sc-if value="{{ t.selected }}" hint-placeholder-val="{{ true }}">
+                    <div style="width: 24px; height: 24px; border-radius: 999px; background: #ef4444; display: flex; align-items: center; justify-content: center;">
+                      <ion-icon name="checkmark" style="font-size: 14px; color: #fff;"></ion-icon>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ t.dim }}" hint-placeholder-val="{{ false }}">
+                    <div style="width: 24px; height: 24px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.6); box-sizing: border-box;"></div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 0 24px 50px;">
+            <div style="border-radius: 16px; padding: 16px 0; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(255,59,48,0.85);">
+              <ion-icon name="lock-closed" style="font-size: 16px; color: #fff;"></ion-icon>
+              <span style="color: #fff; font-weight: 600; font-size: 16px;">Delete 12 Photos</span>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ═══════════════ SESSION COMPLETE ═══════════════ -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Session complete</div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="height: 100%; position: relative; overflow: hidden;">
+          <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 40px;">
+            <div style="margin: 0 16px; border-radius: 32px; background: rgba(44,44,46,0.92); border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.32); padding: 28px 24px 20px;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <div style="color: #fff; font-size: 30px; font-weight: 700;">All Done!</div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 4px;">50 photos reviewed</div>
+              </div>
+              <div style="display: flex; justify-content: space-around; margin-bottom: 24px;">
+                <div style="flex: 1; text-align: center;">
+                  <div style="color: #fff; font-size: 24px; font-weight: 700;">38</div>
+                  <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 2px;">Kept</div>
+                </div>
+                <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                <div style="flex: 1; text-align: center;">
+                  <div style="color: #fff; font-size: 24px; font-weight: 700;">12</div>
+                  <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 2px;">Deleted</div>
+                </div>
+                <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                <div style="flex: 1; text-align: center;">
+                  <div style="color: #fff; font-size: 24px; font-weight: 700;">1.2 GB</div>
+                  <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 2px;">Freed</div>
+                </div>
+              </div>
+              <div style="background: rgba(107,114,128,0.8); border-radius: 16px; padding: 16px 0; text-align: center; margin-bottom: 12px;">
+                <span style="color: #fff; font-size: 16px;">Back to Home</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#0A84FF&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#0A84FF&quot;, &quot;#BF5AF2&quot;, &quot;#FF9F0A&quot;, &quot;#30D158&quot;], &quot;section&quot;: &quot;Redesign&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const active = '#FFFFFF';
+    const inactive = 'rgba(255,255,255,0.4)';
+    const tabs = (activeIdx) => [
+      { label: 'Library', icon: 'images-outline' },
+      { label: 'By Month', icon: 'calendar-number-outline' },
+      { label: 'On This Day', icon: 'calendar-outline' },
+      { label: 'Settings', icon: 'settings-outline' },
+    ].map((t, i) => ({ ...t, color: i === activeIdx ? active : inactive }));
+
+    const weekDone = [true, true, false, true, true, false, false];
+    const todayIdx = 5;
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label, i) => ({
+      label,
+      done: weekDone[i],
+      labelColor: i === todayIdx ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)',
+      bg: weekDone[i] ? 'rgba(234,179,8,0.2)' : i === todayIdx ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+      border: i === todayIdx && !weekDone[i] ? '1px solid rgba(255,255,255,0.15)' : 'none',
+    }));
+
+    const categories = [
+      { id: 'otd', label: 'On This Day', icon: 'sparkles-outline', subtitle: 'Memories from past years', count: '32', progress: false },
+      { id: 'ss', label: 'Screenshots', icon: 'phone-portrait-outline', subtitle: '763 items', count: '763', progress: true, progressLabel: '247/763 photos', pct: '32%', pctWidth: '32%' },
+      { id: 'vid', label: 'Videos', icon: 'videocam-outline', subtitle: '1,644 items', count: '1,644', progress: false },
+      { id: 'rnd', label: 'Random Review', icon: 'shuffle-outline', subtitle: 'Random 50 from your library', count: '9999+', progress: false },
+    ];
+
+    const months = [
+      { label: 'July 2026', count: '128', done: false, notDone: true, progress: true, progressLabel: '84/128 photos', pct: '66%', pctWidth: '66%' },
+      { label: 'June 2026', count: '412', done: true, notDone: false, progress: false },
+      { label: 'May 2026', count: '386', done: false, notDone: true, progress: true, progressLabel: '97/386 photos', pct: '25%', pctWidth: '25%' },
+      { label: 'April 2026', count: '294', done: false, notDone: true, progress: false },
+      { label: 'March 2026', count: '341', done: false, notDone: true, progress: false },
+      { label: 'February 2026', count: '218', done: false, notDone: true, progress: false },
+    ];
+
+    const pic = (seed, w, h) => `https://picsum.photos/seed/${seed}/${w}/${h}`;
+    const otdYears = [
+      { year: '2025', sub: '1 year ago · 12 photos', photos: [pic('o25a', 300, 300), pic('o25b', 300, 300), pic('o25c', 300, 300), pic('o25d', 300, 300)] },
+      { year: '2023', sub: '3 years ago · 8 photos', photos: [pic('o23a', 300, 300), pic('o23b', 300, 300), pic('o23c', 300, 300), pic('o23d', 300, 300)] },
+      { year: '2021', sub: '5 years ago · 5 photos', photos: [pic('o21a', 300, 300), pic('o21b', 300, 300), pic('o21c', 300, 300), pic('o21d', 300, 300)] },
+    ];
+
+    const trashPhotos = Array.from({ length: 15 }, (_, i) => {
+      const selected = i !== 4 && i !== 9 && i !== 13;
+      return { src: pic('tr' + i, 300, 300), selected, dim: !selected };
+    });
+
+    // ── Redesign (1b) data ──
+    const accent = this.props.accent ?? '#0A84FF';
+    const rTabs = (activeIdx) => [
+      { label: 'Library', icon: 'images' },
+      { label: 'Months', icon: 'calendar-number' },
+      { label: 'Memories', icon: 'sparkles' },
+      { label: 'Settings', icon: 'settings-sharp' },
+    ].map((t, i) => ({
+      ...t,
+      active: i === activeIdx,
+      color: i === activeIdx ? '#fff' : 'rgba(255,255,255,0.45)',
+      pillBg: i === activeIdx ? 'rgba(255,255,255,0.14)' : 'transparent',
+    }));
+
+    const weekDots = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((letter, i) => ({
+      letter,
+      done: weekDone[i],
+      labelColor: i === todayIdx ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)',
+      bg: weekDone[i] ? '#FF9F0A' : 'rgba(255,255,255,0.08)',
+      border: i === todayIdx && !weekDone[i] ? '1.5px solid rgba(255,255,255,0.4)' : 'none',
+    }));
+
+    const rCategories = [
+      { label: 'On This Day', icon: 'sparkles', subtitle: 'Memories from July 6', count: '32', photo: pic('rcat1', 400, 320) },
+      { label: 'Screenshots', icon: 'phone-portrait-outline', subtitle: '32% reviewed', count: '763', photo: pic('rcat2', 400, 320) },
+      { label: 'Videos', icon: 'videocam', subtitle: '31.4 GB total', count: '1,644', photo: pic('rcat3', 400, 320) },
+      { label: 'Random 50', icon: 'shuffle', subtitle: 'Quick 5-min session', count: '50', photo: pic('rcat4', 400, 320) },
+    ];
+
+    const rMonths = [
+      { label: 'July 2026', count: '128', done: false, notDone: true, pct: '66', ringOffset: 30, photo: pic('rm1', 200, 200) },
+      { label: 'June 2026', count: '412', done: true, notDone: false, photo: pic('rm2', 200, 200) },
+      { label: 'May 2026', count: '386', done: false, notDone: true, pct: '25', ringOffset: 66, photo: pic('rm3', 200, 200) },
+      { label: 'April 2026', count: '294', done: false, notDone: true, pct: '0', ringOffset: 88, photo: pic('rm4', 200, 200) },
+      { label: 'March 2026', count: '341', done: false, notDone: true, pct: '0', ringOffset: 88, photo: pic('rm5', 200, 200) },
+    ];
+
+    const rOtdYears = [
+      { year: '2023', sub: '3 years ago · 8 photos', photos: [pic('r23a', 300, 380), pic('r23b', 300, 380), pic('r23c', 300, 380), pic('r23d', 300, 380)] },
+      { year: '2021', sub: '5 years ago · 5 photos', photos: [pic('r21a', 300, 380), pic('r21b', 300, 380), pic('r21c', 300, 380), pic('r21d', 300, 380)] },
+    ];
+
+    const rPrivacyRows = [
+      { icon: 'lock-closed', label: 'Face ID Lock', sub: 'Require Face ID before deleting photos', iconBg: 'linear-gradient(135deg, #30D158, #64D2FF)', on: true, off: false, divider: '1px solid rgba(255,255,255,0.08)' },
+      { icon: 'bar-chart', label: 'Analytics', sub: 'Help improve the app (anonymous)', iconBg: 'linear-gradient(135deg, #BF5AF2, #5E5CE6)', on: false, off: true, divider: 'none' },
+    ];
+
+    const rAboutRows = [
+      { icon: 'star', label: 'Rate Swipe Photos', iconBg: 'linear-gradient(135deg, #FF9F0A, #FFD60A)', chevron: true, detail: false, divider: '1px solid rgba(255,255,255,0.08)' },
+      { icon: 'shield-checkmark', label: 'Privacy Policy', iconBg: 'linear-gradient(135deg, #64D2FF, #0A84FF)', chevron: true, detail: false, divider: '1px solid rgba(255,255,255,0.08)' },
+      { icon: 'information-circle', label: 'Version', iconBg: 'rgba(255,255,255,0.14)', chevron: false, detail: '1.4.2', divider: 'none' },
+    ];
+
+    const rTrashPhotos = Array.from({ length: 15 }, (_, i) => {
+      const selected = i !== 4 && i !== 9 && i !== 13;
+      return {
+        src: pic('tr' + i, 300, 300),
+        selected,
+        dim: !selected,
+        ring: selected ? '2px solid rgba(255,69,58,0.85)' : '1px solid rgba(255,255,255,0.1)',
+      };
+    });
+
+    return {
+      accent,
+      weekDots, rCategories, rMonths, rOtdYears, rPrivacyRows, rAboutRows, rTrashPhotos,
+      rTabsHome: rTabs(0),
+      rTabsByMonth: rTabs(1),
+      rTabsOtd: rTabs(2),
+      rTabsSettings: rTabs(3),
+      weekDays, categories, months, otdYears, trashPhotos,
+      tabsHome: tabs(0),
+      tabsByMonth: tabs(1),
+      tabsOtd: tabs(2),
+      tabsSettings: tabs(3),
+    };
+  }
+}
+</script>
+</body>
+</html>
