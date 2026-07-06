@@ -1,7 +1,5 @@
 import { Tabs } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { GLASS } from '@/constants/theme';
-import { BlurPanel } from '@/components/glass/BlurPanel';
+import { FloatingTabBar } from '@/components/ui/FloatingTabBar';
 import { useGalleryIndex } from '@/hooks/useGalleryIndex';
 
 function GalleryIndexBootstrap() {
@@ -15,55 +13,13 @@ export default function TabLayout() {
       {/* Starts indexing as soon as tabs mount, independent of which tab is active */}
       <GalleryIndexBootstrap />
       <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: '#FFFFFF',
-          tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
-          tabBarStyle: {
-            position: 'absolute',
-            borderTopWidth: 0,
-            elevation: 0,
-            backgroundColor: 'transparent',
-          },
-          tabBarBackground: () => <BlurPanel intensity={GLASS.intensity.heavy} />,
-        }}
+        tabBar={(props) => <FloatingTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
       >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Library',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="images-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="by-month"
-          options={{
-            title: 'By Month',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calendar-number-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="on-this-day"
-          options={{
-            title: 'On This Day',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calendar-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="settings-outline" size={size} color={color} />
-            ),
-          }}
-        />
+        <Tabs.Screen name="index" options={{ title: 'Library' }} />
+        <Tabs.Screen name="by-month" options={{ title: 'By Month' }} />
+        <Tabs.Screen name="on-this-day" options={{ title: 'On This Day' }} />
+        <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
       </Tabs>
     </>
   );
