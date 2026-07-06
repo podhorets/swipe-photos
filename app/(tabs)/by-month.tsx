@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, FlatList } from 'react-native';
+import { View, Text, SectionList } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,6 +8,7 @@ import { useKeepStore } from '@/stores/keepStore';
 import { getByMonth } from '@/lib/gallery/grouper';
 import { monthLabel } from '@/lib/dateUtils';
 import { MonthRow } from '@/components/ui/MonthRow';
+import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { posthog } from '@/lib/posthog';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,6 +18,12 @@ interface MonthData {
   label: string;
   count: number;
   progress: number;
+  coverUri?: string;
+}
+
+interface YearSection {
+  title: string;
+  data: MonthData[];
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
@@ -40,31 +47,58 @@ export default function ByMonthScreen() {
   const index = useGalleryStore((s) => s.index);
   const keepIds = useKeepStore((s) => s.keepIds);
 
-  const months: MonthData[] = useMemo(() => {
+  const { sections, monthCount, itemCount } = useMemo(() => {
     const grouped = getByMonth(index);
-    return Array.from(grouped.entries()).map(([key, assets]) => {
+    const keys = Array.from(grouped.keys()).sort((a, b) => b.localeCompare(a)); // newest first
+    const byYear = new Map<string, MonthData[]>();
+    let items = 0;
+    for (const key of keys) {
+      const assets = grouped.get(key)!;
       const keptCount = assets.filter((a) => keepIds.has(a.id)).length;
-      return {
+      const year = key.slice(0, 4);
+      items += assets.length;
+      const month: MonthData = {
         monthKey: key,
         label: monthLabel(key),
         count: assets.length,
         progress: assets.length > 0 ? keptCount / assets.length : 0,
+        coverUri: assets[0]?.uri,
       };
-    });
+      const list = byYear.get(year);
+      if (list) list.push(month);
+      else byYear.set(year, [month]);
+    }
+    return {
+      sections: Array.from(byYear.entries()).map(([title, data]): YearSection => ({ title, data })),
+      monthCount: keys.length,
+      itemCount: items,
+    };
   }, [index, keepIds]);
 
-  function handleMonthPress(yyyymm: string) {
-    const monthData = months.find((m) => m.monthKey === yyyymm);
-    posthog.capture('month_review_started', { month: yyyymm, photo_count: monthData?.count ?? 0 });
+  function handleMonthPress(yyyymm: string, count: number) {
+    posthog.capture('month_review_started', { month: yyyymm, photo_count: count });
     router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'month', month: yyyymm } });
   }
 
-  if (months.length === 0) {
+  const header = (
+    <View className="mb-5">
+      <Text className="text-white text-[34px] font-extrabold" style={{ letterSpacing: -0.8 }}>
+        By Month
+      </Text>
+      <Text className="text-white/45 text-[15px] mt-1">
+        {monthCount > 0
+          ? `${monthCount} month${monthCount === 1 ? '' : 's'} · ${itemCount.toLocaleString()} items`
+          : 'Browse your photos by month'}
+      </Text>
+    </View>
+  );
+
+  if (sections.length === 0) {
     return (
-      <View className="flex-1 bg-black">
-        <View style={{ paddingTop: insets.top + 16 }} className="px-6 pb-4">
-          <Text className="text-white text-4xl font-bold">By Month</Text>
-          <Text className="text-white/40 text-base mt-1">Browse your photos by month</Text>
+      <View className="flex-1 bg-bg-dark">
+        <AuroraBackground variant="by-month" />
+        <View style={{ paddingTop: insets.top + 16 }} className="px-5 pb-4">
+          {header}
         </View>
         <EmptyState />
       </View>
@@ -72,9 +106,10 @@ export default function ByMonthScreen() {
   }
 
   return (
-    <View className="flex-1 bg-black">
-      <FlatList
-        data={months}
+    <View className="flex-1 bg-bg-dark">
+      <AuroraBackground variant="by-month" />
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.monthKey}
         renderItem={({ item }) => (
           <MonthRow
@@ -83,24 +118,26 @@ export default function ByMonthScreen() {
             count={item.count}
             progress={item.progress}
             isComplete={item.progress >= 1}
-            onPress={() => handleMonthPress(item.monthKey)}
+            coverUri={item.coverUri}
+            onPress={() => handleMonthPress(item.monthKey, item.count)}
           />
         )}
+        renderSectionHeader={({ section }) => (
+          <Text
+            className="text-white/40 text-[13px] font-bold mb-2.5 mt-2"
+            style={{ letterSpacing: 1.3 }}
+          >
+            {section.title}
+          </Text>
+        )}
+        stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 100,
-          paddingHorizontal: 24,
+          paddingBottom: insets.bottom + 110,
+          paddingHorizontal: 20,
         }}
-        ListHeaderComponent={
-          <View className="mb-6">
-            <Text className="text-white text-4xl font-bold">By Month</Text>
-            <Text className="text-white/40 text-base mt-1">Browse your photos by month</Text>
-            <Text className="text-white/30 text-sm mt-3">
-              {months.length} month{months.length === 1 ? '' : 's'}
-            </Text>
-          </View>
-        }
+        ListHeaderComponent={header}
       />
     </View>
   );
