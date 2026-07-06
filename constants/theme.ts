@@ -10,9 +10,9 @@ export const SCREEN = {
 export const COLORS = {
   // Primary glass tints
   glass: {
-    light: 'rgba(255, 255, 255, 0.12)',
-    border: 'rgba(255, 255, 255, 0.20)',
-    borderStrong: 'rgba(255, 255, 255, 0.35)',
+    light: 'rgba(255, 255, 255, 0.07)',
+    border: 'rgba(255, 255, 255, 0.12)',
+    borderStrong: 'rgba(255, 255, 255, 0.28)',
     shadow: 'rgba(0, 0, 0, 0.35)',
     innerGlow: 'rgba(255, 255, 255, 0.08)',
   },
@@ -31,13 +31,44 @@ export const COLORS = {
   accent: '#0A84FF',
   accentMuted: 'rgba(10, 132, 255, 0.7)',
   destructive: '#FF453A',
+  streak: '#FF9F0A',
   // Text
   textPrimary: '#FFFFFF',
-  textSecondary: 'rgba(255, 255, 255, 0.65)',
+  textSecondary: 'rgba(255, 255, 255, 0.55)',
   textTertiary: 'rgba(255, 255, 255, 0.40)',
   // Backgrounds
-  bgDark: '#000000',
+  bgDark: '#050508',
   bgCard: 'rgba(28, 28, 30, 0.85)',
+  // Floating chrome surfaces (tab bar, review circles, trash bottom bar)
+  bgChrome: 'rgba(24, 24, 28, 0.72)',
+};
+
+// Linear-gradient color pairs (expo-linear-gradient / svg / Skia)
+export const GRADIENTS = {
+  accent: ['#0A84FF', '#5E5CE6'],
+  delete: ['#FF453A', '#FF6482'],
+  freed: ['#30D158', '#64D2FF'],
+  faceId: ['#30D158', '#64D2FF'],
+  analytics: ['#BF5AF2', '#5E5CE6'],
+  notify: ['#FF9F0A', '#FF6482'],
+  star: ['#FF9F0A', '#FFD60A'],
+  shield: ['#64D2FF', '#0A84FF'],
+} as const satisfies Record<string, readonly [string, string]>;
+
+// Ambient radial glow blobs behind screens (AuroraBackground variants)
+export const AURORA = {
+  violet: 'rgba(94, 92, 230, 0.30)',
+  violetStrong: 'rgba(94, 92, 230, 0.35)',
+  blue: 'rgba(10, 132, 255, 0.20)',
+  blueStrong: 'rgba(10, 132, 255, 0.28)',
+  red: 'rgba(255, 69, 58, 0.16)',
+  green: 'rgba(48, 209, 88, 0.22)',
+} as const;
+
+// Review card dimensions — preload/decode sizes MUST match render size
+export const REVIEW_CARD = {
+  width: SCREEN_WIDTH - 56,
+  height: Math.round(SCREEN_HEIGHT * 0.66),
 };
 
 export const RADIUS = {
