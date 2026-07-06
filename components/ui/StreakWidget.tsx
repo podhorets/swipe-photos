@@ -3,20 +3,18 @@ import { View, Text } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { useStreakStore } from '@/stores/streakStore';
-import { computeStreak, getWeekCompletions } from '@/lib/streakUtils';
+import { getWeekCompletions } from '@/lib/streakUtils';
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
+/** "This week" strip — 7 day dots; complete = amber check, today = ring. */
 export function StreakWidget() {
   const completedDates = useStreakStore((s) => s.completedDates);
 
-  const { streak, weekCompletions } = useMemo(() => {
-    const today = new Date();
-    return {
-      streak: computeStreak(completedDates, today),
-      weekCompletions: getWeekCompletions(completedDates, today),
-    };
-  }, [completedDates]);
+  const weekCompletions = useMemo(
+    () => getWeekCompletions(completedDates, new Date()),
+    [completedDates],
+  );
 
   const todayIndex = (() => {
     const day = new Date().getDay(); // 0=Sun … 6=Sat
@@ -24,63 +22,37 @@ export function StreakWidget() {
   })();
 
   return (
-    <View className="mb-4">
-      {/* Top row: streak card + placeholder card */}
-      <View className="flex-row gap-3 mb-3">
-        {/* Streak card */}
-        <GlassCard className="flex-1">
-          <View className="p-4 items-center justify-center" style={{ minHeight: 110 }}>
-            <Text style={{ fontSize: 36 }}>🔥</Text>
-            <Text className="text-white text-3xl font-bold mt-1">{streak}</Text>
-            <Text className="text-white/50 text-sm mt-0.5">
-              {streak === 1 ? 'Day' : 'Days'} Streak
-            </Text>
-          </View>
-        </GlassCard>
-
-        {/* Placeholder card */}
-        <GlassCard className="flex-1">
-          <View className="p-4 items-center justify-center" style={{ minHeight: 110 }}>
-            <Ionicons name="stats-chart-outline" size={28} color="rgba(255,255,255,0.15)" />
-            <Text className="text-white/25 text-sm mt-2 text-center">Coming soon</Text>
-          </View>
-        </GlassCard>
-      </View>
-
-      {/* Weekly checkmark row */}
-      <GlassCard>
-        <View className="flex-row justify-around px-2 py-3">
-          {DAY_LABELS.map((label, i) => {
+    <GlassCard noBlur radius={20} className="mb-4">
+      <View className="flex-row items-center justify-between px-4 py-2.5">
+        <Text className="text-white/50 text-xs font-semibold">This week</Text>
+        <View className="flex-row gap-2.5">
+          {DAY_LETTERS.map((letter, i) => {
             const completed = weekCompletions[i];
             const isToday = i === todayIndex;
             return (
-              <View key={label} className="items-center gap-1.5">
+              <View key={i} className="items-center gap-1">
                 <Text
-                  className={`text-xs font-medium ${isToday ? 'text-white/70' : 'text-white/30'}`}
+                  className={`text-[10px] font-semibold ${
+                    isToday ? 'text-white/70' : 'text-white/35'
+                  }`}
                 >
-                  {label}
+                  {letter}
                 </Text>
                 <View
-                  className="w-7 h-7 rounded-full items-center justify-center"
+                  className="w-[18px] h-[18px] rounded-full items-center justify-center"
                   style={{
-                    backgroundColor: completed
-                      ? 'rgba(234,179,8,0.2)'
-                      : isToday
-                        ? 'rgba(255,255,255,0.08)'
-                        : 'rgba(255,255,255,0.04)',
-                    borderWidth: isToday && !completed ? 1 : 0,
-                    borderColor: 'rgba(255,255,255,0.15)',
+                    backgroundColor: completed ? '#FF9F0A' : 'rgba(255,255,255,0.08)',
+                    borderWidth: isToday && !completed ? 1.5 : 0,
+                    borderColor: 'rgba(255,255,255,0.4)',
                   }}
                 >
-                  {completed && (
-                    <Ionicons name="checkmark" size={14} color="#eab308" />
-                  )}
+                  {completed && <Ionicons name="checkmark" size={10} color="#050508" />}
                 </View>
               </View>
             );
           })}
         </View>
-      </GlassCard>
-    </View>
+      </View>
+    </GlassCard>
   );
 }
