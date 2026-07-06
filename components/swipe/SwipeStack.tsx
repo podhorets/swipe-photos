@@ -6,11 +6,12 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { SwipeCard, type SwipeCardHandle, type SwipeDirection } from './SwipeCard';
 import { SkeletonTile } from '@/components/ui/SkeletonTile';
-import { SWIPE } from '@/constants/theme';
+import { REVIEW_CARD, SWIPE } from '@/constants/theme';
 import { fetchAssetSize } from '@/lib/sizeUtils';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_HEIGHT = REVIEW_CARD.height;
+const CARD_LEFT = (SCREEN_WIDTH - REVIEW_CARD.width) / 2;
 
 export interface SwipeStackHandle {
   dismiss: (direction: SwipeDirection) => void;
@@ -158,10 +159,10 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
     return (
       <View style={{ width: SCREEN_WIDTH, height: CARD_HEIGHT + SWIPE.stackOffsetY[SWIPE.stackSize - 1] }}>
         <SkeletonTile
-          width={SCREEN_WIDTH - 48}
+          width={REVIEW_CARD.width}
           height={CARD_HEIGHT}
-          borderRadius={24}
-          style={{ position: 'absolute', left: 24, top: 0 }}
+          borderRadius={32}
+          style={{ position: 'absolute', left: CARD_LEFT, top: 0 }}
         />
       </View>
     );
@@ -181,7 +182,7 @@ export const SwipeStack = memo(function SwipeStack({ onDoubleTap, onSessionCompl
         <Image
           key={`decode-${id}`}
           source={{ uri: uriById.get(id) }}
-          style={{ position: 'absolute', top: -9999, left: 24, width: SCREEN_WIDTH - 48, height: CARD_HEIGHT }}
+          style={{ position: 'absolute', top: -9999, left: CARD_LEFT, width: REVIEW_CARD.width, height: CARD_HEIGHT }}
           contentFit="cover"
           pointerEvents="none"
         />

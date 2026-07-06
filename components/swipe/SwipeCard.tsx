@@ -1,7 +1,9 @@
-import { memo, useCallback, useEffect, useImperativeHandle } from 'react';
+import { memo, useCallback, useEffect, useImperativeHandle, useMemo } from 'react';
 import type { Ref } from 'react';
-import { Dimensions } from 'react-native';
+import { Dimensions, View, Text } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import Animated, {
   useSharedValue,
@@ -14,14 +16,24 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-import { SPRING, SWIPE } from '@/constants/theme';
+import { REVIEW_CARD, SPRING, SWIPE } from '@/constants/theme';
 import { gatedHaptic } from '@/lib/haptics';
 import { formatBytes } from '@/lib/dateUtils';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useGalleryStore } from '@/stores/galleryStore';
 import { ActionOverlay } from './ActionOverlay';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_LEFT = (SCREEN_WIDTH - REVIEW_CARD.width) / 2;
+
+const CARD_SHADOW = {
+  shadowColor: '#000',
+  shadowOpacity: 0.55,
+  shadowRadius: 28,
+  shadowOffset: { width: 0, height: 20 },
+};
+
+const CHIP_SCRIM = ['transparent', 'rgba(0,0,0,0.55)'] as const;
 
 export type SwipeDirection = 'left' | 'right';
 
@@ -60,6 +72,20 @@ export const SwipeCard = memo(function SwipeCard({
   const isTopCard = stackIndex === 0;
   const isDeparting = stackIndex === -1;
   const isVideo = mediaType === 'video';
+
+  // Metadata chip date — one-time non-reactive lookup, computed only once the
+  // card reaches the top. getState() keeps the "no gallery subscription during
+  // an active session" invariant intact.
+  const dateLabel = useMemo(() => {
+    if (!isTopCard) return '';
+    const asset = useGalleryStore.getState().index.find((a) => a.id === assetId);
+    if (!asset?.creationTime) return '';
+    return new Date(asset.creationTime).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }, [assetId, isTopCard]);
 
   const videoPlayer = useVideoPlayer(isVideo ? uri : null, (p) => {
     p.loop = true;
@@ -183,9 +209,19 @@ export const SwipeCard = memo(function SwipeCard({
   return (
     <GestureDetector gesture={composed}>
       <Animated.View
-        className="absolute rounded-3xl overflow-hidden"
+        className="absolute rounded-4xl overflow-hidden border border-white/25"
         pointerEvents={isDeparting ? 'none' : 'auto'}
-        style={[{ width: SCREEN_WIDTH - 48, height: CARD_HEIGHT, left: 24, zIndex, backgroundColor: '#1C1C1E' }, cardStyle]}
+        style={[
+          {
+            width: REVIEW_CARD.width,
+            height: REVIEW_CARD.height,
+            left: CARD_LEFT,
+            zIndex,
+            backgroundColor: '#1C1C1E',
+          },
+          CARD_SHADOW,
+          cardStyle,
+        ]}
       >
         {isVideo ? (
           <VideoView
@@ -204,7 +240,28 @@ export const SwipeCard = memo(function SwipeCard({
           />
         )}
         {isTopCard && (
-          <ActionOverlay translateX={translateX} sizeLabel={sizeLabel} />
+          <>
+            {/* Bottom scrim + metadata chips */}
+            <LinearGradient
+              colors={CHIP_SCRIM}
+              style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 110 }}
+              pointerEvents="none"
+            />
+            <View className="absolute left-3.5 bottom-3.5 flex-row gap-2" pointerEvents="none">
+              {!!dateLabel && (
+                <View className="flex-row items-center gap-[5px] px-[11px] py-1.5 rounded-full bg-scrim">
+                  <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.7)" />
+                  <Text className="text-white text-xs font-semibold">{dateLabel}</Text>
+                </View>
+              )}
+              {!!sizeLabel && (
+                <View className="px-[11px] py-1.5 rounded-full bg-scrim">
+                  <Text className="text-white text-xs font-semibold">{sizeLabel}</Text>
+                </View>
+              )}
+            </View>
+            <ActionOverlay translateX={translateX} sizeLabel={sizeLabel} />
+          </>
         )}
       </Animated.View>
     </GestureDetector>

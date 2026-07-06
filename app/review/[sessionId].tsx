@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Alert, Dimensions } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -13,15 +13,42 @@ import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
+import { AmbientPhotoBackdrop } from '@/components/ui/AmbientPhotoBackdrop';
+import { REVIEW_CARD } from '@/constants/theme';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Must match SwipeCard/SwipeStack so the off-screen decode happens at the same size
 // that SDWebImage will serve from its memory cache when the stack renders.
-const PRELOAD_CARD_WIDTH = SCREEN_WIDTH - 48;
-const PRELOAD_CARD_HEIGHT = SCREEN_HEIGHT * 0.65;
+const PRELOAD_CARD_WIDTH = REVIEW_CARD.width;
+const PRELOAD_CARD_HEIGHT = REVIEW_CARD.height;
 const PRELOAD_TIMEOUT_MS = 2000;
+
+function GlassCircleButton({
+  icon,
+  onPress,
+  size = 40,
+  iconSize = 20,
+  label,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  onPress: () => void;
+  size?: number;
+  iconSize?: number;
+  label: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="items-center justify-center rounded-full bg-[rgba(24,24,28,0.6)] border border-white/[0.16] active:opacity-70"
+      style={{ width: size, height: size }}
+    >
+      <Ionicons name={icon} size={iconSize} color="white" />
+    </Pressable>
+  );
+}
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
@@ -211,7 +238,7 @@ export default function ReviewScreen() {
 
   if (phase !== 'active' || !session || !sessionReady) {
     return (
-      <View className="flex-1 bg-black items-center justify-center">
+      <View className="flex-1 bg-bg-dark items-center justify-center">
         <Text className="text-white/50">Loading session…</Text>
         {/* Off-screen pre-decode: render first 3 cards at exact card size so SDWebImage
             populates its memory cache before SwipeStack mounts. Once the top card fires
@@ -230,33 +257,34 @@ export default function ReviewScreen() {
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-bg-dark">
+      {/* Ambient echo of the current photo */}
+      <AmbientPhotoBackdrop uri={uriById.get(visibleAssetIds[0] ?? '')} />
+
       {/* Header */}
       <View
-        className="flex-row items-center px-6 pb-3"
+        className="flex-row items-center px-5 pb-2.5 gap-3"
         style={{ paddingTop: insets.top + 12 }}
       >
-        <Pressable
-          onPress={handleClose}
-          className="w-9 h-9 items-center justify-center rounded-full bg-white/10 mr-3"
-        >
-          <Ionicons name="close" size={20} color="white" />
-        </Pressable>
+        <GlassCircleButton icon="close" onPress={handleClose} label="Close session" />
 
-        <View className="flex-1">
-          <Text className="text-white font-semibold text-base">{session.label}</Text>
-          <Text className="text-white/40 text-xs mt-0.5">{remainingCount} remaining</Text>
+        <View className="flex-1 items-center">
+          <Text className="text-white font-bold text-base" style={{ letterSpacing: -0.2 }}>
+            {session.label}
+          </Text>
+          <Text className="text-white/55 text-xs mt-px">
+            {remainingCount} of {totalCount} left
+          </Text>
         </View>
 
-        {/* Undo button — fades in after each swipe, auto-hides after 3s */}
+        {/* Undo button — fades in after first swipe */}
         <Animated.View style={undoAnimStyle} pointerEvents="box-none">
-          <Pressable
+          <GlassCircleButton
+            icon="arrow-undo-outline"
+            iconSize={18}
             onPress={handleUndo}
-            className="flex-row items-center gap-1.5 px-3 py-2 rounded-full bg-white/10"
-          >
-            <Ionicons name="arrow-undo-outline" size={15} color="white" />
-            <Text className="text-white text-sm font-medium">Undo</Text>
-          </Pressable>
+            label="Undo last swipe"
+          />
         </Animated.View>
       </View>
 
@@ -264,7 +292,7 @@ export default function ReviewScreen() {
       <ProgressBar progress={progressFraction} />
 
       {/* Swipe stack */}
-      <View className="flex-1 items-center justify-center mt-4">
+      <View className="flex-1 items-center justify-center mt-3.5">
         <SwipeStack
           ref={swipeStackRef}
           onDoubleTap={handleDoubleTap}
@@ -272,12 +300,18 @@ export default function ReviewScreen() {
         />
       </View>
 
-      {/* Action buttons — delete and keep only */}
+      {/* Action bar — delete · hint · keep */}
       <View
-        className="flex-row items-center justify-center gap-12"
+        className="flex-row items-center justify-center gap-10"
         style={{ paddingBottom: insets.bottom + 24 }}
       >
         <ActionButton type="delete" onPress={handleSwipeLeft} />
+        <Text
+          className="text-white/40 text-[11px] font-semibold"
+          style={{ letterSpacing: 0.88 }}
+        >
+          SWIPE OR TAP
+        </Text>
         <ActionButton type="keep" onPress={handleSwipeRight} />
       </View>
 

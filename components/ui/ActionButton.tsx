@@ -1,4 +1,4 @@
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSpringPress } from '@/hooks/useSpringPress';
@@ -8,22 +8,24 @@ interface ActionButtonProps {
   onPress: () => void;
 }
 
+const SIZE = 64;
+
 const CONFIG = {
   delete: {
-    icon: 'trash-outline' as const,
+    icon: 'trash' as const,
     label: 'Delete',
-    bg: 'bg-red-500/20',
-    border: 'border-red-500/40',
+    bg: 'rgba(255,69,58,0.18)',
+    border: 'rgba(255,69,58,0.5)',
     color: '#FF453A',
-    size: 56,
+    glow: '#FF453A',
   },
   keep: {
-    icon: 'checkmark-outline' as const,
+    icon: 'heart' as const,
     label: 'Keep',
-    bg: 'bg-green-500/20',
-    border: 'border-green-500/40',
+    bg: 'rgba(48,209,88,0.18)',
+    border: 'rgba(48,209,88,0.5)',
     color: '#30D158',
-    size: 56,
+    glow: '#30D158',
   },
 };
 
@@ -32,17 +34,34 @@ export function ActionButton({ type, onPress }: ActionButtonProps) {
   const cfg = CONFIG[type];
 
   return (
-    <Animated.View style={animatedStyle} className="items-center gap-1.5">
+    <Animated.View
+      style={[
+        animatedStyle,
+        {
+          shadowColor: cfg.glow,
+          shadowOpacity: 0.25,
+          shadowRadius: 32,
+          shadowOffset: { width: 0, height: 12 },
+        },
+      ]}
+    >
       <Pressable
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        className={`rounded-full border ${cfg.bg} ${cfg.border} items-center justify-center`}
-        style={{ width: cfg.size, height: cfg.size }}
+        accessibilityRole="button"
+        accessibilityLabel={cfg.label}
+        className="rounded-full items-center justify-center"
+        style={{
+          width: SIZE,
+          height: SIZE,
+          backgroundColor: cfg.bg,
+          borderWidth: 1.5,
+          borderColor: cfg.border,
+        }}
       >
-        <Ionicons name={cfg.icon} size={cfg.size * 0.45} color={cfg.color} />
+        <Ionicons name={cfg.icon} size={26} color={cfg.color} />
       </Pressable>
-      <Text className="text-white/40 text-xs">{cfg.label}</Text>
     </Animated.View>
   );
 }
