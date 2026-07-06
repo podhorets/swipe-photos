@@ -5,11 +5,12 @@ import {
   Pressable,
   FlatList,
   Dimensions,
-  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as MediaLibrary from 'expo-media-library';
 import * as LocalAuthentication from 'expo-local-authentication';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -20,12 +21,16 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { SessionCompleteSheet } from '@/components/ui/SessionCompleteSheet';
+import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
+import { formatBytes } from '@/lib/dateUtils';
 import type { AssetMeta } from '@/types';
 import { posthog } from '@/lib/posthog';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const CELL_SIZE = (SCREEN_WIDTH - 4) / 3; // 3 columns, 2px gaps
+const GRID_GAP = 8;
+const CELL_SIZE = (SCREEN_WIDTH - 40 - GRID_GAP * 2) / 3; // px-5 screen padding, 3 cols
 
 // ─── Photo cell ───────────────────────────────────────────────────────────────
 
@@ -41,7 +46,13 @@ function PhotoCell({
   return (
     <Pressable
       onPress={() => onToggle(asset.id)}
-      style={{ width: CELL_SIZE, height: CELL_SIZE, margin: 1 }}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        width: CELL_SIZE,
+        height: CELL_SIZE,
+        borderWidth: selected ? 2 : 0,
+        borderColor: 'rgba(255,69,58,0.85)',
+      }}
     >
       <Image
         source={{ uri: asset.uri }}
@@ -49,20 +60,29 @@ function PhotoCell({
         contentFit="cover"
         recyclingKey={asset.id}
       />
-      {/* Selection overlay */}
+      {/* Deselected — kept overlay */}
       {!selected && (
-        <View className="absolute inset-0 bg-black/60" />
-      )}
-      {/* Checkmark badge */}
-      <View className="absolute top-1.5 right-1.5">
-        {selected ? (
-          <View className="w-6 h-6 rounded-full bg-red-500 items-center justify-center">
-            <Ionicons name="checkmark" size={14} color="white" />
+        <View className="absolute inset-0 bg-[rgba(5,5,8,0.68)] items-center justify-center">
+          <View className="flex-row items-center gap-1 px-[9px] py-1 rounded-full bg-[rgba(48,209,88,0.2)] border border-[rgba(48,209,88,0.5)]">
+            <Ionicons name="heart" size={10} color="#30D158" />
+            <Text className="text-keep text-[10px] font-bold">Kept</Text>
           </View>
-        ) : (
-          <View className="w-6 h-6 rounded-full border-2 border-white/60" />
-        )}
-      </View>
+        </View>
+      )}
+      {/* Selected — red check badge */}
+      {selected && (
+        <View
+          className="absolute top-1.5 right-1.5 w-[22px] h-[22px] rounded-full bg-delete items-center justify-center"
+          style={{
+            shadowColor: '#000',
+            shadowOpacity: 0.4,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+        >
+          <Ionicons name="checkmark" size={13} color="white" />
+        </View>
+      )}
       {/* Video badge */}
       {asset.mediaType === 'video' && (
         <View className="absolute bottom-1 left-1 bg-black/60 rounded px-1 py-0.5 flex-row items-center gap-0.5">
@@ -146,6 +166,17 @@ export default function TrashScreen() {
     }
   }
 
+  // Estimated bytes freed by the current selection — same math as handleDelete
+  const selectedBytes = useMemo(() => {
+    let sum = 0;
+    for (const id of selected) {
+      const real = sessionSizeSnapshot.get(id);
+      const asset = deleteAssets.find((a) => a.id === id);
+      sum += real ?? (asset ? estimateSizeFromAsset(asset) : 0);
+    }
+    return sum;
+  }, [selected, deleteAssets, sessionSizeSnapshot]);
+
   async function handleDelete() {
     const idsToDelete = Array.from(selected);
     if (idsToDelete.length === 0) return;
@@ -215,15 +246,18 @@ export default function TrashScreen() {
 
   if (deleteAssets.length === 0 && !showSummary) {
     return (
-      <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
-        <View className="flex-row items-center px-6 py-4">
+      <View className="flex-1 bg-bg-dark" style={{ paddingTop: insets.top }}>
+        <AuroraBackground variant="trash" />
+        <View className="flex-row items-center px-5 py-4 gap-3">
           <Pressable
             onPress={() => router.back()}
-            className="w-9 h-9 items-center justify-center rounded-full bg-white/10 mr-3"
+            className="w-10 h-10 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14]"
           >
             <Ionicons name="chevron-back" size={20} color="white" />
           </Pressable>
-          <Text className="text-white text-2xl font-bold">Trash</Text>
+          <Text className="text-white text-2xl font-extrabold" style={{ letterSpacing: -0.5 }}>
+            Trash
+          </Text>
         </View>
         <EmptyTrash />
       </View>
@@ -231,39 +265,36 @@ export default function TrashScreen() {
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-bg-dark">
+      <AuroraBackground variant="trash" />
+
       {/* Header */}
       <View
-        className="flex-row items-center px-6 pb-3"
+        className="flex-row items-center px-5 pb-3.5 gap-3"
         style={{ paddingTop: insets.top + 12 }}
       >
         <Pressable
           onPress={() => router.back()}
-          className="w-9 h-9 items-center justify-center rounded-full bg-white/10 mr-3"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          className="w-10 h-10 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14]"
         >
           <Ionicons name="chevron-back" size={20} color="white" />
         </Pressable>
         <View className="flex-1">
-          <Text className="text-white text-2xl font-bold">Review Trash</Text>
-          <Text className="text-white/40 text-xs mt-0.5">
-            {deleteAssets.length} photo{deleteAssets.length === 1 ? '' : 's'} marked for deletion
+          <Text className="text-white text-2xl font-extrabold" style={{ letterSpacing: -0.5 }}>
+            Trash
+          </Text>
+          <Text className="text-white/45 text-[13px] mt-px">
+            Last check before deleting — tap to keep instead
           </Text>
         </View>
-        {/* Select all toggle */}
-        <Pressable
-          onPress={toggleSelectAll}
-          className="px-3 py-1.5 rounded-full bg-white/10"
-        >
-          <Text className="text-white/70 text-sm">
-            {allSelected ? 'Deselect All' : 'Select All'}
+        <Pressable onPress={toggleSelectAll} className="active:opacity-60" hitSlop={8}>
+          <Text className="text-accent text-sm font-semibold">
+            {allSelected ? 'Deselect all' : 'Select all'}
           </Text>
         </Pressable>
       </View>
-
-      {/* Hint */}
-      <Text className="text-white/30 text-xs text-center mb-2">
-        Tap to deselect · {selected.size} selected for deletion
-      </Text>
 
       {/* Photo grid */}
       <FlatList
@@ -277,36 +308,55 @@ export default function TrashScreen() {
             onToggle={toggleSelect}
           />
         )}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: 20 }}
+        contentContainerStyle={{ gap: GRID_GAP, paddingBottom: insets.bottom + 140 }}
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Delete button */}
-      <View
-        className="absolute bottom-0 left-0 right-0 px-6"
-        style={{ paddingBottom: insets.bottom + 16 }}
-      >
-        <Pressable
-          onPress={handleDelete}
-          disabled={selected.size === 0 || isDeleting}
-          className="rounded-2xl py-4 items-center justify-center"
-          style={{ backgroundColor: selected.size === 0 ? 'rgba(255,59,48,0.3)' : 'rgba(255,59,48,0.85)' }}
+      {/* Floating bottom bar over fade-out gradient */}
+      <View className="absolute bottom-0 left-0 right-0">
+        <LinearGradient
+          colors={['transparent', 'rgba(5,5,8,0.9)']}
+          locations={[0, 0.4]}
+          style={{
+            paddingTop: 16,
+            paddingHorizontal: 20,
+            paddingBottom: insets.bottom + 16,
+          }}
         >
-          {isDeleting ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <View className="flex-row items-center gap-2">
-              {faceIdEnabled && (
-                <Ionicons name="lock-closed" size={16} color="white" />
-              )}
-              <Text className="text-white font-semibold text-base">
-                {selected.size === 0
-                  ? 'Select photos to delete'
-                  : `Delete ${selected.size} Photo${selected.size === 1 ? '' : 's'}`}
-              </Text>
-            </View>
-          )}
-        </Pressable>
+          <View
+            className="rounded-3xl overflow-hidden"
+            style={{
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.14)',
+              borderTopColor: 'rgba(255,255,255,0.28)',
+            }}
+          >
+            <BlurView intensity={60} tint="dark" className="bg-chrome">
+              <View className="flex-row items-center px-4 py-3.5 gap-3.5">
+                <View className="flex-1">
+                  <Text className="text-white text-[15px] font-bold">
+                    {selected.size} selected
+                  </Text>
+                  <Text className="text-white/45 text-xs mt-px">
+                    {selected.size > 0
+                      ? `~${formatBytes(selectedBytes)} will be freed`
+                      : 'Tap photos to select'}
+                  </Text>
+                </View>
+                <GradientPillButton
+                  label="Delete"
+                  variant="delete"
+                  compact
+                  icon={faceIdEnabled ? 'lock-closed' : undefined}
+                  onPress={handleDelete}
+                  disabled={selected.size === 0}
+                  loading={isDeleting}
+                />
+              </View>
+            </BlurView>
+          </View>
+        </LinearGradient>
       </View>
 
       {/* Post-deletion summary overlay */}
