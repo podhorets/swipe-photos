@@ -153,6 +153,11 @@ export default function SettingsScreen() {
   const analyticsOptIn = useSettingsStore((s) => s.analyticsOptIn);
   const setAnalyticsOptIn = useSettingsStore((s) => s.setAnalyticsOptIn);
 
+  const planState = usePlanStore();
+  const setMockPro = usePlanStore((s) => s.setMockPro);
+  const mockPro = planState.mockPro;
+  const pro = isPro(planState);
+
   const index = useGalleryStore((s) => s.index);
 
   const appVersion = Application.nativeApplicationVersion ?? '—';
@@ -226,6 +231,24 @@ export default function SettingsScreen() {
           Settings
         </Text>
 
+        {/* Plan */}
+        <Section title="Plan">
+          <NavRow
+            icon="sparkles"
+            gradient={GRADIENTS.star}
+            label="Swipe Photos Pro"
+            value={pro ? 'Active' : undefined}
+            onPress={() => {
+              if (pro) {
+                // Manage/cancel lives in the App Store subscription settings
+                WebBrowser.openBrowserAsync('https://apps.apple.com/account/subscriptions').catch(() => {});
+              } else {
+                router.push({ pathname: '/paywall', params: { context: 'settings' } });
+              }
+            }}
+          />
+        </Section>
+
         {/* Review Preferences */}
         <Section title="Review">
           <BatchSizeRow />
@@ -294,6 +317,20 @@ export default function SettingsScreen() {
             <Text className="text-white/40 text-[15px]">{appVersion}</Text>
           </View>
         </Section>
+
+        {/* Developer (dev builds only) */}
+        {__DEV__ && (
+          <Section title="Developer">
+            <ToggleRow
+              icon="construct"
+              gradient={GRADIENTS.analytics}
+              label="Mock Pro entitlement"
+              subtitle="Dev-only: simulate an active subscription"
+              value={mockPro}
+              onValueChange={setMockPro}
+            />
+          </Section>
+        )}
       </ScrollView>
     </View>
   );
