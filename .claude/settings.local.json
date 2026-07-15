@@ -6,7 +6,32 @@
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
       "Bash(grep -v \"Use \\\\`node\")",
-      "WebFetch(domain:claude.ai)"
+      "WebFetch(domain:claude.ai)",
+      "Bash(pnpm run *)",
+      "Bash(pod install *)",
+      "Bash(pnpm start *)",
+      "Bash(until grep *)",
+      "Bash(xcrun simctl *)",
+      "Bash(open -a Simulator)",
+      "Bash(node -e ' *)",
+      "Bash(git -C /Users/podhorets/Code/ai-apps/swipe-photos diff package.json)",
+      "Bash(pnpm install *)",
+      "Bash(xargs kill)",
+      "Bash(git pull *)",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(git ls-tree *)",
+      "Bash(git checkout *)",
+      "Bash(osascript -e 'tell app \"System Events\" to count processes whose name is \"Simulator\"')",
+      "Bash(osascript -e 'tell application \"System Events\" to tell process \"Simulator\" to get {position, size} of window 1')",
+      "Bash(python3 -c ' *)",
+      "Bash(pnpm view *)",
+      "Bash(python3 -c \"import json,sys; vs=json.load\\(sys.stdin\\); print\\([v for v in vs if v.startswith\\('3.0'\\)]\\)\")",
+      "Bash(pnpm patch *)",
+      "Bash(pnpm patch-commit *)",
+      "Bash(cd ios *)",
+      "Bash(ls ~/Library/Logs/DiagnosticReports/ | grep -c SwipePhotos; xcrun simctl launch booted com.podhorets.swipephotos; until xcrun simctl openurl booted \"swipephotos:///review/videos\" 2>/dev/null; do sleep 1; done; echo \"opened videos session\")",
+      "Bash(grep -n \"Bundling failed\\\\|Unable to resolve\\\\|Bundled\" \"/private/tmp/claude-501/-Users-podhorets-Code-ai-apps-swipe-photos/52dfb055-b0d4-4bf7-ab97-451822367adb/tasks/b7lzhhpbk.output\" | tail -5; sed -n '/Bundling failed/,/require.context/p' \"/private/tmp/claude-501/-Users-podhorets-Code-ai-apps-swipe-photos/52dfb055-b0d4-4bf7-ab97-451822367adb/tasks/b7lzhhpbk.output\" | head -25)"
     ]
   }
 }
