@@ -140,6 +140,7 @@ return (
             <Stack.Screen name="review/[sessionId]" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="review/preview/[assetId]" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
           </Stack>
         </QueryClientProvider>
         </ErrorBoundary>
