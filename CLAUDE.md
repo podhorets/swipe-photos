@@ -30,7 +30,8 @@ const styles = StyleSheet.create({ container: { flex: 1 } });
 Mix both when needed: `className` for static, `style` for animated/dynamic.
 
 ### No custom native modules
-All functionality via Expo SDK only. If a gap exists, adjust the UX — don't write native code.
+All functionality via Expo SDK or explicitly approved third-party native modules. Never write native code yourself — if a gap exists, adjust the UX.
+Approved third-party native modules: `react-native-purchases` (RevenueCat, subscriptions), `react-native-mmkv`, `@shopify/react-native-skia`, `lottie-react-native`, `@sentry/react-native`.
 
 ### Glass UI is mandatory, not optional
 Every screen uses `GlassCard`, `BlurPanel`, or `GlassSheet` from `components/glass/`. No plain white/gray surfaces.
@@ -99,6 +100,7 @@ Never hardcode spring configs or swipe thresholds. Always use `SPRING.*` and `SW
 | Navigation | `expo-router` | `@react-navigation/*` directly |
 | Animations | `react-native-reanimated` worklets | JS-thread animations |
 | Global state | `zustand` | Context, Redux |
+| In-app purchases | `react-native-purchases` (RevenueCat) | StoreKit directly, `expo-in-app-purchases` (deprecated) |
 | Async gallery queries | `@tanstack/react-query` (`useQuery` only) | `useEffect` + `useState` for async fetching |
 
 ---
