@@ -17,6 +17,7 @@ import { getOnThisDayByYear } from '@/lib/gallery/grouper';
 import { yearsAgoLabel } from '@/lib/dateUtils';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import type { AssetMeta } from '@/types';
+import { gateSessionStart } from '@/lib/sessionGate';
 
 const TILE_WIDTH = 104;
 const TILE_HEIGHT = 130;
@@ -34,6 +35,7 @@ interface YearSection {
 }
 
 function reviewYear(year: number) {
+  if (!gateSessionStart()) return;
   router.push({
     pathname: '/review/[sessionId]',
     params: { sessionId: 'on-this-day', year: String(year) },

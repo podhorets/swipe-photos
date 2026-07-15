@@ -10,6 +10,7 @@ import { monthLabel } from '@/lib/dateUtils';
 import { MonthRow } from '@/components/ui/MonthRow';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { posthog } from '@/lib/posthog';
+import { gateSessionStart } from '@/lib/sessionGate';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ export default function ByMonthScreen() {
   }, [index, keepIds]);
 
   function handleMonthPress(yyyymm: string, count: number) {
+    if (!gateSessionStart()) return;
     posthog.capture('month_review_started', { month: yyyymm, photo_count: count });
     router.push({ pathname: '/review/[sessionId]', params: { sessionId: 'month', month: yyyymm } });
   }

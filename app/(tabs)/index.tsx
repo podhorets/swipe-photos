@@ -10,6 +10,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { StreakWidget } from '@/components/ui/StreakWidget';
 import { StreakChip } from '@/components/ui/StreakChip';
+import { SessionsChip } from '@/components/ui/SessionsChip';
 import { CategoryTile } from '@/components/ui/CategoryTile';
 import { IconSquircle } from '@/components/ui/IconSquircle';
 import { GlassCard } from '@/components/glass/GlassCard';
@@ -25,6 +26,7 @@ import { formatBytes, monthLabel } from '@/lib/dateUtils';
 import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
+import { gateSessionStart } from '@/lib/sessionGate';
 
 const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
 
@@ -112,6 +114,7 @@ export default function HomeScreen() {
       ]);
       return;
     }
+    if (!gateSessionStart()) return;
     posthog.capture('review_session_started', { category, photo_count: countFor(category) });
     router.push(`/review/${category}`);
   }
@@ -180,7 +183,10 @@ export default function HomeScreen() {
               Your Library
             </Text>
           </View>
-          <StreakChip />
+          <View className="flex-row items-center gap-2">
+            <SessionsChip />
+            <StreakChip />
+          </View>
         </View>
 
         {/* Limited access banner */}

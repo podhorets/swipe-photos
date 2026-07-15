@@ -19,6 +19,7 @@ import { useKeepStore } from '@/stores/keepStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useStreakStore } from '@/stores/streakStore';
+import { usePlanStore } from '@/stores/planStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { SessionComplete } from '@/components/ui/SessionComplete';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
@@ -217,6 +218,10 @@ export default function TrashScreen() {
       setIsDeleting(false);
 
       useStreakStore.getState().recordSession();
+      // Free-plan quota: a session only counts once photos are actually cleaned
+      // (or kept via the zero-deletion path in review/[sessionId].tsx). Discarding
+      // the trash intentionally does not consume a session.
+      usePlanStore.getState().recordCompletedSession();
 
       const freedBytes = idsToDelete.reduce((sum, id) => {
         const real = sessionSizeSnapshot.get(id);
