@@ -27,6 +27,8 @@ import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 import { gateSessionStart } from '@/lib/sessionGate';
+import { usePlanStore } from '@/stores/planStore';
+import { effectiveBatchSize } from '@/lib/planUtils';
 
 const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
 
@@ -42,16 +44,20 @@ export default function HomeScreen() {
   const isIndexing = useGalleryStore((s) => s.isIndexing);
   const keepIds = useKeepStore((s) => s.keepIds);
   const batchSize = useSettingsStore((s) => s.batchSize);
+  const planState = usePlanStore();
   const { isMediaGranted, isMediaLimited } = usePermissions();
+
+  // Free plan clamps the tile label to match the actual session size
+  const displayBatchSize = effectiveBatchSize(planState, batchSize);
 
   const tiles: TileDef[] = useMemo(
     () => [
       { id: 'on-this-day', label: 'On This Day', icon: 'sparkles' },
       { id: 'screenshots', label: 'Screenshots', icon: 'phone-portrait-outline' },
       { id: 'videos', label: 'Videos', icon: 'videocam' },
-      { id: 'random', label: `Random ${batchSize}`, icon: 'shuffle' },
+      { id: 'random', label: `Random ${displayBatchSize}`, icon: 'shuffle' },
     ],
-    [batchSize],
+    [displayBatchSize],
   );
 
   // Counts + cover photos per category, and by-month meta — one pass per index change

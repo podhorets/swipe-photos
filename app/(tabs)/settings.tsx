@@ -8,12 +8,15 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Application from 'expo-application';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Notifications from 'expo-notifications';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { usePlanStore } from '@/stores/planStore';
+import { effectiveBatchSize, isPro } from '@/lib/planUtils';
 import { cancelOnThisDayNotification, scheduleOnThisDayNotification } from '@/lib/notifications';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { GlassCard } from '@/components/glass/GlassCard';
@@ -113,6 +116,12 @@ function NavRow({
 function BatchSizeRow() {
   const batchSize = useSettingsStore((s) => s.batchSize);
   const setBatchSize = useSettingsStore((s) => s.setBatchSize);
+  const planState = usePlanStore();
+  const pro = isPro(planState);
+
+  // Free plan: stored 50/100 stays untouched but the control shows the clamped
+  // value, and locked options route to the paywall instead of selecting.
+  const effective = effectiveBatchSize(planState, batchSize);
 
   return (
     <View className="px-4 py-3.5">
@@ -122,8 +131,10 @@ function BatchSizeRow() {
       </View>
       <SegmentedControl
         options={BATCH_OPTIONS}
-        value={batchSize as (typeof BATCH_OPTIONS)[number]}
+        value={effective as (typeof BATCH_OPTIONS)[number]}
         onChange={setBatchSize}
+        lockedOptions={pro ? undefined : [50, 100]}
+        onLockedPress={() => router.push({ pathname: '/paywall', params: { context: 'batch' } })}
       />
     </View>
   );

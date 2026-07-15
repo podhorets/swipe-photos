@@ -8,6 +8,8 @@ import { useGalleryStore } from "@/stores/galleryStore";
 import { useKeepStore } from "@/stores/keepStore";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { usePlanStore } from "@/stores/planStore";
+import { effectiveBatchSize } from "@/lib/planUtils";
 import * as Haptics from "expo-haptics";
 
 export function useSession() {
@@ -20,9 +22,13 @@ export function useSession() {
   function startSession(request: SessionRequest) {
     const { index } = useGalleryStore.getState();
     const keepIds = useKeepStore.getState().keepIds;
-    const batchSize = useSettingsStore.getState().batchSize;
+    // Free plan clamps to FREE_PLAN.maxBatchSize; the stored setting is untouched
+    const batchSize = effectiveBatchSize(
+      usePlanStore.getState(),
+      request.batchSize ?? useSettingsStore.getState().batchSize,
+    );
     const newSession = createSession(
-      { ...request, batchSize: request.batchSize ?? batchSize },
+      { ...request, batchSize },
       index,
       keepIds,
     );
