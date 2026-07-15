@@ -1,0 +1,2 @@
+patchedDependencies:
+  expo-video@3.0.16: patches/expo-video@3.0.16.patch
