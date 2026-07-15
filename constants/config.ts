@@ -7,6 +7,24 @@ export const STORAGE_KEYS = {
   streakDates: 'streak:dates',
   statsFreedBytes: 'stats:freedBytes',
   statsDeletedCount: 'stats:deletedCount',
+  plan: 'plan:state',
+};
+
+// Free plan limits
+export const FREE_PLAN = {
+  sessionsPerDay: 2,
+  maxBatchSize: 25,
+};
+
+// RevenueCat
+export const PRO = {
+  entitlementId: 'pro',
+};
+
+// Shown on the paywall when RevenueCat offerings can't be loaded
+export const FALLBACK_PRICING = {
+  weekly: '$4.99',
+  annual: '$29.99',
 };
 
 // Gallery indexing

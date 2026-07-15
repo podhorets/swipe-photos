@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { scheduleOnThisDayNotification } from '@/lib/notifications';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { posthog } from '@/lib/posthog';
+import { initPurchases, refreshCustomerInfo } from '@/lib/purchases';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -103,6 +104,15 @@ function RootLayout() {
 
   useEffect(() => {
     SplashScreen.hideAsync();
+  }, []);
+
+  // RevenueCat: configure once, re-check entitlements on foreground (expiry/renewal)
+  useEffect(() => {
+    initPurchases();
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') refreshCustomerInfo();
+    });
+    return () => sub.remove();
   }, []);
 
   // Sync analytics opt-in/out with PostHog
