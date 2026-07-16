@@ -11,7 +11,9 @@ import { useKeepStore } from '@/stores/keepStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { usePlanStore } from '@/stores/planStore';
 import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack';
+import { GroupReview, type GroupReviewHandle } from '@/components/similar/GroupReview';
 import { ActionButton } from '@/components/ui/ActionButton';
+import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionComplete } from '@/components/ui/SessionComplete';
 import { AmbientPhotoBackdrop } from '@/components/ui/AmbientPhotoBackdrop';
@@ -72,11 +74,25 @@ export default function ReviewScreen() {
   // Imperative handle on SwipeStack — button path calls dismiss() so the top
   // card's fly-off spring fires identically to a gesture swipe.
   const swipeStackRef = useRef<SwipeStackHandle>(null);
+  const groupReviewRef = useRef<GroupReviewHandle>(null);
+
+  // 'similar' sessions review duplicate GROUPS with a different card + action bar
+  const isSimilar = sessionId === 'similar';
+  const [pendingDeleteCount, setPendingDeleteCount] = useState(0);
 
   // Read from the session URI snapshot — O(1) Map lookup, no gallery subscription.
   // This screen never touches galleryStore.index during an active session.
   const phase = useSessionStore((s) => s.phase);
   const uriById = useSessionStore((s) => s.uriSnapshot);
+  const decisions = useSessionStore((s) => s.decisions);
+
+  // Group progress for similar sessions
+  const { totalGroups, groupsLeft } = useMemo(() => {
+    const groups = session?.groups ?? [];
+    if (!isSimilar || groups.length === 0) return { totalGroups: 0, groupsLeft: 0 };
+    const resolved = groups.filter((g) => g.every((id) => id in decisions)).length;
+    return { totalGroups: groups.length, groupsLeft: groups.length - resolved };
+  }, [isSimilar, session?.id, decisions]);
 
   const [showComplete, setShowComplete] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
@@ -147,16 +163,19 @@ export default function ReviewScreen() {
   }, []);
 
   function handleSwipeLeft() {
-    swipeStackRef.current?.dismiss('left');
+    if (isSimilar) groupReviewRef.current?.dismiss('left');
+    else swipeStackRef.current?.dismiss('left');
   }
 
   function handleSwipeRight() {
-    swipeStackRef.current?.dismiss('right');
+    if (isSimilar) groupReviewRef.current?.dismiss('right');
+    else swipeStackRef.current?.dismiss('right');
   }
 
   function handleUndo() {
     undoOpacity.value = withTiming(0, { duration: 150 });
-    undoLast();
+    if (isSimilar) useSessionStore.getState().undoLastGroup();
+    else undoLast();
   }
 
   // Called by SwipeStack when all cards have been swiped
@@ -275,7 +294,9 @@ export default function ReviewScreen() {
             {session.label}
           </Text>
           <Text className="text-white/55 text-xs mt-px">
-            {remainingCount} of {totalCount} left
+            {isSimilar
+              ? `${groupsLeft} of ${totalGroups} groups left`
+              : `${remainingCount} of ${totalCount} left`}
           </Text>
         </View>
 
@@ -293,29 +314,59 @@ export default function ReviewScreen() {
       {/* Progress bar */}
       <ProgressBar progress={progressFraction} />
 
-      {/* Swipe stack */}
+      {/* Swipe stack / group review */}
       <View className="flex-1 items-center justify-center mt-3.5">
-        <SwipeStack
-          ref={swipeStackRef}
-          onDoubleTap={handleDoubleTap}
-          onSessionComplete={handleSessionComplete}
-        />
+        {isSimilar ? (
+          <GroupReview
+            ref={groupReviewRef}
+            onPreview={handleDoubleTap}
+            onSessionComplete={handleSessionComplete}
+            onPendingChange={setPendingDeleteCount}
+          />
+        ) : (
+          <SwipeStack
+            ref={swipeStackRef}
+            onDoubleTap={handleDoubleTap}
+            onSessionComplete={handleSessionComplete}
+          />
+        )}
       </View>
 
-      {/* Action bar — delete · hint · keep */}
-      <View
-        className="flex-row items-center justify-center gap-10"
-        style={{ paddingBottom: insets.bottom + 24 }}
-      >
-        <ActionButton type="delete" onPress={handleSwipeLeft} />
-        <Text
-          className="text-white/40 text-[11px] font-semibold"
-          style={{ letterSpacing: 0.88 }}
+      {/* Action bar — similar sessions get labeled pills (right-swipe DELETES here,
+          so the classic delete/keep circles would mislead) */}
+      {isSimilar ? (
+        <View
+          className="flex-row items-center justify-center gap-3 px-6"
+          style={{ paddingBottom: insets.bottom + 24 }}
         >
-          SWIPE OR TAP
-        </Text>
-        <ActionButton type="keep" onPress={handleSwipeRight} />
-      </View>
+          <View className="flex-1">
+            <GradientPillButton compact label="Keep All" icon="albums-outline" onPress={handleSwipeLeft} />
+          </View>
+          <View className="flex-1">
+            <GradientPillButton
+              compact
+              variant="delete"
+              icon="sparkles"
+              label={pendingDeleteCount > 0 ? `Keep Best · Delete ${pendingDeleteCount}` : 'Keep Best'}
+              onPress={handleSwipeRight}
+            />
+          </View>
+        </View>
+      ) : (
+        <View
+          className="flex-row items-center justify-center gap-10"
+          style={{ paddingBottom: insets.bottom + 24 }}
+        >
+          <ActionButton type="delete" onPress={handleSwipeLeft} />
+          <Text
+            className="text-white/40 text-[11px] font-semibold"
+            style={{ letterSpacing: 0.88 }}
+          >
+            SWIPE OR TAP
+          </Text>
+          <ActionButton type="keep" onPress={handleSwipeRight} />
+        </View>
+      )}
 
       {/* Session complete screen — only shown when zero deletions (trash path skips this) */}
       {showComplete && (
