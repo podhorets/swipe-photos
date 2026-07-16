@@ -19,6 +19,7 @@ export default function TabLayout() {
         <Tabs.Screen name="index" options={{ title: 'Library' }} />
         <Tabs.Screen name="by-month" options={{ title: 'By Month' }} />
         <Tabs.Screen name="on-this-day" options={{ title: 'On This Day' }} />
+        <Tabs.Screen name="similar" options={{ title: 'Similar' }} />
         <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
       </Tabs>
     </>
