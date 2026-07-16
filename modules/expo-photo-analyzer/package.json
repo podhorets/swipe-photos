@@ -1,0 +1,16 @@
+{
+  "name": "expo-photo-analyzer",
+  "version": "1.0.0",
+  "description": "On-device photo analysis for Cleani: blur detection, face count and visual similarity via the iOS Vision framework",
+  "main": "src/index.ts",
+  "keywords": [
+    "react-native",
+    "expo"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
