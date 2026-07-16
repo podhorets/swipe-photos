@@ -17,6 +17,7 @@ import * as Notifications from 'expo-notifications';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { usePlanStore } from '@/stores/planStore';
 import { effectiveBatchSize, isPro } from '@/lib/planUtils';
+import { toDateString } from '@/lib/streakUtils';
 import { cancelOnThisDayNotification, scheduleOnThisDayNotification } from '@/lib/notifications';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { GlassCard } from '@/components/glass/GlassCard';
@@ -328,6 +329,16 @@ export default function SettingsScreen() {
               subtitle="Dev-only: simulate an active subscription"
               value={mockPro}
               onValueChange={setMockPro}
+            />
+            <RowDivider />
+            <NavRow
+              icon="hourglass"
+              gradient={GRADIENTS.notify}
+              label="Use up free sessions"
+              value={`${planState.quotaDate === toDateString(new Date()) ? planState.sessionsUsedToday : 0} used`}
+              onPress={() => {
+                usePlanStore.getState().recordCompletedSession();
+              }}
             />
           </Section>
         )}

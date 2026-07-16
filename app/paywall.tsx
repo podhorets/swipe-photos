@@ -260,20 +260,6 @@ export default function PaywallScreen() {
     <View className="flex-1 bg-bg-dark" style={{ paddingTop: insets.top }}>
       <AuroraBackground variant="onboarding" />
 
-      {/* Delayed-fade close */}
-      <Animated.View style={closeStyle} className="absolute left-5 z-10" pointerEvents={closeEnabled ? 'auto' : 'none'}>
-        <Pressable
-          onPress={close}
-          disabled={purchasing}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center"
-          style={{ marginTop: insets.top > 0 ? 8 : 16 }}
-        >
-          <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
-        </Pressable>
-      </Animated.View>
-
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pb-4 pt-14"
@@ -395,6 +381,23 @@ export default function PaywallScreen() {
           </Pressable>
         </View>
       </View>
+
+      {/* Delayed-fade close — rendered last so it wins the hit test over the ScrollView */}
+      <Animated.View
+        style={[closeStyle, { position: 'absolute', left: 20, top: insets.top + 8, zIndex: 10 }]}
+        pointerEvents={closeEnabled ? 'auto' : 'none'}
+      >
+        <Pressable
+          onPress={close}
+          disabled={purchasing}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center"
+        >
+          <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
