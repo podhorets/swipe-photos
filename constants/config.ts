@@ -8,6 +8,26 @@ export const STORAGE_KEYS = {
   statsFreedBytes: 'stats:freedBytes',
   statsDeletedCount: 'stats:deletedCount',
   plan: 'plan:state',
+  similarGroups: 'similar:groups',
+  similarAnalysis: 'similar:analysis',
+};
+
+// Similar-photos detection (ported from cleani)
+export const SIMILAR = {
+  // Max Vision feature-print distance for two photos to count as similar
+  threshold: 0.6,
+  // Wide candidate window for the AI pass — the visual check decides
+  candidateWindowSeconds: 60,
+  // Narrow window used when the native analyzer is unavailable
+  fastWindowSeconds: 5,
+  // Cap photos per native similarity call to keep the bridge responsive
+  maxPhotosPerNativeCall: 200,
+  // Photos per native blur/face analysis call
+  analysisChunkSize: 60,
+  // Failed analyses (e.g. iCloud-offloaded) retry after this long
+  analysisRetryMs: 7 * 24 * 60 * 60 * 1000,
+  // Rescan on tab focus when the last scan is older than this
+  rescanMaxAgeMs: 24 * 60 * 60 * 1000,
 };
 
 // Free plan limits
