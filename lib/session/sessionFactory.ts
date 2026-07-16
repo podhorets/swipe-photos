@@ -8,6 +8,7 @@ import {
   getRandom,
 } from '@/lib/gallery/grouper';
 import { monthLabel } from '@/lib/dateUtils';
+import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { GALLERY } from '@/constants/config';
 
 function randomId(): string {
@@ -26,10 +27,25 @@ export function createSession(
   request: SessionRequest,
   index: AssetMeta[],
   keepIds: Set<string> = new Set(),
+  similarGroups: string[][] = [],
 ): Session {
   const { category, yearFilter, monthFilter, batchSize = GALLERY.defaultBatchSize } = request;
   let assets: AssetMeta[] = [];
   let label = '';
+
+  if (category === 'similar') {
+    // Batch unit is GROUPS, not photos — a session reviews `batchSize` groups
+    const indexIds = new Set(index.map((a) => a.id));
+    const groups = filterGroupsForReview(similarGroups, keepIds, indexIds).slice(0, batchSize);
+    return {
+      id: randomId(),
+      category,
+      label: 'Similar Photos',
+      assetIds: groups.flat(),
+      createdAt: Date.now(),
+      groups,
+    };
+  }
 
   switch (category) {
     case 'year': {

@@ -9,6 +9,7 @@ import { useKeepStore } from "@/stores/keepStore";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { usePlanStore } from "@/stores/planStore";
+import { useSimilarStore } from "@/stores/similarStore";
 import { effectiveBatchSize } from "@/lib/planUtils";
 import * as Haptics from "expo-haptics";
 
@@ -27,10 +28,13 @@ export function useSession() {
       usePlanStore.getState(),
       request.batchSize ?? useSettingsStore.getState().batchSize,
     );
+    const similarGroups =
+      request.category === "similar" ? useSimilarStore.getState().groups : [];
     const newSession = createSession(
       { ...request, batchSize },
       index,
       keepIds,
+      similarGroups,
     );
 
     // Snapshot URIs for exactly the session's assets at creation time.

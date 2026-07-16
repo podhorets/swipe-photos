@@ -24,7 +24,8 @@ export type Category =
   | 'on-this-day'
   | 'screenshots'
   | 'videos'
-  | 'random';
+  | 'random'
+  | 'similar';
 
 export interface CategoryInfo {
   id: Category;
@@ -44,5 +45,8 @@ export interface Session {
   label: string; // e.g. "2023", "January 2024", "On This Day"
   assetIds: string[];
   createdAt: number;
+  // 'similar' sessions only: asset ids per duplicate group, in review order.
+  // assetIds is the flat concatenation of these groups.
+  groups?: string[][];
 }
 

@@ -14,6 +14,10 @@ interface SessionState {
   currentIndex: number;
   decisions: Record<string, SwipeDecision>; // assetId → decision
   undoStack: string[]; // assetId LIFO, max SESSION.maxUndo
+  // Group-review undo (similar sessions): each entry is the batch of assetIds
+  // applied by one decideMany call. Kept separate from the per-asset undoStack
+  // so classic undoLast can never half-undo a group.
+  groupUndoStack: string[][];
   // Direction of the most recent currentIndex transition. SwipeStack reads this
   // to decide its render slice without mutating a ref during render.
   lastAction: LastAction;
@@ -35,6 +39,10 @@ interface SessionState {
   setSize: (assetId: string, size: number) => void;
   decide: (assetId: string, decision: SwipeDecision) => void;
   undoLast: () => string | null; // returns the restored assetId or null
+  // Apply one group's decisions atomically (similar sessions)
+  decideMany: (map: Record<string, SwipeDecision>) => void;
+  // Undo the most recent decideMany; returns the restored assetIds or null
+  undoLastGroup: () => string[] | null;
   resetSession: () => void;
 
   // Derived (stable primitives — safe to select directly)
@@ -48,6 +56,7 @@ export const useSessionStore = create<SessionState>()(
     currentIndex: 0,
     decisions: {},
     undoStack: [],
+    groupUndoStack: [],
     lastAction: null,
     uriSnapshot: new Map(),
     mediaTypeSnapshot: new Map(),
@@ -63,6 +72,7 @@ export const useSessionStore = create<SessionState>()(
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
+        state.groupUndoStack = [];
         state.lastAction = null;
       }),
 
@@ -91,6 +101,46 @@ export const useSessionStore = create<SessionState>()(
         state.lastAction = 'swipe';
       }),
 
+    decideMany: (map) =>
+      set((state) => {
+        // Apply only undecided ids (idempotent per asset, like decide()),
+        // preserving the invariant currentIndex === Object.keys(decisions).length
+        const applied: string[] = [];
+        for (const [assetId, decision] of Object.entries(map)) {
+          if (assetId in state.decisions) continue;
+          state.decisions[assetId] = decision;
+          applied.push(assetId);
+        }
+        if (applied.length === 0) return;
+        state.currentIndex = Math.min(
+          state.currentIndex + applied.length,
+          state.session?.assetIds.length ?? 0,
+        );
+        state.groupUndoStack.push(applied);
+        if (state.groupUndoStack.length > SESSION.maxUndo) {
+          state.groupUndoStack.shift();
+        }
+        state.lastAction = 'swipe';
+      }),
+
+    undoLastGroup: () => {
+      const { groupUndoStack } = get();
+      if (groupUndoStack.length === 0) return null;
+
+      let restored: string[] | null = null;
+      set((state) => {
+        const ids = state.groupUndoStack.pop();
+        if (!ids || ids.length === 0) return;
+        restored = ids;
+        for (const id of ids) {
+          delete state.decisions[id];
+        }
+        state.currentIndex = Math.max(0, state.currentIndex - ids.length);
+        state.lastAction = 'undo';
+      });
+      return restored;
+    },
+
     undoLast: () => {
       const { undoStack } = get();
       if (undoStack.length === 0) return null;
@@ -117,6 +167,7 @@ export const useSessionStore = create<SessionState>()(
         state.currentIndex = 0;
         state.decisions = {};
         state.undoStack = [];
+        state.groupUndoStack = [];
         state.lastAction = null;
       }),
 
