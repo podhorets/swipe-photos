@@ -35,12 +35,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   return (
     <View
       pointerEvents="box-none"
-      className="absolute left-0 right-0 items-center"
+      className="absolute left-0 right-0 px-5"
       style={{ bottom: Math.max(insets.bottom, 26) }}
     >
       <Animated.View
         layout={pillSpring}
-        className="flex-row gap-1 rounded-full overflow-hidden p-1.5 bg-chrome"
+        className="flex-row justify-between gap-1 rounded-full overflow-hidden p-1.5 bg-chrome w-full"
         style={[
           {
             borderWidth: 1,

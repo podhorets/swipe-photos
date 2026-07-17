@@ -288,29 +288,31 @@ export default function SimilarScreen() {
 
       {/* Sticky CTA — available whenever loaded groups exist, including during
           a rescan (the session snapshots its groups at start, so a scan
-          finishing mid-review can't affect it) */}
+          finishing mid-review can't affect it). Notes sit above the button so
+          the pill can hug the tab bar. */}
       {displayGroups.length > 0 && (
         <View
           className="absolute left-5 right-5"
-          style={{ bottom: insets.bottom + 96 }}
+          style={{ bottom: Math.max(insets.bottom, 26) + 66 }}
         >
-          <GradientPillButton
-            label={`Review ${reviewCount} group${reviewCount === 1 ? '' : 's'}`}
-            icon="sparkles"
-            onPress={handleStartReview}
-          />
           {scanning ? (
-            <Text className="text-white/35 text-[11px] text-center mt-2">
+            <Text className="text-white/35 text-[11px] text-center mb-2">
               Scan running — reviewing already-found groups
             </Text>
           ) : (
             !analyzerUsed &&
             scannedAt > 0 && (
-              <Text className="text-white/35 text-[11px] text-center mt-2">
+              <Text className="text-white/35 text-[11px] text-center mb-2">
                 Grouped by time only — visual matching unavailable on this build
               </Text>
             )
           )}
+          <GradientPillButton
+            label={`Review ${reviewCount} group${reviewCount === 1 ? '' : 's'}`}
+            icon="sparkles"
+            variant="freed"
+            onPress={handleStartReview}
+          />
         </View>
       )}
     </View>

@@ -9,7 +9,7 @@ import { GRADIENTS } from '@/constants/theme';
 interface GradientPillButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'accent' | 'delete';
+  variant?: 'accent' | 'delete' | 'freed';
   icon?: React.ComponentProps<typeof Ionicons>['name'];
   compact?: boolean; // inline pill (trash bar) instead of full-width CTA
   disabled?: boolean;
@@ -24,6 +24,10 @@ const VARIANTS = {
   delete: {
     colors: GRADIENTS.delete,
     shadow: { shadowColor: '#FF453A', shadowOpacity: 0.35, shadowRadius: 26, shadowOffset: { width: 0, height: 10 } },
+  },
+  freed: {
+    colors: GRADIENTS.freed,
+    shadow: { shadowColor: '#30D158', shadowOpacity: 0.35, shadowRadius: 26, shadowOffset: { width: 0, height: 10 } },
   },
 };
 

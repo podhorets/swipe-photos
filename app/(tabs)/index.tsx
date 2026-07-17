@@ -28,6 +28,9 @@ import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 import { gateSessionStart } from '@/lib/sessionGate';
 import { usePlanStore } from '@/stores/planStore';
+import { useSimilarStore } from '@/stores/similarStore';
+import { filterGroupsForReview } from '@/lib/similar/filterGroups';
+import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { effectiveBatchSize } from '@/lib/planUtils';
 
 const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
@@ -125,12 +128,30 @@ export default function HomeScreen() {
     router.push(`/review/${category}`);
   }
 
-  const dateLine = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
   const monthDay = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
+  // Similar-photos teaser for the cleanup row (same filter the Similar tab uses)
+  const similarGroups = useSimilarStore((s) => s.groups);
+  const similarBestIds = useSimilarStore((s) => s.bestIds);
+  const similarMeta = useMemo(() => {
+    const indexIds = new Set(index.map((a) => a.id));
+    const assetById = new Map(index.map((a) => [a.id, a]));
+    const groups = filterGroupsForReview(similarGroups, keepIds, indexIds);
+    const reclaimBytes = groups.reduce((sum, memberIds) => {
+      const best =
+        memberIds.find((id) => similarBestIds.has(id)) ?? memberIds[memberIds.length - 1];
+      return (
+        sum +
+        memberIds
+          .filter((id) => id !== best)
+          .reduce((s, id) => {
+            const asset = assetById.get(id);
+            return s + (asset ? estimateSizeFromAsset(asset) : 0);
+          }, 0)
+      );
+    }, 0);
+    return { groupCount: groups.length, reclaimBytes };
+  }, [similarGroups, similarBestIds, keepIds, index]);
 
   // Data-driven tile subtitles, per the design mock
   function subtitleFor(id: Category): string {
@@ -180,15 +201,12 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View className="flex-row items-end justify-between mb-4">
-          <View>
-            <Text className="text-white/50 text-sm font-medium">{dateLine}</Text>
-            <Text
-              className="text-white text-[34px] font-extrabold mt-0.5"
-              style={{ letterSpacing: -0.8 }}
-            >
-              Your Library
-            </Text>
-          </View>
+          <Text
+            className="text-white text-[34px] font-extrabold"
+            style={{ letterSpacing: -0.8 }}
+          >
+            Your Library
+          </Text>
           <View className="flex-row items-center gap-2">
             <SessionsChip />
             <StreakChip />
@@ -269,6 +287,39 @@ export default function HomeScreen() {
                   {monthMeta.count > 0
                     ? `${monthMeta.count} months${monthMeta.oldestLabel ? ` · oldest ${monthMeta.oldestLabel}` : ''}`
                     : 'Browse photos month by month'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
+            </View>
+          </GlassCard>
+        </Pressable>
+
+        {/* Clean similar photos */}
+        <Pressable
+          onPress={() => router.navigate('/(tabs)/similar')}
+          className="active:opacity-70 mt-3"
+        >
+          <GlassCard radius={24}>
+            <View className="p-4 flex-row items-center gap-3.5">
+              <IconSquircle
+                icon="copy-outline"
+                colors={GRADIENTS.freed}
+                size={46}
+                radius={15}
+                iconSize={22}
+                style={{
+                  shadowColor: '#30D158',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                  shadowOffset: { width: 0, height: 8 },
+                }}
+              />
+              <View className="flex-1">
+                <Text className="text-white font-bold text-base">Clean similar photos</Text>
+                <Text className="text-white/45 text-[13px] mt-px">
+                  {similarMeta.groupCount > 0
+                    ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes)} to free`
+                    : 'Find near-duplicate photos'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
