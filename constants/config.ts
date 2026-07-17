@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   plan: 'plan:state',
   similarGroups: 'similar:groups',
   similarAnalysis: 'similar:analysis',
+  similarScanCheckpoint: 'similar:scanCheckpoint',
 };
 
 // Similar-photos detection (ported from cleani)

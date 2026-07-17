@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { createMMKV } from 'react-native-mmkv';
 import { STORAGE_KEYS } from '@/constants/config';
-import { scanSimilarGroups } from '@/lib/similar/similarScan';
+import { scanSimilarGroups, type ScanPhase } from '@/lib/similar/similarScan';
 import { useGalleryStore } from '@/stores/galleryStore';
 
 const storage = createMMKV();
@@ -42,7 +42,7 @@ interface SimilarState {
   groups: string[][];
   bestIds: Set<string>;
   scanState: ScanState;
-  scanProgress: { processed: number; total: number } | null;
+  scanProgress: { processed: number; total: number; phase: ScanPhase } | null;
   scannedAt: number; // 0 = never scanned
   scannedNewestCreationTime: number;
   analyzerUsed: boolean;
@@ -80,10 +80,10 @@ export const useSimilarStore = create<SimilarState>()(
 
         const indexChanged = () => useGalleryStore.getState().index !== capturedIndex;
         const result = await scanSimilarGroups(capturedIndex, {
-          onProgress: (processed, total) => {
+          onProgress: (processed, total, phase) => {
             if (generation !== scanGeneration) return;
             set((s) => {
-              s.scanProgress = { processed, total };
+              s.scanProgress = { processed, total, phase };
             });
           },
           shouldAbort: () => generation !== scanGeneration || indexChanged(),

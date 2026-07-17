@@ -44,11 +44,14 @@ export function pickBestShots(groups: string[][], cache: AnalysisCache): Set<str
 /**
  * Runs blur + face analysis for group members missing from the cache
  * (chunked to keep the bridge responsive) and returns the updated cache.
- * No-op without the native analyzer.
+ * The cache is persisted after EVERY chunk: on a large library this pass
+ * takes minutes, and saving only at the end meant a killed app redid all
+ * of it on the next scan. No-op without the native analyzer.
  */
 export async function backfillAnalysis(
   groups: string[][],
   shouldAbort?: () => boolean,
+  onProgress?: (processed: number, total: number) => void,
 ): Promise<AnalysisCache> {
   const cache = loadAnalysisCache();
   if (!isPhotoAnalyzerAvailable()) return cache;
@@ -56,6 +59,7 @@ export async function backfillAnalysis(
   const missing = [...new Set(idsNeedingAnalysis(groups.flat(), cache))];
   if (missing.length === 0) return cache;
 
+  onProgress?.(0, missing.length);
   const now = Date.now();
   for (let i = 0; i < missing.length; i += SIMILAR.analysisChunkSize) {
     if (shouldAbort?.()) break;
@@ -68,8 +72,9 @@ export async function backfillAnalysis(
         analyzedAt: now,
       };
     }
+    saveAnalysisCache(cache);
+    onProgress?.(Math.min(i + chunk.length, missing.length), missing.length);
   }
 
-  saveAnalysisCache(cache);
   return cache;
 }

@@ -145,7 +145,9 @@ export default function SimilarScreen() {
           <GlassCard radius={22} className="mb-4">
             <View className="p-4">
               <Text className="text-white/60 text-sm mb-2">
-                Comparing photos on-device…
+                {scanProgress?.phase === 'analyze'
+                  ? 'Picking the best of each group…'
+                  : 'Comparing photos on-device…'}
                 {scanProgress ? ` ${scanProgress.processed.toLocaleString()} of ${scanProgress.total.toLocaleString()}` : ''}
               </Text>
               <ProgressBar
