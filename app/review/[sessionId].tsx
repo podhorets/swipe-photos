@@ -16,7 +16,6 @@ import { GroupReview, type GroupReviewHandle } from '@/components/similar/GroupR
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionComplete } from '@/components/ui/SessionComplete';
-import { AmbientPhotoBackdrop } from '@/components/ui/AmbientPhotoBackdrop';
 import { GRADIENTS, REVIEW_CARD } from '@/constants/theme';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
@@ -118,7 +117,6 @@ export default function ReviewScreen() {
     progressFraction,
     remainingCount,
     totalCount,
-    visibleAssetIds,
     startSession,
     undoLast,
   } = useSession();
@@ -332,7 +330,9 @@ export default function ReviewScreen() {
   return (
     <View className="flex-1 bg-bg-dark">
       {/* Ambient echo of the current photo */}
-      <AmbientPhotoBackdrop uri={uriById.get(visibleAssetIds[0] ?? '')} />
+      {/* No backdrop by design: review screens use the flat dark canvas
+          (bg-bg-dark) like every photo-judging tool — nothing may glow,
+          tint, or otherwise compete with the photos */}
 
       {/* Header */}
       <View
