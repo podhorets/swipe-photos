@@ -43,7 +43,18 @@ export async function loadOfferings(): Promise<PurchasesOffering | null> {
   if (!isConfigured) return null;
   try {
     const offerings = await Purchases.getOfferings();
-    return offerings.current ?? null;
+    const current = offerings.current ?? null;
+    if (__DEV__ && current) {
+      // Surfaces dashboard misconfigurations (e.g. a package attached to the
+      // wrong store product) that otherwise show up as "wrong price on a card"
+      console.log(
+        '[purchases] offering packages:',
+        current.availablePackages
+          .map((p) => `${p.identifier} → ${p.product.identifier} (${p.product.priceString})`)
+          .join('; '),
+      );
+    }
+    return current;
   } catch {
     return null;
   }
