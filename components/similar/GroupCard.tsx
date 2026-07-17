@@ -109,7 +109,7 @@ export function GroupCard({
                   ? 'rounded-2xl overflow-hidden border-2 border-[#FFD60A]'
                   : isKeeper
                     ? 'rounded-2xl overflow-hidden border-2 border-keep'
-                    : 'rounded-2xl overflow-hidden border-2 border-transparent'
+                    : 'rounded-2xl overflow-hidden border-2 border-[rgba(255,69,58,0.45)]'
               }
               style={{ width: THUMB_SIZE, height: THUMB_SIZE }}
             >
@@ -122,6 +122,16 @@ export function GroupCard({
               ) : (
                 <View className="flex-1 bg-white/10 items-center justify-center">
                   <Ionicons name="cloud-offline-outline" size={18} color="rgba(255,255,255,0.4)" />
+                </View>
+              )}
+
+              {/* Fate marker: photos not kept show where they're headed */}
+              {willDelete && (
+                <View
+                  className="absolute bottom-1 left-1 w-5 h-5 rounded-full bg-black/60 items-center justify-center"
+                  pointerEvents="none"
+                >
+                  <Ionicons name="trash-outline" size={11} color="#FF453A" />
                 </View>
               )}
 

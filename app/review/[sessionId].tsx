@@ -295,7 +295,9 @@ export default function ReviewScreen() {
   }, []);
 
   const handleDoubleTap = useCallback((assetId: string) => {
-    router.push(`/review/preview/${assetId}`);
+    // Param-object push: asset ids contain slashes (UUID/L0/001), so a
+    // template-string URL would grow extra path segments and match no route
+    router.push({ pathname: '/review/preview/[assetId]', params: { assetId } });
   }, []);
 
   // Counts for completion sheet (only computed when sheet is actually shown)

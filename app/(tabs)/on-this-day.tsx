@@ -100,7 +100,10 @@ function HeroMemory({ year, photos }: { year: number; photos: AssetMeta[] }) {
 function PhotoTile({ asset }: { asset: AssetMeta }) {
   return (
     <Pressable
-      onPress={() => router.push(`/review/preview/${asset.id}`)}
+      onPress={() =>
+        // Asset ids contain slashes — a template-string URL matches no route
+        router.push({ pathname: '/review/preview/[assetId]', params: { assetId: asset.id } })
+      }
       className="active:opacity-80"
       style={{ marginRight: 8 }}
     >
