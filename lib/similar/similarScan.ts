@@ -1,4 +1,5 @@
 import { InteractionManager } from 'react-native';
+import * as Device from 'expo-device';
 import { isPhotoAnalyzerAvailable, PhotoAnalyzer } from 'expo-photo-analyzer';
 import { SIMILAR } from '@/constants/config';
 import { groupAssetsByTime } from '@/lib/similar/timeGroups';
@@ -37,7 +38,10 @@ export async function scanSimilarGroups(
 ): Promise<SimilarScanResult | null> {
   const photos = index.filter((a) => a.mediaType === 'photo');
 
-  if (!isPhotoAnalyzerAvailable()) {
+  // Vision feature prints silently fail on the iOS simulator (every print
+  // comes back nil → zero groups), so the visual pass is device-only.
+  const analyzerAvailable = Device.isDevice && isPhotoAnalyzerAvailable();
+  if (!analyzerAvailable) {
     const groups = groupAssetsByTime(photos, SIMILAR.fastWindowSeconds * 1000).map((g) =>
       g.map((a) => a.id),
     );

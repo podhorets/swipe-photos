@@ -19,6 +19,8 @@ import { GroupCard, GROUP_HERO_WIDTH } from '@/components/similar/GroupCard';
 import { SPRING, SWIPE, SCREEN } from '@/constants/theme';
 import type { SwipeDecision, SwipeDirection } from '@/types';
 
+const EMPTY_SET: Set<string> = new Set();
+
 export interface GroupReviewHandle {
   /** Fly the current group off: 'right' = accept (clean), 'left' = skip (keep all). */
   dismiss: (direction: SwipeDirection) => void;
@@ -61,15 +63,22 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
     [currentGroupKey, uriById],
   );
 
-  // Per-group UI state: suggested best (from scan, else last usable) + extra keepers
-  const [bestId, setBestId] = useState<string | null>(null);
-  const [keeperIds, setKeeperIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (!currentGroupKey || usableIds.length === 0) return;
-    const suggested = usableIds.find((id) => bestIdsFromScan.has(id)) ?? usableIds[usableIds.length - 1];
-    setBestId(suggested);
-    setKeeperIds(new Set());
-  }, [currentGroupKey]);
+  // Per-group UI state, derived-with-override: the default best comes from the
+  // scan (else last usable) and is correct on the FIRST render of every group —
+  // an effect-based reset would paint one frame with the previous group's best
+  // (stale hero photo). User picks live in `override`, valid only while the
+  // group key matches.
+  const [override, setOverride] = useState<{
+    key: string;
+    bestId: string;
+    keeperIds: Set<string>;
+  } | null>(null);
+
+  const defaultBest =
+    usableIds.find((id) => bestIdsFromScan.has(id)) ?? usableIds[usableIds.length - 1] ?? null;
+  const hasOverride = override !== null && override.key === currentGroupKey;
+  const bestId = hasOverride ? override.bestId : defaultBest;
+  const keeperIds = hasOverride ? override.keeperIds : EMPTY_SET;
 
   const pendingDeleteCount =
     bestId && currentGroup
@@ -183,22 +192,18 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
             uriById={uriById}
             sizeById={sizeById}
             onSelectBest={(id) => {
-              setBestId(id);
-              setKeeperIds((prev) => {
-                if (!prev.has(id)) return prev;
-                const next = new Set(prev);
-                next.delete(id);
-                return next;
-              });
+              if (!currentGroupKey) return;
+              const keepers = new Set(keeperIds);
+              keepers.delete(id); // best is always kept — drop redundant keeper mark
+              setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
               gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
             }}
             onToggleKeeper={(id) => {
-              setKeeperIds((prev) => {
-                const next = new Set(prev);
-                if (next.has(id)) next.delete(id);
-                else next.add(id);
-                return next;
-              });
+              if (!currentGroupKey || !bestId) return;
+              const keepers = new Set(keeperIds);
+              if (keepers.has(id)) keepers.delete(id);
+              else keepers.add(id);
+              setOverride({ key: currentGroupKey, bestId, keeperIds: keepers });
               gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
             }}
             onPreview={onPreview}

@@ -39,7 +39,6 @@ export default function SimilarScreen() {
   const scanState = useSimilarStore((s) => s.scanState);
   const scanProgress = useSimilarStore((s) => s.scanProgress);
   const scannedAt = useSimilarStore((s) => s.scannedAt);
-  const scannedNewest = useSimilarStore((s) => s.scannedNewestCreationTime);
   const analyzerUsed = useSimilarStore((s) => s.analyzerUsed);
   const planState = usePlanStore();
   const batchSize = useSettingsStore((s) => s.batchSize);
@@ -47,14 +46,20 @@ export default function SimilarScreen() {
   // Rescan when the tab gains focus and results are missing, stale, or the
   // library has newer photos than the last scan saw. Deletions never trigger
   // a rescan — read-time filtering handles them.
+  //
+  // IMPORTANT: scannedAt/scannedNewest are read imperatively, NOT effect deps.
+  // The scan writes them, so depending on them re-runs this effect after every
+  // scan — one bad staleness rule away from an infinite scan loop that pins
+  // the JS thread (found the hard way).
   useFocusEffect(
     useCallback(() => {
       if (isIndexing || index.length === 0) return;
+      const { scannedAt: at, scannedNewestCreationTime: seen, scanState: state } =
+        useSimilarStore.getState();
+      if (state === 'scanning') return;
       const newest = index.reduce((max, a) => Math.max(max, a.creationTime), 0);
       const stale =
-        scannedAt === 0 ||
-        Date.now() - scannedAt > SIMILAR.rescanMaxAgeMs ||
-        newest > scannedNewest;
+        at === 0 || Date.now() - at > SIMILAR.rescanMaxAgeMs || newest > seen;
       if (stale) {
         useSimilarStore
           .getState()
@@ -68,7 +73,7 @@ export default function SimilarScreen() {
             });
           });
       }
-    }, [isIndexing, index, scannedAt, scannedNewest]),
+    }, [isIndexing, index]),
   );
 
   const assetById = useMemo(() => {
