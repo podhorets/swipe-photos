@@ -357,7 +357,15 @@ export default function ReviewScreen() {
       >
         <GlassCircleButton icon="close" onPress={handleClose} label="Close session" />
 
-        <View className="flex-1 items-center">
+        <View className="flex-1" />
+
+        {/* Title — absolutely centered so asymmetric side controls (mode
+            toggle + undo on the right) can't push it off screen center */}
+        <View
+          className="absolute inset-x-0 items-center justify-center"
+          style={{ top: insets.top + 12, height: 40 }}
+          pointerEvents="none"
+        >
           <Text className="text-white font-bold text-base" style={{ letterSpacing: -0.2 }}>
             {session.label}
           </Text>

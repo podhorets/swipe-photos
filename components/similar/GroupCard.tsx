@@ -15,12 +15,11 @@ interface GroupCardProps {
   bestId: string;
   keeperIds: Set<string>;
   /** Multi mode: thumbnail taps toggle stars on any number of keepers.
-   *  Single mode: taps replace the one best; circles toggle extra keepers. */
+   *  Single mode: taps replace the one best — everything else gets deleted. */
   multiBest: boolean;
   uriById: Map<string, string>;
   sizeById: Map<string, number>;
   onSelectBest: (id: string) => void;
-  onToggleKeeper: (id: string) => void;
   onPreview: (id: string) => void;
 }
 
@@ -37,7 +36,6 @@ export function GroupCard({
   uriById,
   sizeById,
   onSelectBest,
-  onToggleKeeper,
   onPreview,
 }: GroupCardProps) {
   // The suggested best leads the rail. Order is frozen at group load (the
@@ -116,11 +114,9 @@ export function GroupCard({
                     : 'Make this the best photo'
               }
               className={
-                isBest || (isKept && multiBest)
+                isKept
                   ? 'rounded-2xl overflow-hidden border-2 border-[#FFD60A]'
-                  : isKept
-                    ? 'rounded-2xl overflow-hidden border-2 border-keep'
-                    : 'rounded-2xl overflow-hidden border-2 border-[rgba(255,69,58,0.45)]'
+                  : 'rounded-2xl overflow-hidden border-2 border-[rgba(255,69,58,0.45)]'
               }
               style={{ width: THUMB_SIZE, height: THUMB_SIZE }}
             >
@@ -146,28 +142,13 @@ export function GroupCard({
                 </View>
               )}
 
-              {/* Status badge. Multi mode: every kept photo carries a star.
-                  Single mode: star on the best, check-circle toggles keepers. */}
-              {isKept && (multiBest || isBest) ? (
+              {/* Every kept photo carries a star — one in single mode, any
+                  number in multi mode. No other selection states exist. */}
+              {isKept && (
                 <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFD60A] items-center justify-center">
                   <Ionicons name="star" size={11} color="black" />
                 </View>
-              ) : !multiBest ? (
-                <Pressable
-                  onPress={() => onToggleKeeper(id)}
-                  hitSlop={8}
-                  accessibilityLabel={
-                    isKept ? 'Also keeping — tap to delete instead' : 'Marked for deletion — tap to keep too'
-                  }
-                  className={
-                    isKept
-                      ? 'absolute top-1 right-1 w-5 h-5 rounded-full bg-keep items-center justify-center'
-                      : 'absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 border border-white/50 items-center justify-center'
-                  }
-                >
-                  {isKept && <Ionicons name="checkmark" size={12} color="white" />}
-                </Pressable>
-              ) : null}
+              )}
             </Pressable>
           );
         })}

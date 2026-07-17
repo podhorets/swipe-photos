@@ -77,7 +77,14 @@ export function GlassCard({
         onLayout={(e) => setSize(e.nativeEvent.layout)}
       >
         <View className="bg-white/[0.06] border-t border-white/[0.24]">{children}</View>
-        {hasSize && <SkiaBorderOverlay width={width} height={height} radius={radius} />}
+        {hasSize && (
+          <SkiaBorderOverlay
+            key={`${width}x${height}`}
+            width={width}
+            height={height}
+            radius={radius}
+          />
+        )}
       </View>
     );
   }
@@ -91,7 +98,16 @@ export function GlassCard({
       onLayout={(e) => setSize(e.nativeEvent.layout)}
     >
       <View className="border-t border-white/[0.28]">{children}</View>
-      {hasSize && <SkiaBorderOverlay width={width} height={height} radius={radius} />}
+      {hasSize && (
+        // Keyed by size: remounts the canvas on any layout change so a stale
+        // native drawing (old dimensions) can never linger over new content
+        <SkiaBorderOverlay
+          key={`${width}x${height}`}
+          width={width}
+          height={height}
+          radius={radius}
+        />
+      )}
     </BlurView>
   );
 }

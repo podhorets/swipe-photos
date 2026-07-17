@@ -31,7 +31,10 @@ export function StorageSummary() {
 
   if (isIndexing) {
     return (
-      <GlassCard radius={28} className="mb-3">
+      // Distinct key: without it React reuses this GlassCard instance for the
+      // loaded-summary branch below, and the Skia border can keep this card's
+      // (shorter) stale size — a ghost border overlapping the summary card
+      <GlassCard key="indexing" radius={28} className="mb-3">
         <View className="p-4">
           <Text className="text-white/60 text-sm mb-2">Scanning library…</Text>
           <View className="h-1 bg-white/10 rounded-full overflow-hidden">
@@ -51,7 +54,7 @@ export function StorageSummary() {
   }
 
   return (
-    <GlassCard radius={28} className="mb-3">
+    <GlassCard key="summary" radius={28} className="mb-3">
       <View className="p-4 flex-row items-center gap-[18px]">
         <ProgressRing
           size={104}

@@ -79,6 +79,13 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
   const bestId = hasOverride ? override.bestId : defaultBest;
   const keeperIds = hasOverride ? override.keeperIds : EMPTY_SET;
 
+  // Switching Multi → One collapses the selection to just the current best;
+  // extra stars don't survive the mode change (and don't silently reappear)
+  useEffect(() => {
+    if (multiBest || keeperIds.size === 0 || !currentGroupKey || !bestId) return;
+    setOverride({ key: currentGroupKey, bestId, keeperIds: EMPTY_SET });
+  }, [multiBest, keeperIds, currentGroupKey, bestId]);
+
   const pendingDeleteCount =
     bestId && currentGroup
       ? usableIds.filter((id) => id !== bestId && !keeperIds.has(id)).length
@@ -194,14 +201,6 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
               keepers.delete(id); // best is always kept — drop redundant keeper mark
               setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
             }
-            gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
-          }}
-          onToggleKeeper={(id) => {
-            if (!currentGroupKey || !bestId) return;
-            const keepers = new Set(keeperIds);
-            if (keepers.has(id)) keepers.delete(id);
-            else keepers.add(id);
-            setOverride({ key: currentGroupKey, bestId, keeperIds: keepers });
             gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
           }}
           onPreview={onPreview}
