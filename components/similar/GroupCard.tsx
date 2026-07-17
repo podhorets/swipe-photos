@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -37,6 +37,15 @@ export function GroupCard({
   onToggleKeeper,
   onPreview,
 }: GroupCardProps) {
+  // The suggested best leads the rail. Order is frozen at group load (the
+  // component remounts per group) — picking a different best moves only the
+  // badges, never the thumbnails, so nothing jumps under the user's finger.
+  const railIdsRef = useRef<string[] | null>(null);
+  if (railIdsRef.current === null) {
+    railIdsRef.current = [bestId, ...groupIds.filter((id) => id !== bestId)];
+  }
+  const railIds = railIdsRef.current;
+
   const deleteIds = groupIds.filter((id) => id !== bestId && !keeperIds.has(id));
   const freeBytes = deleteIds.reduce((sum, id) => sum + (sizeById.get(id) ?? 0), 0);
   const heroUri = uriById.get(bestId);
@@ -78,14 +87,14 @@ export function GroupCard({
         </View>
       </View>
 
-      {/* Thumbnail rail — tap = make best, circle = toggle keep */}
+      {/* Thumbnail rail — suggested best first; tap = make best, circle = toggle keep */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         className="mt-3"
         contentContainerClassName="gap-2.5 px-0.5"
       >
-        {groupIds.map((id) => {
+        {railIds.map((id) => {
           const uri = uriById.get(id);
           const isBest = id === bestId;
           const isKeeper = keeperIds.has(id);
