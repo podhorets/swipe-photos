@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { REVIEW_CARD } from '@/constants/theme';
 import { formatBytes } from '@/lib/dateUtils';
+import { ProgressivePhoto } from '@/components/similar/ProgressivePhoto';
 
 export const GROUP_HERO_WIDTH = REVIEW_CARD.width;
 export const GROUP_HERO_HEIGHT = REVIEW_CARD.height - 118; // room for the thumbnail rail
@@ -49,46 +50,7 @@ export function GroupCard({
       >
         {heroUri && (
           <Pressable onPress={() => onPreview(bestId)} accessibilityLabel="Preview best photo">
-            <View
-              className="overflow-hidden"
-              style={{ width: GROUP_HERO_WIDTH, height: GROUP_HERO_HEIGHT }}
-            >
-              {/* Low-res underlay decoded at rail-thumbnail size — the only
-                  size class guaranteed locally, even for iCloud-offloaded
-                  originals whose full-size derivative may take seconds (or
-                  never arrive) — without this the hero shows an empty card.
-                  The scale transform lives on the wrapper so the Image's own
-                  layout (and therefore its decode target) stays thumbnail-sized. */}
-              <View
-                style={{
-                  width: THUMB_SIZE,
-                  height: THUMB_SIZE,
-                  transform: [
-                    { scale: Math.ceil(Math.max(GROUP_HERO_WIDTH, GROUP_HERO_HEIGHT) / THUMB_SIZE) },
-                  ],
-                  transformOrigin: 'top left',
-                }}
-              >
-                <Image
-                  source={{ uri: heroUri }}
-                  style={{ width: THUMB_SIZE, height: THUMB_SIZE }}
-                  contentFit="cover"
-                  blurRadius={2}
-                />
-              </View>
-              <Image
-                source={{ uri: heroUri }}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: GROUP_HERO_WIDTH,
-                  height: GROUP_HERO_HEIGHT,
-                }}
-                contentFit="cover"
-                transition={120}
-              />
-            </View>
+            <ProgressivePhoto uri={heroUri} width={GROUP_HERO_WIDTH} height={GROUP_HERO_HEIGHT} />
           </Pressable>
         )}
 

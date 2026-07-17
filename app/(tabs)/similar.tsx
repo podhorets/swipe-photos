@@ -19,14 +19,80 @@ import { gateSessionStart } from '@/lib/sessionGate';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
 import { SIMILAR } from '@/constants/config';
+import { SCREEN } from '@/constants/theme';
+import { ProgressivePhoto } from '@/components/similar/ProgressivePhoto';
 import { posthog } from '@/lib/posthog';
 import type { AssetMeta } from '@/types';
 
 interface DisplayGroup {
   key: string;
   memberIds: string[];
-  coverUri: string | null;
+  /** Best photo first, then up to 3 more members — feeds the collage tile. */
+  previewUris: string[];
   reclaimBytes: number;
+}
+
+// How many group cards the tab previews — the review session covers up to a
+// full batch regardless, so the list is a teaser, not the full inventory.
+const PREVIEW_GROUP_COUNT = 10;
+
+// Two square collage tiles per row (px-5 screen padding, 12 gap)
+const TILE_SIZE = (SCREEN.width - 40 - 12) / 2;
+const CELL_GAP = 2;
+
+/**
+ * Square photo collage for one duplicate group: 2 members = side-by-side
+ * halves, 3 = best takes the left half, 4+ = 2×2 grid with a "+N" overlay on
+ * the last cell. The best photo is always first and carries a star badge.
+ */
+function GroupCollage({ uris, memberCount }: { uris: string[]; memberCount: number }) {
+  const half = (TILE_SIZE - CELL_GAP) / 2;
+  const cells: { uri: string; left: number; top: number; w: number; h: number }[] = [];
+
+  if (uris.length <= 1) {
+    if (uris[0]) cells.push({ uri: uris[0], left: 0, top: 0, w: TILE_SIZE, h: TILE_SIZE });
+  } else if (uris.length === 2) {
+    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: TILE_SIZE });
+    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: TILE_SIZE });
+  } else if (uris.length === 3) {
+    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: TILE_SIZE });
+    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: half });
+    cells.push({ uri: uris[2], left: half + CELL_GAP, top: half + CELL_GAP, w: half, h: half });
+  } else {
+    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: half });
+    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: half });
+    cells.push({ uri: uris[2], left: 0, top: half + CELL_GAP, w: half, h: half });
+    cells.push({ uri: uris[3], left: half + CELL_GAP, top: half + CELL_GAP, w: half, h: half });
+  }
+
+  const overflow = memberCount - cells.length;
+
+  return (
+    <View
+      className="rounded-2xl overflow-hidden bg-white/[0.06]"
+      style={{ width: TILE_SIZE, height: TILE_SIZE }}
+    >
+      {cells.map((cell, i) => (
+        <View
+          key={cell.uri}
+          style={{ position: 'absolute', left: cell.left, top: cell.top, width: cell.w, height: cell.h }}
+        >
+          <ProgressivePhoto uri={cell.uri} width={cell.w} height={cell.h} />
+          {/* "+N" overlay on the last cell when the group is bigger than the tile */}
+          {i === cells.length - 1 && overflow > 0 && (
+            <View className="absolute inset-0 bg-black/60 items-center justify-center">
+              <Text className="text-white text-[20px] font-extrabold">+{overflow}</Text>
+            </View>
+          )}
+        </View>
+      ))}
+      {/* Best badge on the first (best) cell */}
+      <View className="absolute top-1.5 left-1.5 flex-row items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60">
+        <Ionicons name="star" size={9} color="#FFD60A" />
+        <Text className="text-white text-[10px] font-bold">Best</Text>
+      </View>
+    </View>
+  );
 }
 
 export default function SimilarScreen() {
@@ -94,14 +160,23 @@ export default function SimilarScreen() {
           const asset = assetById.get(id);
           return sum + (asset ? estimateSizeFromAsset(asset) : 0);
         }, 0);
+      const previewUris = [best, ...memberIds.filter((id) => id !== best)]
+        .slice(0, 4)
+        .map((id) => assetById.get(id)?.uri)
+        .filter((uri): uri is string => !!uri);
       return {
         key: memberIds[0],
         memberIds,
-        coverUri: assetById.get(best)?.uri ?? null,
+        previewUris,
         reclaimBytes,
       };
     });
   }, [groups, keepIds, index, bestIds, assetById]);
+
+  const previewGroups = useMemo(
+    () => displayGroups.slice(0, PREVIEW_GROUP_COUNT),
+    [displayGroups],
+  );
 
   const totalPhotos = displayGroups.reduce((n, g) => n + g.memberIds.length, 0);
   const totalReclaim = displayGroups.reduce((n, g) => n + g.reclaimBytes, 0);
@@ -133,18 +208,19 @@ export default function SimilarScreen() {
           Similar
         </Text>
         <Text className="text-white/50 text-sm mb-4">
-          {scanning
-            ? 'Finding lookalike shots…'
-            : displayGroups.length > 0
-              ? `${displayGroups.length} groups · ${totalPhotos} photos · ~${formatBytes(totalReclaim)} to free`
+          {displayGroups.length > 0
+            ? `${displayGroups.length} groups · ${totalPhotos} photos · ~${formatBytes(totalReclaim)} to free`
+            : scanning
+              ? 'Finding lookalike shots…'
               : 'Near-duplicate photos, grouped for quick cleanup'}
         </Text>
 
-        {/* Scan progress */}
+        {/* Scan progress — informational only; the list and CTA stay usable
+            with the previous scan's groups while a rescan runs */}
         {scanning && (
-          <GlassCard radius={22} className="mb-4">
-            <View className="p-4">
-              <Text className="text-white/60 text-sm mb-2">
+          <GlassCard noBlur radius={18} className="mb-3">
+            <View className="px-4 py-3">
+              <Text className="text-white/60 text-[13px] mb-2">
                 {scanProgress?.phase === 'analyze'
                   ? 'Picking the best of each group…'
                   : 'Comparing photos on-device…'}
@@ -157,57 +233,63 @@ export default function SimilarScreen() {
           </GlassCard>
         )}
 
-        {/* Group list / empty states */}
-        {!scanning && displayGroups.length === 0 ? (
-          <View className="flex-1 items-center justify-center pb-40">
-            <View className="w-20 h-20 rounded-full bg-white/[0.07] border border-white/[0.14] items-center justify-center mb-5">
-              <Ionicons name="copy-outline" size={32} color="rgba(255,255,255,0.6)" />
+        {/* Group previews / empty state */}
+        {displayGroups.length === 0 ? (
+          !scanning && (
+            <View className="flex-1 items-center justify-center pb-40">
+              <View className="w-20 h-20 rounded-full bg-white/[0.07] border border-white/[0.14] items-center justify-center mb-5">
+                <Ionicons name="copy-outline" size={32} color="rgba(255,255,255,0.6)" />
+              </View>
+              <Text className="text-white text-lg font-bold mb-1.5">
+                {isIndexing || scannedAt === 0 ? 'Getting ready…' : 'No similar photos'}
+              </Text>
+              <Text className="text-white/45 text-sm text-center px-10" style={{ lineHeight: 20 }}>
+                {isIndexing || scannedAt === 0
+                  ? 'Your library is being scanned for lookalike shots.'
+                  : 'Nice — no near-duplicates left in your library.'}
+              </Text>
             </View>
-            <Text className="text-white text-lg font-bold mb-1.5">
-              {isIndexing || scannedAt === 0 ? 'Getting ready…' : 'No similar photos'}
-            </Text>
-            <Text className="text-white/45 text-sm text-center px-10" style={{ lineHeight: 20 }}>
-              {isIndexing || scannedAt === 0
-                ? 'Your library is being scanned for lookalike shots.'
-                : 'Nice — no near-duplicates left in your library.'}
-            </Text>
-          </View>
+          )
         ) : (
           <FlatList
-            data={displayGroups}
+            data={previewGroups}
             keyExtractor={(g) => g.key}
+            numColumns={2}
+            columnWrapperStyle={{ gap: 12 }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: insets.bottom + 190 }}
+            ListFooterComponent={
+              displayGroups.length > PREVIEW_GROUP_COUNT ? (
+                <Text className="text-white/35 text-[13px] text-center mt-1 mb-2">
+                  +{(displayGroups.length - PREVIEW_GROUP_COUNT).toLocaleString()} more groups ready to review
+                </Text>
+              ) : null
+            }
             renderItem={({ item }) => (
-              <Pressable onPress={handleStartReview} accessibilityRole="button">
-                <GlassCard noBlur radius={22} className="mb-3">
-                  <View className="flex-row items-center p-3 gap-3">
-                    {item.coverUri && (
-                      <Image
-                        source={{ uri: item.coverUri }}
-                        style={{ width: 64, height: 64, borderRadius: 14 }}
-                        contentFit="cover"
-                      />
-                    )}
-                    <View className="flex-1">
-                      <Text className="text-white text-[15px] font-bold">
-                        {item.memberIds.length} similar photos
-                      </Text>
-                      <Text className="text-white/45 text-[13px] mt-0.5">
-                        Keep the best · free ~{formatBytes(item.reclaimBytes)}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.3)" />
-                  </View>
-                </GlassCard>
+              <Pressable
+                onPress={handleStartReview}
+                accessibilityRole="button"
+                className="mb-3 active:opacity-80"
+              >
+                <GroupCollage uris={item.previewUris} memberCount={item.memberIds.length} />
+                <View className="flex-row items-center justify-between mt-1.5 px-0.5">
+                  <Text className="text-white text-[13px] font-semibold">
+                    {item.memberIds.length} photos
+                  </Text>
+                  <Text className="text-white/45 text-[12px]">
+                    ~{formatBytes(item.reclaimBytes)}
+                  </Text>
+                </View>
               </Pressable>
             )}
           />
         )}
       </View>
 
-      {/* Sticky CTA */}
-      {displayGroups.length > 0 && !scanning && (
+      {/* Sticky CTA — available whenever loaded groups exist, including during
+          a rescan (the session snapshots its groups at start, so a scan
+          finishing mid-review can't affect it) */}
+      {displayGroups.length > 0 && (
         <View
           className="absolute left-5 right-5"
           style={{ bottom: insets.bottom + 96 }}
@@ -217,10 +299,17 @@ export default function SimilarScreen() {
             icon="sparkles"
             onPress={handleStartReview}
           />
-          {!analyzerUsed && scannedAt > 0 && (
+          {scanning ? (
             <Text className="text-white/35 text-[11px] text-center mt-2">
-              Grouped by time only — visual matching unavailable on this build
+              Scan running — reviewing already-found groups
             </Text>
+          ) : (
+            !analyzerUsed &&
+            scannedAt > 0 && (
+              <Text className="text-white/35 text-[11px] text-center mt-2">
+                Grouped by time only — visual matching unavailable on this build
+              </Text>
+            )
           )}
         </View>
       )}
