@@ -10,14 +10,14 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { usePlanStore } from '@/stores/planStore';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack';
 import { GroupReview, type GroupReviewHandle } from '@/components/similar/GroupReview';
 import { ActionButton } from '@/components/ui/ActionButton';
-import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionComplete } from '@/components/ui/SessionComplete';
 import { AmbientPhotoBackdrop } from '@/components/ui/AmbientPhotoBackdrop';
-import { REVIEW_CARD } from '@/constants/theme';
+import { GRADIENTS, REVIEW_CARD } from '@/constants/theme';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 
@@ -26,6 +26,58 @@ import { posthog } from '@/lib/posthog';
 const PRELOAD_CARD_WIDTH = REVIEW_CARD.width;
 const PRELOAD_CARD_HEIGHT = REVIEW_CARD.height;
 const PRELOAD_TIMEOUT_MS = 2000;
+
+/**
+ * Two-line action button for the group review bar. Titles lead with the
+ * OUTCOME ("Keep All …" / "Delete N") so neither button needs decoding —
+ * the old pair both started with "Keep", which read ambiguously.
+ */
+function GroupActionButton({
+  icon,
+  title,
+  subtitle,
+  destructive = false,
+  disabled = false,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  subtitle: string;
+  destructive?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const content = (
+    <View className="flex-row items-center justify-center gap-2.5 py-3 px-3">
+      <Ionicons name={icon} size={18} color="white" />
+      <View>
+        <Text className="text-white text-[15px] font-bold" style={{ letterSpacing: -0.2 }}>
+          {title}
+        </Text>
+        <Text className="text-white/60 text-[11px] mt-px">{subtitle}</Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`${title} — ${subtitle}`}
+      className="flex-1 rounded-3xl overflow-hidden active:opacity-80"
+      style={{ opacity: disabled ? 0.35 : 1 }}
+    >
+      {destructive ? (
+        <LinearGradient colors={GRADIENTS.delete} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          {content}
+        </LinearGradient>
+      ) : (
+        <View className="bg-white/10 border border-white/[0.16] rounded-3xl">{content}</View>
+      )}
+    </Pressable>
+  );
+}
 
 function GlassCircleButton({
   icon,
@@ -332,25 +384,27 @@ export default function ReviewScreen() {
         )}
       </View>
 
-      {/* Action bar — similar sessions get labeled pills (right-swipe DELETES here,
-          so the classic delete/keep circles would mislead) */}
+      {/* Action bar — similar sessions resolve each group with two explicit
+          outcome buttons (no swipe gestures here) */}
       {isSimilar ? (
         <View
-          className="flex-row items-center justify-center gap-3 px-6"
+          className="flex-row items-stretch justify-center gap-3 px-6"
           style={{ paddingBottom: insets.bottom + 24 }}
         >
-          <View className="flex-1">
-            <GradientPillButton compact label="Keep All" icon="albums-outline" onPress={handleSwipeLeft} />
-          </View>
-          <View className="flex-1">
-            <GradientPillButton
-              compact
-              variant="delete"
-              icon="sparkles"
-              label={pendingDeleteCount > 0 ? `Keep Best · Delete ${pendingDeleteCount}` : 'Keep Best'}
-              onPress={handleSwipeRight}
-            />
-          </View>
+          <GroupActionButton
+            icon="checkmark-circle-outline"
+            title="Keep All"
+            subtitle="Nothing gets deleted"
+            onPress={handleSwipeLeft}
+          />
+          <GroupActionButton
+            icon="trash-outline"
+            destructive
+            title={pendingDeleteCount > 0 ? `Delete ${pendingDeleteCount}` : 'Delete'}
+            subtitle="Keeps ★ best photo"
+            disabled={pendingDeleteCount === 0}
+            onPress={handleSwipeRight}
+          />
         </View>
       ) : (
         <View

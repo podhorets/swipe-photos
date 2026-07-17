@@ -34,7 +34,7 @@ interface DisplayGroup {
 
 // How many group cards the tab previews — the review session covers up to a
 // full batch regardless, so the list is a teaser, not the full inventory.
-const PREVIEW_GROUP_COUNT = 10;
+const PREVIEW_GROUP_COUNT = 50;
 
 // Two square collage tiles per row (px-5 screen padding, 12 gap)
 const TILE_SIZE = (SCREEN.width - 40 - 12) / 2;

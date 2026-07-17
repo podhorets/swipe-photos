@@ -1,13 +1,10 @@
 import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import { View, Text } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
   interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -15,8 +12,8 @@ import { gatedHaptic } from '@/lib/haptics';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useSimilarStore } from '@/stores/similarStore';
 import { enforceKeepBest } from '@/lib/similar/safetyRule';
-import { GroupCard, GROUP_HERO_WIDTH } from '@/components/similar/GroupCard';
-import { SPRING, SWIPE, SCREEN } from '@/constants/theme';
+import { GroupCard } from '@/components/similar/GroupCard';
+import { SCREEN } from '@/constants/theme';
 import type { SwipeDecision, SwipeDirection } from '@/types';
 
 const EMPTY_SET: Set<string> = new Set();
@@ -149,22 +146,8 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
     },
   }));
 
-  const pan = Gesture.Pan()
-    .onChange((e) => {
-      translateX.value += e.changeX;
-    })
-    .onEnd((e) => {
-      const passedDistance = Math.abs(translateX.value) > SWIPE.thresholdPx;
-      const passedVelocity =
-        Math.abs(e.velocityX) > SWIPE.velocityThresholdX &&
-        Math.abs(translateX.value) > SWIPE.thresholdPx / 2;
-      if (passedDistance || passedVelocity) {
-        flyOff(translateX.value > 0 ? 'right' : 'left');
-      } else {
-        translateX.value = withSpring(0, SPRING.snappy);
-      }
-    });
-
+  // Buttons-only review: no pan gesture. The directional fly-off remains as
+  // feedback (left = kept, right = cleaned) but is triggered via dismiss().
   const cardStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -172,69 +155,35 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
     ],
   }));
 
-  const acceptHintStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [0, SWIPE.thresholdPx], [0, 1]),
-  }));
-  const skipHintStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [-SWIPE.thresholdPx, 0], [1, 0]),
-  }));
-
   if (!session || !currentGroup || !bestId) return null;
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View style={cardStyle}>
-        <Animated.View key={currentGroupKey} entering={FadeIn.duration(160)}>
-          <GroupCard
-            groupIds={usableIds}
-            bestId={bestId}
-            keeperIds={keeperIds}
-            uriById={uriById}
-            sizeById={sizeById}
-            onSelectBest={(id) => {
-              if (!currentGroupKey) return;
-              const keepers = new Set(keeperIds);
-              keepers.delete(id); // best is always kept — drop redundant keeper mark
-              setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
-              gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            onToggleKeeper={(id) => {
-              if (!currentGroupKey || !bestId) return;
-              const keepers = new Set(keeperIds);
-              if (keepers.has(id)) keepers.delete(id);
-              else keepers.add(id);
-              setOverride({ key: currentGroupKey, bestId, keeperIds: keepers });
-              gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            onPreview={onPreview}
-          />
-        </Animated.View>
-
-        {/* Swipe hints */}
-        <Animated.View
-          style={[acceptHintStyle, { position: 'absolute', top: 24, left: 20 }]}
-          pointerEvents="none"
-        >
-          <View className="px-3.5 py-2 rounded-xl bg-accent/90 -rotate-6">
-            <Text className="text-white font-extrabold text-lg" style={{ letterSpacing: 1 }}>
-              CLEAN {pendingDeleteCount > 0 ? pendingDeleteCount : ''}
-            </Text>
-          </View>
-        </Animated.View>
-        <Animated.View
-          style={[skipHintStyle, { position: 'absolute', top: 24, right: 20, alignItems: 'flex-end' }]}
-          pointerEvents="none"
-        >
-          <View className="px-3.5 py-2 rounded-xl bg-keep/90 rotate-6">
-            <Text className="text-white font-extrabold text-lg" style={{ letterSpacing: 1 }}>
-              KEEP ALL
-            </Text>
-          </View>
-        </Animated.View>
-
-        {/* Constrain hint overlays to the card width */}
-        <View style={{ width: GROUP_HERO_WIDTH, height: 0 }} />
+    <Animated.View style={cardStyle}>
+      <Animated.View key={currentGroupKey} entering={FadeIn.duration(160)}>
+        <GroupCard
+          groupIds={usableIds}
+          bestId={bestId}
+          keeperIds={keeperIds}
+          uriById={uriById}
+          sizeById={sizeById}
+          onSelectBest={(id) => {
+            if (!currentGroupKey) return;
+            const keepers = new Set(keeperIds);
+            keepers.delete(id); // best is always kept — drop redundant keeper mark
+            setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
+            gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          onToggleKeeper={(id) => {
+            if (!currentGroupKey || !bestId) return;
+            const keepers = new Set(keeperIds);
+            if (keepers.has(id)) keepers.delete(id);
+            else keepers.add(id);
+            setOverride({ key: currentGroupKey, bestId, keeperIds: keepers });
+            gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          onPreview={onPreview}
+        />
       </Animated.View>
-    </GestureDetector>
+    </Animated.View>
   );
 }
