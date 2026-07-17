@@ -19,10 +19,10 @@ export function SessionsChip() {
   const [now, setNow] = useState(() => new Date());
   const remaining = sessionsRemaining(state, now);
 
-  // Tick only while exhausted: drives the countdown and the midnight refill
+  // Tick only while exhausted: drives the h:mm:ss countdown and the midnight refill
   useEffect(() => {
     if (remaining > 0) return;
-    const t = setInterval(() => setNow(new Date()), 30_000);
+    const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, [remaining]);
 

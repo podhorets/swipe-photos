@@ -33,10 +33,11 @@ export function msUntilMidnight(now: Date = new Date()): number {
   return midnight.getTime() - now.getTime();
 }
 
-/** "h:mm" countdown string, minimum "0:01" so it never shows 0:00 while locked. */
+/** "h:mm:ss" countdown string, minimum "0:00:01" so it never shows zero while locked. */
 export function formatCountdown(ms: number): string {
-  const totalMinutes = Math.max(1, Math.ceil(ms / 60_000));
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return `${h}:${String(m).padStart(2, '0')}`;
+  const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }

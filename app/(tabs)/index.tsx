@@ -264,68 +264,68 @@ export default function HomeScreen() {
           })}
         </View>
 
-        {/* Browse by month */}
-        <Pressable onPress={() => router.navigate('/(tabs)/by-month')} className="active:opacity-70">
-          <GlassCard radius={24}>
-            <View className="p-4 flex-row items-center gap-3.5">
-              <IconSquircle
-                icon="calendar-number-outline"
-                colors={GRADIENTS.accent}
-                size={46}
-                radius={15}
-                iconSize={22}
-                style={{
-                  shadowColor: '#0A84FF',
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
-                  shadowOffset: { width: 0, height: 8 },
-                }}
-              />
-              <View className="flex-1">
-                <Text className="text-white font-bold text-base">Browse by month</Text>
-                <Text className="text-white/45 text-[13px] mt-px">
-                  {monthMeta.count > 0
-                    ? `${monthMeta.count} months${monthMeta.oldestLabel ? ` · oldest ${monthMeta.oldestLabel}` : ''}`
-                    : 'Browse photos month by month'}
-                </Text>
+        {/* Browse by month · Clean similar photos — one compact row */}
+        <View className="flex-row gap-3">
+          <Pressable
+            onPress={() => router.navigate('/(tabs)/by-month')}
+            className="flex-1 active:opacity-70"
+          >
+            <GlassCard radius={24}>
+              <View className="p-3.5 gap-2.5">
+                <IconSquircle
+                  icon="calendar-number-outline"
+                  colors={GRADIENTS.accent}
+                  size={40}
+                  radius={13}
+                  iconSize={20}
+                  style={{
+                    shadowColor: '#0A84FF',
+                    shadowOpacity: 0.3,
+                    shadowRadius: 20,
+                    shadowOffset: { width: 0, height: 8 },
+                  }}
+                />
+                <View>
+                  <Text className="text-white font-bold text-[15px]">Browse by month</Text>
+                  <Text className="text-white/45 text-[12px] mt-px">
+                    {monthMeta.count > 0 ? `${monthMeta.count} months` : 'Your timeline'}
+                  </Text>
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
-            </View>
-          </GlassCard>
-        </Pressable>
+            </GlassCard>
+          </Pressable>
 
-        {/* Clean similar photos */}
-        <Pressable
-          onPress={() => router.navigate('/(tabs)/similar')}
-          className="active:opacity-70 mt-3"
-        >
-          <GlassCard radius={24}>
-            <View className="p-4 flex-row items-center gap-3.5">
-              <IconSquircle
-                icon="copy-outline"
-                colors={GRADIENTS.freed}
-                size={46}
-                radius={15}
-                iconSize={22}
-                style={{
-                  shadowColor: '#30D158',
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
-                  shadowOffset: { width: 0, height: 8 },
-                }}
-              />
-              <View className="flex-1">
-                <Text className="text-white font-bold text-base">Clean similar photos</Text>
-                <Text className="text-white/45 text-[13px] mt-px">
-                  {similarMeta.groupCount > 0
-                    ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes)} to free`
-                    : 'Find near-duplicate photos'}
-                </Text>
+          <Pressable
+            onPress={() => router.navigate('/(tabs)/similar')}
+            className="flex-1 active:opacity-70"
+          >
+            <GlassCard radius={24}>
+              <View className="p-3.5 gap-2.5">
+                <IconSquircle
+                  icon="copy-outline"
+                  colors={GRADIENTS.freed}
+                  size={40}
+                  radius={13}
+                  iconSize={20}
+                  style={{
+                    shadowColor: '#30D158',
+                    shadowOpacity: 0.3,
+                    shadowRadius: 20,
+                    shadowOffset: { width: 0, height: 8 },
+                  }}
+                />
+                <View>
+                  <Text className="text-white font-bold text-[15px]">Clean similar</Text>
+                  <Text className="text-white/45 text-[12px] mt-px">
+                    {similarMeta.groupCount > 0
+                      ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes, 0)}`
+                      : 'Find duplicates'}
+                  </Text>
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
-            </View>
-          </GlassCard>
-        </Pressable>
+            </GlassCard>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

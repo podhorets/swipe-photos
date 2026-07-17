@@ -163,11 +163,11 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [closeEnabled, setCloseEnabled] = useState(false);
 
-  // Live refill countdown (sessions context) — minute precision is enough
+  // Live refill countdown (sessions context), ticking seconds
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (context !== 'sessions') return;
-    const t = setInterval(() => setNow(new Date()), 30_000);
+    const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, [context]);
 
