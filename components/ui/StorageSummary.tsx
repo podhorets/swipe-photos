@@ -71,7 +71,7 @@ export function StorageSummary() {
               {index.length.toLocaleString()} items
             </Text>
             <Text className="text-white/45 text-[13px] mt-px">
-              {formatBytes(estimatedSize)} · {photoCount.toLocaleString()} photos ·{' '}
+              {formatBytes(estimatedSize, 0)} · {photoCount.toLocaleString()} photos ·{' '}
               {videoCount.toLocaleString()} videos
             </Text>
           </View>

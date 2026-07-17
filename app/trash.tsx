@@ -345,7 +345,7 @@ export default function TrashScreen() {
                   </Text>
                   <Text className="text-white/45 text-xs mt-px">
                     {selected.size > 0
-                      ? `~${formatBytes(selectedBytes)} will be freed`
+                      ? `${formatBytes(selectedBytes)} will be freed`
                       : 'Tap photos to select'}
                   </Text>
                 </View>

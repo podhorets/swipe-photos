@@ -207,7 +207,7 @@ export default function PaywallScreen() {
     const months = Math.max(1, Math.round(days / 30));
     return {
       remaining,
-      pace: `At ${FREE_PLAN.sessionsPerDay * FREE_PLAN.maxBatchSize} free photos a day, that's ~${months} month${months > 1 ? 's' : ''} of cleaning. Pro clears it in days.`,
+      pace: `At ${FREE_PLAN.sessionsPerDay * FREE_PLAN.maxBatchSize} free photos a day, that's ${months} month${months > 1 ? 's' : ''} of cleaning. Pro clears it in days.`,
     };
   }, [index, keepIds]);
 

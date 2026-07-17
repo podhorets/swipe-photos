@@ -80,7 +80,7 @@ export function GroupCard({
             <View className="px-2.5 py-1.5 rounded-full bg-black/55 flex-row items-center gap-1">
               <Ionicons name="trash-outline" size={11} color="#FF453A" />
               <Text className="text-white text-[12px] font-semibold">
-                {deleteIds.length} · ~{formatBytes(freeBytes)}
+                {deleteIds.length} · {formatBytes(freeBytes)}
               </Text>
             </View>
           )}

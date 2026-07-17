@@ -209,7 +209,7 @@ export default function SimilarScreen() {
         </Text>
         <Text className="text-white/50 text-sm mb-4">
           {displayGroups.length > 0
-            ? `${displayGroups.length} groups · ${totalPhotos} photos · ~${formatBytes(totalReclaim)} to free`
+            ? `${displayGroups.length} groups · ${totalPhotos} photos · ${formatBytes(totalReclaim)} to free`
             : scanning
               ? 'Finding lookalike shots…'
               : 'Near-duplicate photos, grouped for quick cleanup'}
@@ -277,7 +277,7 @@ export default function SimilarScreen() {
                     {item.memberIds.length} photos
                   </Text>
                   <Text className="text-white/45 text-[12px]">
-                    ~{formatBytes(item.reclaimBytes)}
+                    {formatBytes(item.reclaimBytes)}
                   </Text>
                 </View>
               </Pressable>

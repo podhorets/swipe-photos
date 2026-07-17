@@ -140,7 +140,7 @@ export default function HomeScreen() {
       case 'screenshots':
         return `${Math.round((categoryProgress.screenshots ?? 0) * 100)}% reviewed`;
       case 'videos':
-        return `${formatBytes(videoBytes)} total`;
+        return `${formatBytes(videoBytes, 0)} total`;
       default:
         return 'Quick 5-min session';
     }

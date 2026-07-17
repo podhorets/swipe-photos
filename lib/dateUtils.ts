@@ -28,10 +28,11 @@ export function yearsAgoLabel(year: number): string {
 }
 
 /** Format bytes as "4.2 MB", "1.1 GB", etc. */
-export function formatBytes(bytes: number): string {
+/** @param decimals overrides the per-unit default precision (e.g. 0 → "313 GB") */
+export function formatBytes(bytes: number, decimals?: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(decimals ?? 1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(decimals ?? 2)} GB`;
 }
 
 /** Format duration in seconds as "1:23" or "12:34". */
