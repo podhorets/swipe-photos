@@ -11,6 +11,9 @@ interface Settings {
   batchSize: number;
   notificationsEnabled: boolean;
   analyticsOptIn: boolean;
+  // Similar review: tap thumbnails to star MULTIPLE keepers (true) or to
+  // replace the single best (false). Toggleable from the review header.
+  multiBest: boolean;
 }
 
 const DEFAULTS: Settings = {
@@ -18,6 +21,7 @@ const DEFAULTS: Settings = {
   batchSize: GALLERY.defaultBatchSize,
   notificationsEnabled: false,
   analyticsOptIn: true,
+  multiBest: true,
 };
 
 function loadSettings(): Settings {
@@ -41,6 +45,7 @@ interface SettingsState extends Settings {
   setBatchSize: (value: number) => void;
   setNotificationsEnabled: (value: boolean) => void;
   setAnalyticsOptIn: (value: boolean) => void;
+  setMultiBest: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
@@ -63,6 +68,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   setAnalyticsOptIn: (value) => {
     set({ analyticsOptIn: value });
+    saveSettings({ ...get() });
+  },
+
+  setMultiBest: (value) => {
+    set({ multiBest: value });
     saveSettings({ ...get() });
   },
 }));

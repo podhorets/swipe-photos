@@ -14,6 +14,9 @@ interface GroupCardProps {
   groupIds: string[];
   bestId: string;
   keeperIds: Set<string>;
+  /** Multi mode: thumbnail taps toggle stars on any number of keepers.
+   *  Single mode: taps replace the one best; circles toggle extra keepers. */
+  multiBest: boolean;
   uriById: Map<string, string>;
   sizeById: Map<string, number>;
   onSelectBest: (id: string) => void;
@@ -23,14 +26,14 @@ interface GroupCardProps {
 
 /**
  * One duplicate group: hero preview of the current best pick plus a thumbnail
- * rail of all members. Tap a thumbnail to make it the best; tap the small
- * circle on a thumbnail to keep it as well. Everything not marked keep gets
- * deleted when the group is accepted.
+ * rail of all members. Everything not marked keep gets deleted when the group
+ * is accepted; badges show each photo's fate.
  */
 export function GroupCard({
   groupIds,
   bestId,
   keeperIds,
+  multiBest,
   uriById,
   sizeById,
   onSelectBest,
@@ -97,17 +100,25 @@ export function GroupCard({
         {railIds.map((id) => {
           const uri = uriById.get(id);
           const isBest = id === bestId;
-          const isKeeper = keeperIds.has(id);
-          const willDelete = !isBest && !isKeeper;
+          const isKept = isBest || keeperIds.has(id);
+          const willDelete = !isKept;
           return (
             <Pressable
               key={id}
               onPress={() => onSelectBest(id)}
-              accessibilityLabel={isBest ? 'Best photo' : 'Make this the best photo'}
+              accessibilityLabel={
+                multiBest
+                  ? isKept
+                    ? 'Starred — tap to delete instead'
+                    : 'Marked for deletion — tap to star and keep'
+                  : isBest
+                    ? 'Best photo'
+                    : 'Make this the best photo'
+              }
               className={
-                isBest
+                isBest || (isKept && multiBest)
                   ? 'rounded-2xl overflow-hidden border-2 border-[#FFD60A]'
-                  : isKeeper
+                  : isKept
                     ? 'rounded-2xl overflow-hidden border-2 border-keep'
                     : 'rounded-2xl overflow-hidden border-2 border-[rgba(255,69,58,0.45)]'
               }
@@ -135,25 +146,28 @@ export function GroupCard({
                 </View>
               )}
 
-              {/* Status badge: star (best) / check toggle (keep) / trash hint */}
-              {isBest ? (
+              {/* Status badge. Multi mode: every kept photo carries a star.
+                  Single mode: star on the best, check-circle toggles keepers. */}
+              {isKept && (multiBest || isBest) ? (
                 <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFD60A] items-center justify-center">
                   <Ionicons name="star" size={11} color="black" />
                 </View>
-              ) : (
+              ) : !multiBest ? (
                 <Pressable
                   onPress={() => onToggleKeeper(id)}
                   hitSlop={8}
-                  accessibilityLabel={isKeeper ? 'Also keeping — tap to delete instead' : 'Marked for deletion — tap to keep too'}
+                  accessibilityLabel={
+                    isKept ? 'Also keeping — tap to delete instead' : 'Marked for deletion — tap to keep too'
+                  }
                   className={
-                    isKeeper
+                    isKept
                       ? 'absolute top-1 right-1 w-5 h-5 rounded-full bg-keep items-center justify-center'
                       : 'absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 border border-white/50 items-center justify-center'
                   }
                 >
-                  {isKeeper && <Ionicons name="checkmark" size={12} color="white" />}
+                  {isKept && <Ionicons name="checkmark" size={12} color="white" />}
                 </Pressable>
-              )}
+              ) : null}
             </Pressable>
           );
         })}

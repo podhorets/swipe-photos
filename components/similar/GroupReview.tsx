@@ -10,6 +10,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { gatedHaptic } from '@/lib/haptics';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useSimilarStore } from '@/stores/similarStore';
 import { enforceKeepBest } from '@/lib/similar/safetyRule';
 import { GroupCard } from '@/components/similar/GroupCard';
@@ -26,8 +27,8 @@ export interface GroupReviewHandle {
 interface GroupReviewProps {
   onSessionComplete: () => void;
   onPreview: (assetId: string) => void;
-  /** Reports the current group's pending delete count for the action bar label. */
-  onPendingChange?: (deleteCount: number) => void;
+  /** Reports the current group's pending delete + kept counts for the action bar. */
+  onPendingChange?: (deleteCount: number, keptCount: number) => void;
   ref?: React.Ref<GroupReviewHandle>;
 }
 
@@ -43,6 +44,7 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
   const uriById = useSessionStore((s) => s.uriSnapshot);
   const sizeById = useSessionStore((s) => s.sizeSnapshot);
   const bestIdsFromScan = useSimilarStore((s) => s.bestIds);
+  const multiBest = useSettingsStore((s) => s.multiBest);
 
   const groups = useMemo(() => session?.groups ?? [], [session?.id]);
 
@@ -81,9 +83,10 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
     bestId && currentGroup
       ? usableIds.filter((id) => id !== bestId && !keeperIds.has(id)).length
       : 0;
+  const keptCount = usableIds.length - pendingDeleteCount;
   useEffect(() => {
-    onPendingChange?.(pendingDeleteCount);
-  }, [pendingDeleteCount, onPendingChange]);
+    onPendingChange?.(pendingDeleteCount, keptCount);
+  }, [pendingDeleteCount, keptCount, onPendingChange]);
 
   // ── Group resolution ──────────────────────────────────────────────────────
 
@@ -164,13 +167,33 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
           groupIds={usableIds}
           bestId={bestId}
           keeperIds={keeperIds}
+          multiBest={multiBest}
           uriById={uriById}
           sizeById={sizeById}
           onSelectBest={(id) => {
-            if (!currentGroupKey) return;
-            const keepers = new Set(keeperIds);
-            keepers.delete(id); // best is always kept — drop redundant keeper mark
-            setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
+            if (!currentGroupKey || !bestId) return;
+            if (multiBest) {
+              // Multi mode: taps toggle stars. The hero follows the latest
+              // starred photo; un-starring the last kept photo is blocked.
+              const keepers = new Set(keeperIds);
+              if (id === bestId) {
+                const promoted = usableIds.find((k) => keepers.has(k));
+                if (!promoted) return; // last star — a group can never lose all keeps
+                keepers.delete(promoted);
+                setOverride({ key: currentGroupKey, bestId: promoted, keeperIds: keepers });
+              } else if (keepers.has(id)) {
+                keepers.delete(id);
+                setOverride({ key: currentGroupKey, bestId, keeperIds: keepers });
+              } else {
+                keepers.add(bestId);
+                setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
+              }
+            } else {
+              // Single mode: tap replaces the one best
+              const keepers = new Set(keeperIds);
+              keepers.delete(id); // best is always kept — drop redundant keeper mark
+              setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
+            }
             gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
           }}
           onToggleKeeper={(id) => {

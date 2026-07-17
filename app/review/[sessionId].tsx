@@ -7,6 +7,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSession } from '@/hooks/useSession';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { usePlanStore } from '@/stores/planStore';
@@ -128,7 +129,20 @@ export default function ReviewScreen() {
 
   // 'similar' sessions review duplicate GROUPS with a different card + action bar
   const isSimilar = sessionId === 'similar';
-  const [pendingDeleteCount, setPendingDeleteCount] = useState(0);
+  const [pendingCounts, setPendingCounts] = useState({ deleteCount: 0, keptCount: 0 });
+  const multiBest = useSettingsStore((s) => s.multiBest);
+  const setMultiBest = useSettingsStore((s) => s.setMultiBest);
+
+  // Stable identity + reference-preserving set: GroupReview reports counts from
+  // an effect keyed on this callback, so an inline closure (new identity each
+  // render) setting a fresh object every call would loop the update cycle
+  const handlePendingChange = useCallback((deleteCount: number, keptCount: number) => {
+    setPendingCounts((prev) =>
+      prev.deleteCount === deleteCount && prev.keptCount === keptCount
+        ? prev
+        : { deleteCount, keptCount },
+    );
+  }, []);
 
   // Read from the session URI snapshot — O(1) Map lookup, no gallery subscription.
   // This screen never touches galleryStore.index during an active session.
@@ -354,6 +368,22 @@ export default function ReviewScreen() {
           </Text>
         </View>
 
+        {/* Similar sessions: star-mode toggle — one best vs multiple keepers */}
+        {isSimilar && (
+          <Pressable
+            onPress={() => setMultiBest(!multiBest)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              multiBest ? 'Multi-select mode — tap for single best mode' : 'Single best mode — tap for multi-select mode'
+            }
+            className="flex-row items-center gap-1 px-2.5 rounded-full bg-[rgba(24,24,28,0.6)] border border-white/[0.16] active:opacity-70"
+            style={{ height: 40 }}
+          >
+            <Ionicons name={multiBest ? 'star' : 'star-outline'} size={14} color="#FFD60A" />
+            <Text className="text-white text-[12px] font-bold">{multiBest ? 'Multi' : 'One'}</Text>
+          </Pressable>
+        )}
+
         {/* Undo button — fades in after first swipe */}
         <Animated.View style={undoAnimStyle} pointerEvents="box-none">
           <GlassCircleButton
@@ -375,7 +405,7 @@ export default function ReviewScreen() {
             ref={groupReviewRef}
             onPreview={handleDoubleTap}
             onSessionComplete={handleSessionComplete}
-            onPendingChange={setPendingDeleteCount}
+            onPendingChange={handlePendingChange}
           />
         ) : (
           <SwipeStack
@@ -402,9 +432,13 @@ export default function ReviewScreen() {
           <GroupActionButton
             icon="trash-outline"
             destructive
-            title={pendingDeleteCount > 0 ? `Delete ${pendingDeleteCount}` : 'Delete'}
-            subtitle="Keeps ★ best photo"
-            disabled={pendingDeleteCount === 0}
+            title={pendingCounts.deleteCount > 0 ? `Delete ${pendingCounts.deleteCount}` : 'Delete'}
+            subtitle={
+              multiBest
+                ? `Keeps ${pendingCounts.keptCount} starred`
+                : 'Keeps ★ best photo'
+            }
+            disabled={pendingCounts.deleteCount === 0}
             onPress={handleSwipeRight}
           />
         </View>
