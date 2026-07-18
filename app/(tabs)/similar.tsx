@@ -235,7 +235,12 @@ export default function SimilarScreen() {
 
         {/* Group previews / empty state */}
         {displayGroups.length === 0 ? (
-          !scanning && (
+          scanning ? (
+            <Text className="text-white/35 text-[13px] text-center mt-6">
+              First groups will appear here in a moment — you can start reviewing
+              while the scan keeps running.
+            </Text>
+          ) : (
             <View className="flex-1 items-center justify-center pb-40">
               <View className="w-20 h-20 rounded-full bg-white/[0.07] border border-white/[0.14] items-center justify-center mb-5">
                 <Ionicons name="copy-outline" size={32} color="rgba(255,255,255,0.6)" />

@@ -24,6 +24,12 @@ export type ScanPhase = 'compare' | 'analyze';
 
 export interface SimilarScanOptions {
   onProgress?: (processed: number, total: number, phase: ScanPhase) => void;
+  /**
+   * Streamed after every compare batch with ALL groups found so far — lets
+   * the UI show results (and start reviews) seconds into a scan that may run
+   * for many minutes on large libraries.
+   */
+  onGroups?: (groupsSoFar: string[][]) => void;
   /** Checked between native batches; true aborts the scan. */
   shouldAbort?: () => boolean;
 }
@@ -43,7 +49,7 @@ function yieldToJS(): Promise<void> {
  */
 export async function scanSimilarGroups(
   index: AssetMeta[],
-  { onProgress, shouldAbort }: SimilarScanOptions = {},
+  { onProgress, onGroups, shouldAbort }: SimilarScanOptions = {},
 ): Promise<SimilarScanResult | null> {
   const photos = index.filter((a) => a.mediaType === 'photo');
 
@@ -64,19 +70,37 @@ export async function scanSimilarGroups(
   const photoCount = photos.length;
   const newestCreationTime = photos.reduce((max, a) => Math.max(max, a.creationTime), 0);
 
-  // Resume support: if a previous scan finished the compare phase for this
-  // exact library state but died during analysis, skip straight to analysis.
-  let refined = loadScanCheckpoint(photoCount, newestCreationTime);
+  // Resume: a previous scan for this library state (deletions tolerated —
+  // read-time filtering handles them) picks up mid-compare with everything it
+  // had already found, instead of redoing minutes of Vision work.
+  const resume = loadScanCheckpoint(photoCount, newestCreationTime);
+  let refined: string[][];
 
-  if (refined === null) {
+  if (resume?.compareComplete) {
+    refined = resume.groups;
+    onGroups?.([...refined]);
+  } else {
     const candidates = groupAssetsByTime(photos, SIMILAR.candidateWindowSeconds * 1000).map((g) =>
       g.map((a) => a.id),
     );
     const totalCandidatePhotos = candidates.reduce((sum, g) => sum + g.length, 0);
-    let processedPhotos = 0;
-    onProgress?.(0, totalCandidatePhotos, 'compare');
 
-    const found: string[][] = [];
+    // Skip whole candidate groups already covered by the checkpoint
+    const found: string[][] = resume ? [...resume.groups] : [];
+    let processedPhotos = 0;
+    let firstUnprocessed = 0;
+    if (resume) {
+      while (
+        firstUnprocessed < candidates.length &&
+        processedPhotos + candidates[firstUnprocessed].length <= resume.processedCandidatePhotos
+      ) {
+        processedPhotos += candidates[firstUnprocessed].length;
+        firstUnprocessed += 1;
+      }
+      onGroups?.([...found]);
+    }
+    onProgress?.(processedPhotos, totalCandidatePhotos, 'compare');
+
     let batch: string[][] = [];
     let batchPhotoCount = 0;
     let aborted = false;
@@ -90,12 +114,17 @@ export async function scanSimilarGroups(
       processedPhotos += batchPhotoCount;
       batch = [];
       batchPhotoCount = 0;
+      // Stream results + checkpoint after every batch: the UI fills up live,
+      // and a killed app resumes here instead of starting over
+      saveScanCheckpoint(photoCount, newestCreationTime, found, processedPhotos, false);
+      onGroups?.([...found]);
       onProgress?.(processedPhotos, totalCandidatePhotos, 'compare');
       // Keep the JS thread responsive between heavy native calls
       await yieldToJS();
     };
 
-    for (const group of candidates) {
+    for (let i = firstUnprocessed; i < candidates.length; i++) {
+      const group = candidates[i];
       if (shouldAbort?.()) {
         aborted = true;
         break;
@@ -114,7 +143,7 @@ export async function scanSimilarGroups(
     if (aborted || shouldAbort?.()) return null;
 
     refined = found;
-    saveScanCheckpoint(photoCount, newestCreationTime, refined);
+    saveScanCheckpoint(photoCount, newestCreationTime, refined, processedPhotos, true);
   }
 
   // Blur + face pass for best-shot selection (cache-first, chunked). On a

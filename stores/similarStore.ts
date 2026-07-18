@@ -68,66 +68,62 @@ export const useSimilarStore = create<SimilarState>()(
       if (get().scanState === 'scanning') return;
 
       const generation = ++scanGeneration;
-      // One automatic restart when the library changes mid-scan
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const capturedIndex = useGalleryStore.getState().index;
-        if (capturedIndex.length === 0) return;
+      // Snapshot the index for the whole scan. Mid-scan library changes do NOT
+      // abort: deletions are handled by read-time filtering, and new photos are
+      // picked up by the next staleness check — aborting would throw away
+      // minutes of Vision work every time a review completes during the scan.
+      const capturedIndex = useGalleryStore.getState().index;
+      if (capturedIndex.length === 0) return;
 
-        set((s) => {
-          s.scanState = 'scanning';
-          s.scanProgress = null;
-        });
+      set((s) => {
+        s.scanState = 'scanning';
+        s.scanProgress = null;
+      });
 
-        const indexChanged = () => useGalleryStore.getState().index !== capturedIndex;
-        const result = await scanSimilarGroups(capturedIndex, {
-          onProgress: (processed, total, phase) => {
-            if (generation !== scanGeneration) return;
-            set((s) => {
-              s.scanProgress = { processed, total, phase };
-            });
-          },
-          shouldAbort: () => generation !== scanGeneration || indexChanged(),
-        });
+      const result = await scanSimilarGroups(capturedIndex, {
+        onProgress: (processed, total, phase) => {
+          if (generation !== scanGeneration) return;
+          set((s) => {
+            s.scanProgress = { processed, total, phase };
+          });
+        },
+        // Stream groups as compare batches land so the tab fills up live and
+        // a review can start seconds into a first scan. Not persisted here —
+        // the per-batch checkpoint covers restarts until the final swap.
+        onGroups: (groupsSoFar) => {
+          if (generation !== scanGeneration) return;
+          set((s) => {
+            s.groups = groupsSoFar;
+          });
+        },
+        shouldAbort: () => generation !== scanGeneration,
+      });
 
-        if (generation !== scanGeneration) return; // superseded by a newer scan
+      if (generation !== scanGeneration) return; // superseded by a newer scan
+      if (result === null) return; // aborted — checkpoint allows a clean resume
 
-        if (result === null) {
-          if (indexChanged()) continue; // library changed mid-scan → one retry
-          return;
-        }
-
-        const newestCreationTime = capturedIndex.reduce(
-          (max, a) => Math.max(max, a.creationTime),
-          0,
-        );
-        const data: PersistedGroups = {
-          version: 1,
-          groups: result.groups,
-          bestIds: result.bestIds,
-          scannedAt: Date.now(),
-          scannedNewestCreationTime: newestCreationTime,
-          analyzerUsed: result.analyzerUsed,
-        };
-        savePersisted(data);
-        set((s) => {
-          s.groups = data.groups;
-          s.bestIds = new Set(data.bestIds);
-          s.scanState = 'done';
-          s.scanProgress = null;
-          s.scannedAt = data.scannedAt;
-          s.scannedNewestCreationTime = data.scannedNewestCreationTime;
-          s.analyzerUsed = data.analyzerUsed;
-        });
-        return;
-      }
-
-      // Both attempts aborted — leave previous results in place
-      if (generation === scanGeneration) {
-        set((s) => {
-          s.scanState = s.scannedAt > 0 ? 'done' : 'idle';
-          s.scanProgress = null;
-        });
-      }
+      const newestCreationTime = capturedIndex.reduce(
+        (max, a) => Math.max(max, a.creationTime),
+        0,
+      );
+      const data: PersistedGroups = {
+        version: 1,
+        groups: result.groups,
+        bestIds: result.bestIds,
+        scannedAt: Date.now(),
+        scannedNewestCreationTime: newestCreationTime,
+        analyzerUsed: result.analyzerUsed,
+      };
+      savePersisted(data);
+      set((s) => {
+        s.groups = data.groups;
+        s.bestIds = new Set(data.bestIds);
+        s.scanState = 'done';
+        s.scanProgress = null;
+        s.scannedAt = data.scannedAt;
+        s.scannedNewestCreationTime = data.scannedNewestCreationTime;
+        s.analyzerUsed = data.analyzerUsed;
+      });
     },
   })),
 );
