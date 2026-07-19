@@ -1,34 +1,41 @@
+import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { GlassCard } from '@/components/glass/GlassCard';
+import { GradientPillButton } from '@/components/ui/GradientPillButton';
+import { ProgressRing } from '@/components/ui/ProgressRing';
+import { GRADIENTS } from '@/constants/theme';
+import { yearsAgoLabel } from '@/lib/dateUtils';
+import { getOnThisDayByYear } from '@/lib/gallery/grouper';
+import { effectiveBatchSize } from '@/lib/planUtils';
+import { posthog } from '@/lib/posthog';
+import { gateSessionStart } from '@/lib/sessionGate';
+import { useGalleryStore } from '@/stores/galleryStore';
+import { useKeepStore } from '@/stores/keepStore';
+import { usePlanStore } from '@/stores/planStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import type { AssetMeta } from '@/types';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useMemo } from 'react';
 import {
-  View,
-  Text,
-  SectionList,
+  Dimensions,
   FlatList,
   Pressable,
-  Dimensions,
+  SectionList,
+  Text,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useGalleryStore } from '@/stores/galleryStore';
-import { getOnThisDayByYear } from '@/lib/gallery/grouper';
-import { yearsAgoLabel } from '@/lib/dateUtils';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import type { AssetMeta } from '@/types';
-import { gateSessionStart } from '@/lib/sessionGate';
 
 const TILE_WIDTH = 104;
 const TILE_HEIGHT = 130;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-const HERO_SCRIM = ['rgba(5,5,8,0.05)', 'rgba(5,5,8,0.85)'] as const;
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface YearSection {
   year: number;
+  reviewed: number;
   // SectionList renders each element of `data` as a separate row.
   // We use a single-element array so the whole year renders as one horizontal strip.
   data: [AssetMeta[]];
@@ -42,56 +49,45 @@ function reviewYear(year: number) {
   });
 }
 
-// ─── Hero card (most recent year) ─────────────────────────────────────────────
+// ─── Day summary (top of screen) ──────────────────────────────────────────────
 
-function HeroMemory({ year, photos }: { year: number; photos: AssetMeta[] }) {
+function DaySummary({
+  reviewed,
+  total,
+  yearCount,
+}: {
+  reviewed: number;
+  total: number;
+  yearCount: number;
+}) {
+  const ratio = total > 0 ? reviewed / total : 0;
+  const left = total - reviewed;
   return (
-    <View
-      className="rounded-[28px] overflow-hidden border border-white/[0.16] mb-4"
-      style={{ height: 300 }}
-    >
-      <Image
-        source={{ uri: photos[0]?.uri }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        contentFit="cover"
-        recyclingKey={photos[0]?.id}
-        transition={150}
-      />
-      <LinearGradient
-        colors={HERO_SCRIM}
-        locations={[0.3, 1]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      />
-      <View className="absolute left-[18px] right-[18px] bottom-4 flex-row items-end justify-between">
-        <View>
-          <Text
-            className="text-white/65 text-[13px] font-semibold"
-            style={{ letterSpacing: 0.78 }}
-          >
-            {yearsAgoLabel(year).toUpperCase()}
+    <GlassCard radius={24} className="mb-4">
+      <View className="px-4 py-3.5 flex-row items-center gap-3.5">
+        <ProgressRing
+          size={64}
+          radius={26}
+          strokeWidth={6}
+          progress={ratio}
+          gradientColors={GRADIENTS.accent}
+        >
+          <Text className="text-white text-[15px] font-extrabold">
+            {Math.round(ratio * 100)}%
           </Text>
-          <Text className="text-white text-[26px] font-extrabold mt-0.5" style={{ letterSpacing: -0.5 }}>
-            {year}
+        </ProgressRing>
+        <View className="flex-1">
+          <Text className="text-white text-[17px] font-extrabold" style={{ letterSpacing: -0.3 }}>
+            {reviewed} of {total} reviewed
           </Text>
-          <Text className="text-white/60 text-[13px] mt-px">
-            {photos.length} photo{photos.length === 1 ? '' : 's'}
+          <Text className="text-white/45 text-[13px] mt-0.5">
+            {left > 0
+              ? `${left} photo${left === 1 ? '' : 's'} left across ${yearCount} year${yearCount === 1 ? '' : 's'}`
+              : `All done across ${yearCount} year${yearCount === 1 ? '' : 's'} 🎉`}
           </Text>
         </View>
-        <Pressable
-          onPress={() => reviewYear(year)}
-          className="flex-row items-center gap-1.5 px-[18px] py-[11px] rounded-full bg-white/[0.92] active:opacity-80"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.35,
-            shadowRadius: 24,
-            shadowOffset: { width: 0, height: 8 },
-          }}
-        >
-          <Ionicons name="play" size={14} color="#050508" />
-          <Text className="text-[#050508] font-bold text-sm">Review</Text>
-        </Pressable>
       </View>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -128,23 +124,42 @@ function PhotoTile({ asset }: { asset: AssetMeta }) {
   );
 }
 
-// ─── Section header ───────────────────────────────────────────────────────────
+// ─── Section header + per-year progress ──────────────────────────────────────
 
-function YearHeader({ year, count }: { year: number; count: number }) {
+function YearHeader({
+  year,
+  count,
+  reviewed,
+}: {
+  year: number;
+  count: number;
+  reviewed: number;
+}) {
+  const pct = count > 0 ? Math.round((reviewed / count) * 100) : 0;
   return (
-    <View className="flex-row items-center justify-between px-5 mb-2.5">
-      <View className="flex-row items-baseline gap-2">
-        <Text className="text-white text-[19px] font-extrabold" style={{ letterSpacing: -0.3 }}>
-          {year}
-        </Text>
-        <Text className="text-white/40 text-[13px]">
-          {yearsAgoLabel(year)} · {count} photo{count === 1 ? '' : 's'}
-        </Text>
+    <>
+      <View className="flex-row items-center justify-between px-5 mb-1.5">
+        <View className="flex-row items-baseline gap-2">
+          <Text className="text-white text-[19px] font-extrabold" style={{ letterSpacing: -0.3 }}>
+            {year}
+          </Text>
+          <Text className="text-white/40 text-[13px]">
+            {yearsAgoLabel(year)} · {count} photo{count === 1 ? '' : 's'}
+          </Text>
+        </View>
+        <Pressable onPress={() => reviewYear(year)} className="active:opacity-60" hitSlop={8}>
+          <Text className="text-accent text-[13px] font-bold">
+            {reviewed}/{count} · {pct}%
+          </Text>
+        </Pressable>
       </View>
-      <Pressable onPress={() => reviewYear(year)} className="active:opacity-60" hitSlop={8}>
-        <Text className="text-accent text-sm font-semibold">Review</Text>
-      </Pressable>
-    </View>
+      <View className="h-[3px] rounded-full bg-white/[0.08] overflow-hidden mx-5 mb-2.5">
+        <View
+          className="h-full rounded-full bg-accent"
+          style={{ width: `${pct}%` }}
+        />
+      </View>
+    </>
   );
 }
 
@@ -184,18 +199,42 @@ function EmptyState() {
 export default function OnThisDayScreen() {
   const insets = useSafeAreaInsets();
   const index = useGalleryStore((s) => s.index);
+  const keepIds = useKeepStore((s) => s.keepIds);
+  const planState = usePlanStore();
+  const batchSize = useSettingsStore((s) => s.batchSize);
 
-  const { heroSection, restSections, yearCount } = useMemo(() => {
+  // Every year renders the same strip (no hero); reviewed = kept photos,
+  // same semantics as the Home progress ring (deleted photos leave the index)
+  const { sections, yearCount, totalPhotos, totalReviewed } = useMemo(() => {
     const grouped = getOnThisDayByYear(index, new Date());
     const all = Array.from(grouped.entries())
       .sort(([a], [b]) => b - a) // most recent year first
-      .map(([year, assets]): YearSection => ({ year, data: [assets] as [AssetMeta[]] }));
+      .map(([year, assets]): YearSection => ({
+        year,
+        reviewed: assets.filter((a) => keepIds.has(a.id)).length,
+        data: [assets] as [AssetMeta[]],
+      }));
     return {
-      heroSection: all[0],
-      restSections: all.slice(1),
+      sections: all,
       yearCount: all.length,
+      totalPhotos: all.reduce((n, s) => n + s.data[0].length, 0),
+      totalReviewed: all.reduce((n, s) => n + s.reviewed, 0),
     };
-  }, [index]);
+  }, [index, keepIds]);
+
+  const unreviewed = totalPhotos - totalReviewed;
+  // Label matches the actual session size (Similar-tab convention): a session
+  // is clamped by the effective batch size, 25 on the free plan
+  const reviewCount = Math.min(unreviewed, effectiveBatchSize(planState, batchSize));
+
+  function handleStartReview() {
+    if (!gateSessionStart()) return;
+    posthog.capture('review_session_started', {
+      category: 'on-this-day',
+      photo_count: totalPhotos,
+    });
+    router.push('/review/on-this-day');
+  }
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
@@ -212,7 +251,7 @@ export default function OnThisDayScreen() {
     </View>
   );
 
-  if (!heroSection) {
+  if (sections.length === 0) {
     return (
       <View className="flex-1 bg-bg-dark">
         {titleBlock}
@@ -225,25 +264,44 @@ export default function OnThisDayScreen() {
     <View className="flex-1 bg-bg-dark">
       <AuroraBackground variant="default" />
       <SectionList<AssetMeta[], YearSection>
-        sections={restSections}
+        sections={sections}
         keyExtractor={(_, idx) => String(idx)}
         renderItem={({ item }) => <PhotoStrip photos={item} />}
         renderSectionHeader={({ section }) => (
-          <YearHeader year={section.year} count={section.data[0].length} />
+          <YearHeader
+            year={section.year}
+            count={section.data[0].length}
+            reviewed={section.reviewed}
+          />
         )}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 190 }}
         style={{ width: SCREEN_WIDTH }}
         ListHeaderComponent={
           <>
             {titleBlock}
+            {/* Day review summary */}
             <View className="px-5">
-              <HeroMemory year={heroSection.year} photos={heroSection.data[0]} />
+              <DaySummary reviewed={totalReviewed} total={totalPhotos} yearCount={yearCount} />
             </View>
           </>
         }
       />
+
+      {/* Sticky review CTA — same pattern as the Similar tab; hidden once done */}
+      {unreviewed > 0 && (
+        <View
+          className="absolute left-5 right-5"
+          style={{ bottom: Math.max(insets.bottom, 26) + 66 }}
+        >
+          <GradientPillButton
+            label={`Review ${reviewCount} photo${reviewCount === 1 ? '' : 's'}`}
+            icon="sparkles"
+            onPress={handleStartReview}
+          />
+        </View>
+      )}
     </View>
   );
 }
