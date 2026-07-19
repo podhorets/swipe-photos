@@ -5,7 +5,6 @@ import { IconSquircle } from '@/components/ui/IconSquircle';
 import { SessionsMeter } from '@/components/ui/SessionsMeter';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { StreakChip } from '@/components/ui/StreakChip';
-import { StreakWidget } from '@/components/ui/StreakWidget';
 import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 import { GRADIENTS, SCREEN } from '@/constants/theme';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -233,11 +232,8 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* Hero storage card */}
+        {/* Hero storage card — the week streak strip now lives in its footer */}
         <StorageSummary />
-
-        {/* Week strip */}
-        <StreakWidget />
 
         {/* Category tiles */}
         <View className="flex-row items-baseline justify-between mb-3">
