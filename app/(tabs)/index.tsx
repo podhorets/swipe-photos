@@ -192,19 +192,19 @@ export default function HomeScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: insets.top + 16,
+          paddingTop: insets.top,
           paddingBottom: insets.bottom + 110,
           paddingHorizontal: 20,
         }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header — streak chip stays; sessions moved to its own full-width slot below */}
-        <View className="flex-row items-end justify-between mb-4">
+        <View className="flex-row items-end justify-between mb-3">
           <Text
             className="text-white text-[34px] font-extrabold"
             style={{ letterSpacing: -0.8 }}
           >
-            Your Library
+            Swiper
           </Text>
           <View className="flex-row items-center gap-2">
             <StreakChip />
@@ -263,67 +263,67 @@ export default function HomeScreen() {
         </View>
 
         {/* Browse by month · Clean similar photos — one compact row */}
-        <View className="flex-row gap-3">
-          <Pressable
-            onPress={() => router.navigate('/(tabs)/by-month')}
-            className="flex-1 active:opacity-70"
-          >
-            <GlassCard radius={24}>
-              <View className="p-3.5 gap-2.5">
-                <IconSquircle
-                  icon="calendar-number-outline"
-                  colors={GRADIENTS.accent}
-                  size={40}
-                  radius={13}
-                  iconSize={20}
-                  style={{
-                    shadowColor: '#0A84FF',
-                    shadowOpacity: 0.3,
-                    shadowRadius: 20,
-                    shadowOffset: { width: 0, height: 8 },
-                  }}
-                />
-                <View>
-                  <Text className="text-white font-bold text-[15px]">Browse by month</Text>
-                  <Text className="text-white/45 text-[12px] mt-px">
-                    {monthMeta.count > 0 ? `${monthMeta.count} months` : 'Your timeline'}
-                  </Text>
-                </View>
-              </View>
-            </GlassCard>
-          </Pressable>
+        {/*<View className="flex-row gap-3">*/}
+        {/*  <Pressable*/}
+        {/*    onPress={() => router.navigate('/(tabs)/by-month')}*/}
+        {/*    className="flex-1 active:opacity-70"*/}
+        {/*  >*/}
+        {/*    <GlassCard radius={24}>*/}
+        {/*      <View className="p-3.5 gap-2.5">*/}
+        {/*        <IconSquircle*/}
+        {/*          icon="calendar-number-outline"*/}
+        {/*          colors={GRADIENTS.accent}*/}
+        {/*          size={40}*/}
+        {/*          radius={13}*/}
+        {/*          iconSize={20}*/}
+        {/*          style={{*/}
+        {/*            shadowColor: '#0A84FF',*/}
+        {/*            shadowOpacity: 0.3,*/}
+        {/*            shadowRadius: 20,*/}
+        {/*            shadowOffset: { width: 0, height: 8 },*/}
+        {/*          }}*/}
+        {/*        />*/}
+        {/*        <View>*/}
+        {/*          <Text className="text-white font-bold text-[15px]">Browse by month</Text>*/}
+        {/*          <Text className="text-white/45 text-[12px] mt-px">*/}
+        {/*            {monthMeta.count > 0 ? `${monthMeta.count} months` : 'Your timeline'}*/}
+        {/*          </Text>*/}
+        {/*        </View>*/}
+        {/*      </View>*/}
+        {/*    </GlassCard>*/}
+        {/*  </Pressable>*/}
 
-          <Pressable
-            onPress={() => router.navigate('/(tabs)/similar')}
-            className="flex-1 active:opacity-70"
-          >
-            <GlassCard radius={24}>
-              <View className="p-3.5 gap-2.5">
-                <IconSquircle
-                  icon="copy-outline"
-                  colors={GRADIENTS.freed}
-                  size={40}
-                  radius={13}
-                  iconSize={20}
-                  style={{
-                    shadowColor: '#30D158',
-                    shadowOpacity: 0.3,
-                    shadowRadius: 20,
-                    shadowOffset: { width: 0, height: 8 },
-                  }}
-                />
-                <View>
-                  <Text className="text-white font-bold text-[15px]">Clean similar</Text>
-                  <Text className="text-white/45 text-[12px] mt-px">
-                    {similarMeta.groupCount > 0
-                      ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes, 0)}`
-                      : 'Find duplicates'}
-                  </Text>
-                </View>
-              </View>
-            </GlassCard>
-          </Pressable>
-        </View>
+        {/*  /!*<Pressable*!/*/}
+        {/*  /!*  onPress={() => router.navigate('/(tabs)/similar')}*!/*/}
+        {/*  /!*  className="flex-1 active:opacity-70"*!/*/}
+        {/*  /!*>*!/*/}
+        {/*  /!*  <GlassCard radius={24}>*!/*/}
+        {/*  /!*    <View className="p-3.5 gap-2.5">*!/*/}
+        {/*  /!*      <IconSquircle*!/*/}
+        {/*  /!*        icon="copy-outline"*!/*/}
+        {/*  /!*        colors={GRADIENTS.freed}*!/*/}
+        {/*  /!*        size={40}*!/*/}
+        {/*  /!*        radius={13}*!/*/}
+        {/*  /!*        iconSize={20}*!/*/}
+        {/*  /!*        style={{*!/*/}
+        {/*  /!*          shadowColor: '#30D158',*!/*/}
+        {/*  /!*          shadowOpacity: 0.3,*!/*/}
+        {/*  /!*          shadowRadius: 20,*!/*/}
+        {/*  /!*          shadowOffset: { width: 0, height: 8 },*!/*/}
+        {/*  /!*        }}*!/*/}
+        {/*  /!*      />*!/*/}
+        {/*  /!*      <View>*!/*/}
+        {/*  /!*        <Text className="text-white font-bold text-[15px]">Clean similar</Text>*!/*/}
+        {/*  /!*        <Text className="text-white/45 text-[12px] mt-px">*!/*/}
+        {/*  /!*          {similarMeta.groupCount > 0*!/*/}
+        {/*  /!*            ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes, 0)}`*!/*/}
+        {/*  /!*            : 'Find duplicates'}*!/*/}
+        {/*  /!*        </Text>*!/*/}
+        {/*  /!*      </View>*!/*/}
+        {/*  /!*    </View>*!/*/}
+        {/*  /!*  </GlassCard>*!/*/}
+        {/*  /!*</Pressable>*!/*/}
+        {/*</View>*/}
       </ScrollView>
     </View>
   );

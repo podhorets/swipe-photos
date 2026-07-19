@@ -92,7 +92,9 @@ export async function checkTrialEligibility(productId: string): Promise<boolean>
   if (!isConfigured) return false;
   try {
     const result = await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
-    return result[productId]?.status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE;
+    // TODO: refactor paywal for the case when user already user trial INTRO_ELIGIBILITY_STATUS_INELIGIBLE = 1,
+    // return result[productId]?.status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE;
+    return true;
   } catch {
     return false;
   }

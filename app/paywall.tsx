@@ -38,7 +38,7 @@ function headline(context: PaywallContext): { title: string; subtitle: string } 
     case 'chip':
       return {
         title: 'Clean your library\n10× faster',
-        subtitle: 'Unlimited sessions. 100-photo batches. Zero waiting.',
+        subtitle: '',
       };
     default:
       return {
@@ -172,6 +172,7 @@ export default function PaywallScreen() {
       setOffering(o);
       setOfferingsLoaded(true);
       const weeklyId = o?.weekly?.product.identifier;
+      console.log('weeklyId', weeklyId);
       if (weeklyId) checkTrialEligibility(weeklyId).then(setTrialEligible);
     });
   }, [context]);
@@ -224,6 +225,8 @@ export default function PaywallScreen() {
   }
 
   const showTrial = selectedPlan === 'weekly' && trialEligible;
+  console.log(showTrial);
+  console.log(trialEligible);
   const ctaLabel = showTrial
     ? 'Start My 3-Day Free Trial'
     : selectedPlan === 'annual'
@@ -236,14 +239,14 @@ export default function PaywallScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pb-4 pt-3"
+        contentContainerClassName="px-6 mt-3"
         showsVerticalScrollIndicator={false}
       >
         {/* Living hero: lock chip (sessions) + auto-swiping demo */}
         <PaywallHero lockLabel={context === 'sessions' ? '2 of 2 free sessions used today' : undefined} />
 
         {/* Headline */}
-        <View className="items-center mt-4 mb-5">
+        <View className="items-center mt-2">
           <Text
             className="text-white font-extrabold text-center"
             style={{ fontSize: 32, lineHeight: 37, letterSpacing: -0.8 }}
