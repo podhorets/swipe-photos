@@ -1,37 +1,37 @@
-import { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Linking, Alert } from 'react-native';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useGalleryStore } from '@/stores/galleryStore';
-import { useKeepStore } from '@/stores/keepStore';
-import { useSettingsStore } from '@/stores/settingsStore';
-import { usePermissions } from '@/hooks/usePermissions';
-import { StorageSummary } from '@/components/ui/StorageSummary';
-import { StreakWidget } from '@/components/ui/StreakWidget';
-import { StreakChip } from '@/components/ui/StreakChip';
-import { SessionsChip } from '@/components/ui/SessionsChip';
+import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { GlassCard } from '@/components/glass/GlassCard';
 import { CategoryTile } from '@/components/ui/CategoryTile';
 import { IconSquircle } from '@/components/ui/IconSquircle';
-import { GlassCard } from '@/components/glass/GlassCard';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { SessionsMeter } from '@/components/ui/SessionsMeter';
+import { StorageSummary } from '@/components/ui/StorageSummary';
+import { StreakChip } from '@/components/ui/StreakChip';
+import { StreakWidget } from '@/components/ui/StreakWidget';
+import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
+import { GRADIENTS, SCREEN } from '@/constants/theme';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatBytes, monthLabel } from '@/lib/dateUtils';
 import {
   getByMonth,
   getOnThisDay,
   getScreenshots,
   getVideos,
 } from '@/lib/gallery/grouper';
-import { GRADIENTS, SCREEN } from '@/constants/theme';
-import { formatBytes, monthLabel } from '@/lib/dateUtils';
-import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
-import type { Category } from '@/types';
+import { effectiveBatchSize } from '@/lib/planUtils';
 import { posthog } from '@/lib/posthog';
 import { gateSessionStart } from '@/lib/sessionGate';
-import { usePlanStore } from '@/stores/planStore';
-import { useSimilarStore } from '@/stores/similarStore';
 import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
-import { effectiveBatchSize } from '@/lib/planUtils';
+import { useGalleryStore } from '@/stores/galleryStore';
+import { useKeepStore } from '@/stores/keepStore';
+import { usePlanStore } from '@/stores/planStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { useSimilarStore } from '@/stores/similarStore';
+import type { Category } from '@/types';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
+import { useMemo } from 'react';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
 
@@ -199,7 +199,7 @@ export default function HomeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header — streak chip stays; sessions moved to its own full-width slot below */}
         <View className="flex-row items-end justify-between mb-4">
           <Text
             className="text-white text-[34px] font-extrabold"
@@ -208,10 +208,12 @@ export default function HomeScreen() {
             Your Library
           </Text>
           <View className="flex-row items-center gap-2">
-            <SessionsChip />
             <StreakChip />
           </View>
         </View>
+
+        {/* Free-plan sessions fuel gauge (renders null for Pro) */}
+        <SessionsMeter />
 
         {/* Limited access banner */}
         {isMediaLimited && (
