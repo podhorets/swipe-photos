@@ -25,7 +25,11 @@ import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { IconSquircle } from '@/components/ui/IconSquircle';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { GRADIENTS } from '@/constants/theme';
+import { STORAGE_KEYS } from '@/constants/config';
+import { createMMKV } from 'react-native-mmkv';
 import { posthog } from '@/lib/posthog';
+
+const storage = createMMKV();
 
 const BATCH_OPTIONS = [25, 50, 100] as const;
 
@@ -338,6 +342,16 @@ export default function SettingsScreen() {
               value={`${planState.quotaDate === toDateString(new Date()) ? planState.sessionsUsedToday : 0} used`}
               onPress={() => {
                 usePlanStore.getState().recordCompletedSession();
+              }}
+            />
+            <RowDivider />
+            <NavRow
+              icon="refresh"
+              gradient={GRADIENTS.shield}
+              label="Reset onboarding"
+              onPress={() => {
+                storage.remove(STORAGE_KEYS.hasCompletedOnboarding);
+                router.replace('/onboarding');
               }}
             />
           </Section>
