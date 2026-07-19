@@ -128,13 +128,13 @@ export function SessionsMeter() {
                 <View className="flex-1">
                     {/* Title line */}
                     {exhausted ? (
-                        <View className="flex-row flex-wrap items-center gap-[5px]">
-                            <Text className="text-streak text-[16px] font-extrabold" style={{ fontVariant: ['tabular-nums'] }}>
+                        <View className="flex-row flex-wrap items-center gap-[4px]">
+                            <Text className="text-streak text-[15px] font-extrabold" style={{ fontVariant: ['tabular-nums'] }}>
                                 {countdown}
                             </Text>
-                            <Text className="text-white text-[15px] font-bold">left to start new</Text>
+                            <Text className="text-white text-[14px] font-bold">to start new</Text>
                             <FreeBadge amber />
-                            <Text className="text-white text-[15px] font-bold">review</Text>
+                            <Text className="text-white text-[14px] font-bold">review</Text>
                         </View>
                     ) : (
                         <View className="flex-row items-center gap-[5px]">

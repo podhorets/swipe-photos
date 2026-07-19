@@ -68,7 +68,7 @@ function TrialTimeline() {
     { icon: 'star' as const, title: 'Day 3: trial ends', sub: 'Billing starts — cancel anytime before in Settings.' },
   ];
   return (
-    <GlassCard className="p-4 mb-4" noBlur>
+    <View className="p-4 mb-4 bg-white/10 border border-white/[0.16] rounded-3xl">
       {steps.map((s, i) => (
         <View key={s.title} className="flex-row gap-3">
           <View className="items-center">
@@ -83,7 +83,7 @@ function TrialTimeline() {
           </View>
         </View>
       ))}
-    </GlassCard>
+    </View>
   );
 }
 
@@ -239,22 +239,19 @@ export default function PaywallScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 mt-3"
+        contentContainerClassName="px-6"
         showsVerticalScrollIndicator={false}
       >
         {/* Living hero: lock chip (sessions) + auto-swiping demo */}
-        <PaywallHero lockLabel={context === 'sessions' ? '2 of 2 free sessions used today' : undefined} />
+        <PaywallHero lockLabel='2 of 2 free sessions used today' />
 
         {/* Headline */}
         <View className="items-center mt-2">
           <Text
-            className="text-white font-extrabold text-center"
+            className="text-white font-extrabold text-center mb-4"
             style={{ fontSize: 32, lineHeight: 37, letterSpacing: -0.8 }}
           >
             {title}
-          </Text>
-          <Text className="text-white/55 text-[15px] text-center mt-3" style={{ lineHeight: 22, maxWidth: 310 }}>
-            {subtitle}
           </Text>
         </View>
 
@@ -281,18 +278,10 @@ export default function PaywallScreen() {
 
         {/* Trial timeline (weekly + eligible only) */}
         {showTrial && <TrialTimeline />}
-
-        {/* Reassurance strip */}
-        <View className="flex-row items-center justify-center gap-1.5 mb-4">
-          <Ionicons name="shield-checkmark" size={13} color="rgba(255,255,255,0.35)" />
-          <Text className="text-white/35 text-[12px]">
-            Cancel anytime · Private by design · No ads, ever
-          </Text>
-        </View>
       </ScrollView>
 
       {/* Sticky CTA */}
-      <View className="px-6 gap-2.5" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+      <View className="px-6 gap-1" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <GradientPillButton
           label={ctaLabel}
           onPress={handlePurchase}
@@ -301,10 +290,10 @@ export default function PaywallScreen() {
         />
         <Text className="text-white/30 text-[11px] text-center" style={{ lineHeight: 15 }}>
           {showTrial
-            ? `Free for 3 days, then ${weeklyPrice}/week. Auto-renews until cancelled in Settings.`
+            ? `Free for 3 days, then ${weeklyPrice}/week. Auto-renews until cancelled in Settings. Cancel anytime.`
             : `Auto-renews ${selectedPlan === 'annual' ? `at ${annualPrice}/year` : `at ${weeklyPrice}/week`} until cancelled in Settings.`}
         </Text>
-        <View className="flex-row justify-center gap-5 pb-1">
+        <View className="flex-row justify-center gap-5">
           <Pressable onPress={handleRestore} hitSlop={8}>
             <Text className="text-white/40 text-[12px]">Restore Purchases</Text>
           </Pressable>

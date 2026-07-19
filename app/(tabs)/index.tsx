@@ -192,7 +192,7 @@ export default function HomeScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: insets.top,
+          paddingTop: insets.top + 4,
           paddingBottom: insets.bottom + 110,
           paddingHorizontal: 20,
         }}
