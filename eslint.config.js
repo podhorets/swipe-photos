@@ -5,7 +5,7 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['node_modules/**', '.expo/**', 'dist/**', 'metro.config.js', 'babel.config.js', 'tailwind.config.js'],
+    ignores: ['node_modules/**', '.expo/**', 'dist/**', 'metro.config.js', 'babel.config.js', 'tailwind.config.js', 'plugins/**'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

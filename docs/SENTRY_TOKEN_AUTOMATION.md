@@ -3,6 +3,29 @@
 Goal: **no manual step, ever** — Xcode GUI archives, `expo run:ios`, and CI/EAS builds
 all get Sentry credentials automatically, surviving `expo prebuild --clean`.
 
+## ✅ Implementation status
+
+**Done (committed):**
+- `plugins/withSentryAuthToken.js` — the config plugin (section 2.1).
+- Registered in `app.json` after `@sentry/react-native/expo` (section 2.2).
+- `eslint.config.js` — `plugins/**` added to ignores (build-time CJS, matching
+  metro/babel/tailwind configs).
+- Verified: isolated unit test of the mod passes (merge / idempotence / rotation /
+  graceful no-token), and `npx expo config` resolves the plugin chain with exit 0.
+  The current `ios/sentry.properties` already carries the token, so Xcode archives
+  keep working today; the plugin guarantees it survives future prebuilds.
+
+**Still to do by you (external — can't be automated from here):**
+- Run the real destructive verification when convenient: `rm -rf ios &&
+  npx expo prebuild --platform ios` then `grep -c '^auth.token=' ios/sentry.properties`
+  → expect `1` (section 5, steps 1–5). Re-`pod install` after, since prebuild
+  regenerates the project.
+- CI: `eas env:create --name SENTRY_AUTH_TOKEN --value sntrys_… --scope project
+  --environment production --visibility secret` (repeat per environment) — section 3.1.
+- GitHub Actions (if used): add `SENTRY_AUTH_TOKEN` as a repository secret — section 3.2.
+
+---
+
 ## 1. The problem, precisely
 
 Two Xcode build phases call `sentry-cli` and need an auth token:

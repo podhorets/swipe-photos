@@ -86,7 +86,8 @@
           "project": "swipe-photos",
           "organization": "cleaner-p7"
         }
-      ]
+      ],
+      "./plugins/withSentryAuthToken"
     ],
     "experiments": {
       "typedRoutes": true
