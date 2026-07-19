@@ -20,6 +20,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { createMMKV } from 'react-native-mmkv';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
@@ -32,6 +33,51 @@ import { posthog } from '@/lib/posthog';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const storage = createMMKV();
+
+// ─── Demo photos (6 slots) ───────────────────────────────────────────────────
+// Onboarding runs BEFORE photo permission, so it can't show the user's library —
+// but statically bundled photos (shipped inside the app binary) are fine.
+// Drop your JPG/PNG files into assets/onboarding/ and replace the `null`s below
+// with require() calls. Any slot left `null` keeps its gradient placeholder.
+// Recommended: portrait ~3:4, ≤1000px long edge, visually warm "keeper" shots.
+const DEMO_PHOTOS = {
+    // Screen 1 — swipe demo: the card that auto-swipes left/right (most visible slot)
+    swipeTopCard: null as number | null, // TODO: require('../assets/onboarding/swipe-top.jpg')
+    // Screen 1 — swipe demo: the card peeking out behind it (dimmed, mostly covered)
+    swipeBackCard: null as number | null, // TODO: require('../assets/onboarding/swipe-back.jpg')
+    // Screen 2 — dedup demo: the big starred "Best" shot that gets kept
+    dedupHero: null as number | null, // TODO: require('../assets/onboarding/dedup-best.jpg')
+    // Screen 2 — dedup demo: three near-duplicates that sweep into the hero.
+    // For the story to read, use 3 slightly-different takes of the SAME scene as dedupHero.
+    dedupThumbs: [
+        null as number | null, // TODO: require('../assets/onboarding/dedup-dupe-1.jpg')
+        null as number | null, // TODO: require('../assets/onboarding/dedup-dupe-2.jpg')
+        null as number | null, // TODO: require('../assets/onboarding/dedup-dupe-3.jpg')
+    ],
+};
+
+// Fills a demo card with the bundled photo when provided, else the gradient placeholder.
+function DemoFill({
+    photo,
+    gradient,
+    gradientOpacity = 1,
+}: {
+    photo: number | null;
+    gradient: (typeof GRADIENTS)[keyof typeof GRADIENTS];
+    gradientOpacity?: number;
+}) {
+    if (photo != null) {
+        return <Image source={photo} contentFit="cover" style={{ flex: 1 }} />;
+    }
+    return (
+        <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1, opacity: gradientOpacity }}
+        />
+    );
+}
 
 // ─── Step 1 hero: auto-playing swipe demo ────────────────────────────────────
 // A card stack that swipes itself — left with the DELETE overlay, right with
@@ -109,10 +155,8 @@ function SwipeDemo({ active }: { active: boolean }) {
                 style={{ width: 280, height: DEMO_H + 36 }}
             >
                 {/* Back card */}
-                <LinearGradient
-                    colors={GRADIENTS.analytics}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                <View
+                    className="overflow-hidden"
                     style={{
                         position: 'absolute',
                         width: DEMO_W,
@@ -123,7 +167,9 @@ function SwipeDemo({ active }: { active: boolean }) {
                         transform: [{ scale: 0.94 }, { translateY: 12 }],
                         opacity: 0.8,
                     }}
-                />
+                >
+                    <DemoFill photo={DEMO_PHOTOS.swipeBackCard} gradient={GRADIENTS.analytics} />
+                </View>
                 {/* Auto-swiping top card */}
                 <Animated.View
                     className="absolute overflow-hidden"
@@ -142,12 +188,7 @@ function SwipeDemo({ active }: { active: boolean }) {
                         cardStyle,
                     ]}
                 >
-                    <LinearGradient
-                        colors={GRADIENTS.accent}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{ flex: 1 }}
-                    />
+                    <DemoFill photo={DEMO_PHOTOS.swipeTopCard} gradient={GRADIENTS.accent} />
                     <Animated.View
                         className="absolute inset-0 items-center justify-center gap-1.5"
                         style={[{ backgroundColor: 'rgba(255,69,58,0.82)' }, deleteOverlayStyle]}
@@ -269,12 +310,7 @@ function DedupDemo({ active }: { active: boolean }) {
                     shadowOffset: { width: 0, height: 16 },
                 }}
             >
-                <LinearGradient
-                    colors={GRADIENTS.shield}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ flex: 1 }}
-                />
+                <DemoFill photo={DEMO_PHOTOS.dedupHero} gradient={GRADIENTS.shield} />
                 <Animated.View
                     className="absolute top-2.5 left-2.5 flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-black/55"
                     style={starStyle}
@@ -300,11 +336,10 @@ function DedupDemo({ active }: { active: boolean }) {
                             style,
                         ]}
                     >
-                        <LinearGradient
-                            colors={THUMB_GRADIENTS[i]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={{ flex: 1, opacity: 0.8 }}
+                        <DemoFill
+                            photo={DEMO_PHOTOS.dedupThumbs[i]}
+                            gradient={THUMB_GRADIENTS[i]}
+                            gradientOpacity={0.8}
                         />
                     </Animated.View>
                 ))}

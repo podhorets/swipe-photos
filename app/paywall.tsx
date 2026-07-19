@@ -1,23 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import * as WebBrowser from 'expo-web-browser';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { GlassCard } from '@/components/glass/GlassCard';
+import { PaywallHero } from '@/components/paywall/PaywallHero';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
-import { useGalleryStore } from '@/stores/galleryStore';
-import { useKeepStore } from '@/stores/keepStore';
 import { FALLBACK_PRICING, FREE_PLAN } from '@/constants/config';
 import { GRADIENTS } from '@/constants/theme';
-import { formatCountdown, msUntilMidnight } from '@/lib/planUtils';
-import { checkTrialEligibility, loadOfferings, purchase, restore } from '@/lib/purchases';
 import { posthog } from '@/lib/posthog';
+import { checkTrialEligibility, loadOfferings, purchase, restore } from '@/lib/purchases';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 const PRIVACY_URL = 'https://swipephotos.app/privacy';
@@ -25,28 +23,49 @@ const PRIVACY_URL = 'https://swipephotos.app/privacy';
 type PlanId = 'annual' | 'weekly';
 type PaywallContext = 'sessions' | 'batch' | 'chip' | 'settings';
 
+// Gradient feature card rows (design 2b)
 const PRO_FEATURES = [
-  { icon: 'infinite' as const, label: 'Unlimited review sessions', sub: 'No daily limits, ever' },
-  { icon: 'albums' as const, label: '100-photo batches', sub: '4× bigger sessions, 4× faster cleanup' },
-  { icon: 'flash' as const, label: 'Clear your backlog this week', sub: 'Not this year' },
+  {
+    gradient: GRADIENTS.accent,
+    icon: 'infinite' as const,
+    label: 'Unlimited review sessions',
+    sub: 'No daily limits, ever',
+  },
+  {
+    gradient: GRADIENTS.analytics,
+    icon: 'albums' as const,
+    label: 'Unlock 50 & 100-photo reviews',
+    sub: 'Up to 4× bigger sessions',
+  },
+  {
+    gradient: GRADIENTS.star,
+    icon: 'sparkles' as const,
+    label: 'AI similar-photo cleanup',
+    sub: 'Keeps the best shot, deletes the rest',
+  },
 ];
 
-function headline(context: PaywallContext, countdown: string): { title: string; subtitle: string } {
+function headline(context: PaywallContext): { title: string; subtitle: string } {
   switch (context) {
     case 'sessions':
       return {
         title: "You're on a roll.\nDon't stop now.",
-        subtitle: `Free sessions refill in ${countdown} — or keep swiping right now with unlimited sessions.`,
+        subtitle: "You've used today's free sessions. Pro keeps you swiping.",
       };
     case 'batch':
       return {
-        title: 'Unlock 100-photo\nsessions',
-        subtitle: `Free plan reviews ${FREE_PLAN.maxBatchSize} photos at a time. Pro clears 100 in one sitting.`,
+        title: 'Clear 100 photos\nin one sitting',
+        subtitle: `Free reviews ${FREE_PLAN.maxBatchSize} at a time. Pro batches are 4× bigger — same swipes, four times the progress.`,
+      };
+    case 'chip':
+      return {
+        title: 'Clean your library\n10× faster',
+        subtitle: 'Unlimited sessions. 100-photo batches. Zero waiting.',
       };
     default:
       return {
-        title: 'Clean your library\n10× faster',
-        subtitle: 'Unlimited sessions, 100-photo batches, zero waiting.',
+        title: 'Your backlog,\ngone this week',
+        subtitle: 'Unlimited sessions and 100-photo batches, from $0.58/week.',
       };
   }
 }
@@ -62,6 +81,32 @@ function perWeekPrice(pkg: PurchasesPackage | null): string {
   } catch {
     return '$0.58';
   }
+}
+
+function FeatureCard() {
+  return (
+    <GlassCard className="px-4 py-3.5 mb-5" noBlur>
+      {PRO_FEATURES.map((f, i) => (
+        <View key={f.label}>
+          {i > 0 && <View className="h-px bg-white/10 my-3" />}
+          <View className="flex-row items-center gap-3">
+            <LinearGradient
+              colors={f.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name={f.icon} size={18} color="white" />
+            </LinearGradient>
+            <View className="flex-1">
+              <Text className="text-white text-[15px] font-semibold">{f.label}</Text>
+              <Text className="text-white/55 text-[13px]">{f.sub}</Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </GlassCard>
+  );
 }
 
 function TrialTimeline() {
@@ -153,23 +198,12 @@ export default function PaywallScreen() {
   const params = useLocalSearchParams<{ context?: string }>();
   const context = (params.context ?? 'settings') as PaywallContext;
 
-  const index = useGalleryStore((s) => s.index);
-  const keepIds = useKeepStore((s) => s.keepIds);
-
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [offeringsLoaded, setOfferingsLoaded] = useState(false);
   const [trialEligible, setTrialEligible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
   const [purchasing, setPurchasing] = useState(false);
   const [closeEnabled, setCloseEnabled] = useState(false);
-
-  // Live refill countdown (sessions context), ticking seconds
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    if (context !== 'sessions') return;
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, [context]);
 
   // Close button: fade in after 1.5s (present but understated — no dark patterns)
   const closeOpacity = useSharedValue(0);
@@ -197,19 +231,7 @@ export default function PaywallScreen() {
   const weeklyPrice = weeklyPkg?.product.priceString ?? FALLBACK_PRICING.weekly;
   const annualPrice = annualPkg?.product.priceString ?? FALLBACK_PRICING.annual;
 
-  const { title, subtitle } = headline(context, formatCountdown(msUntilMidnight(now)));
-
-  // Loss-framing stat: how long the backlog takes at the free pace
-  const backlogLine = useMemo(() => {
-    const remaining = Math.max(0, index.length - keepIds.size);
-    if (remaining < 500) return null;
-    const days = Math.ceil(remaining / (FREE_PLAN.sessionsPerDay * FREE_PLAN.maxBatchSize));
-    const months = Math.max(1, Math.round(days / 30));
-    return {
-      remaining,
-      pace: `At ${FREE_PLAN.sessionsPerDay * FREE_PLAN.maxBatchSize} free photos a day, that's ${months} month${months > 1 ? 's' : ''} of cleaning. Pro clears it in days.`,
-    };
-  }, [index, keepIds]);
+  const { title, subtitle } = headline(context);
 
   function close() {
     posthog.capture('paywall_dismissed', { context });
@@ -262,21 +284,14 @@ export default function PaywallScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pb-4 pt-14"
+        contentContainerClassName="px-6 pb-4 pt-3"
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero */}
-        <View className="items-center mb-5">
-          <View className="rounded-full overflow-hidden mb-4">
-            <LinearGradient
-              colors={GRADIENTS.star}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: 64, height: 64, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Ionicons name="sparkles" size={30} color="black" />
-            </LinearGradient>
-          </View>
+        {/* Living hero: lock chip (sessions) + auto-swiping demo */}
+        <PaywallHero lockLabel={context === 'sessions' ? '2 of 2 free sessions used today' : undefined} />
+
+        {/* Headline */}
+        <View className="items-center mt-4 mb-5">
           <Text
             className="text-white font-extrabold text-center"
             style={{ fontSize: 32, lineHeight: 37, letterSpacing: -0.8 }}
@@ -288,40 +303,8 @@ export default function PaywallScreen() {
           </Text>
         </View>
 
-        {/* Personalized loss framing */}
-        {backlogLine && (
-          <Animated.View entering={FadeIn.delay(200)}>
-            <GlassCard className="p-4 mb-4 flex-row items-center gap-3" noBlur>
-              <View className="w-10 h-10 rounded-full bg-streak/15 items-center justify-center">
-                <Ionicons name="hourglass" size={18} color="#FF9F0A" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-white text-[15px] font-bold">
-                  {backlogLine.remaining.toLocaleString()} photos still waiting
-                </Text>
-                <Text className="text-white/50 text-[13px] mt-0.5" style={{ lineHeight: 18 }}>
-                  {backlogLine.pace}
-                </Text>
-              </View>
-            </GlassCard>
-          </Animated.View>
-        )}
-
-        {/* Features */}
-        <View className="gap-2.5 mb-5">
-          {PRO_FEATURES.map((f) => (
-            <View key={f.label} className="flex-row items-center gap-3">
-              <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center">
-                <Ionicons name={f.icon} size={15} color="#0A84FF" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-white text-[15px] font-semibold">{f.label}</Text>
-                <Text className="text-white/40 text-[12px]">{f.sub}</Text>
-              </View>
-              <Ionicons name="checkmark-circle" size={18} color="#30D158" />
-            </View>
-          ))}
-        </View>
+        {/* Gradient feature card */}
+        <FeatureCard />
 
         {/* Plan cards */}
         <View className="gap-3 mb-4">
