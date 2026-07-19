@@ -62,10 +62,17 @@ directory is a durable place for manual edits — the fix must happen **during p
 
 ## 2. Recommended solution: a local Expo config plugin
 
-A ~40-line local plugin that runs at prebuild time, reads `SENTRY_AUTH_TOKEN` from the
-environment (Expo CLI loads `.env.local` for **all** commands, including `prebuild`),
-and merges `auth.token` into `ios/sentry.properties`. Every prebuild — local or CI —
-produces a self-sufficient properties file. Zero recurring manual steps.
+A local plugin that runs at prebuild time and merges `auth.token` into
+`ios/sentry.properties`. Every prebuild — local or CI — produces a self-sufficient
+properties file. Zero recurring manual steps.
+
+> ⚠️ **Correction (learned the hard way):** an earlier version of this plugin read the
+> token from `process.env.SENTRY_AUTH_TOKEN` only, assuming `expo prebuild` populates it
+> from `.env.local`. **It does not reliably do so** — prebuild left the properties file
+> token-less and archives failed. The shipped plugin therefore resolves the token from
+> **`process.env` first (CI/EAS), then reads `.env.local` / `.env` at the project root
+> itself** (local dev). See `plugins/withSentryAuthToken.js`. The code block below is
+> the original env-only version, kept for context — the real file is the robust one.
 
 ### 2.1 Plugin file: `plugins/withSentryAuthToken.js`
 

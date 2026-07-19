@@ -3,36 +3,73 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Merges SENTRY_AUTH_TOKEN from the environment into ios/sentry.properties at
- * prebuild time. Expo CLI loads .env/.env.local before running config plugins,
- * so locally the token comes from .env.local; on CI it comes from the runner's
- * secret env. Without this, Xcode GUI archives fail the source-map upload
- * ("Auth token is required") because Xcode never sees shell env or .env files,
- * and every `expo prebuild --clean` regenerates sentry.properties without a
- * token (the @sentry/react-native plugin only writes defaults.url/org/project).
+ * Injects the Sentry auth token into ios/sentry.properties at prebuild time so
+ * Xcode GUI archives don't fail the source-map upload with "Auth token is
+ * required", and so the fix survives `expo prebuild --clean` (the
+ * @sentry/react-native plugin regenerates the file with only
+ * defaults.url/org/project — no token).
  *
- * Order-independent by design: the merge keeps whatever the Sentry plugin wrote
- * and only manages the auth.token line, so it works whether this mod runs before
- * or after that plugin's own file writer.
+ * Token resolution (first hit wins):
+ *   1. process.env.SENTRY_AUTH_TOKEN  — CI/EAS secrets, and any shell that
+ *      exported it. Do NOT rely on Expo pre-loading .env here: `expo prebuild`
+ *      does not reliably populate process.env from .env.local, which is why an
+ *      earlier env-only version silently no-op'd and left the file token-less.
+ *   2. .env.local / .env at the project root — the local-dev path. These are
+ *      gitignored, so they never exist on CI, where step 1 covers it instead.
+ *
+ * The merge is idempotent: existing auth.token lines are stripped before the
+ * current one is appended, so repeat prebuilds never accumulate duplicates.
  */
+
+// Minimal KEY=VALUE reader for a single env var — avoids depending on dotenv
+// being hoisted (pnpm) and only needs one key.
+function readTokenFromEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return undefined;
+  const contents = fs.readFileSync(filePath, 'utf8');
+  for (const rawLine of contents.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    if (line.slice(0, eq).trim() !== 'SENTRY_AUTH_TOKEN') continue;
+    let value = line.slice(eq + 1).trim();
+    // Strip surrounding quotes if present
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    return value || undefined;
+  }
+  return undefined;
+}
+
+function resolveToken(projectRoot) {
+  if (process.env.SENTRY_AUTH_TOKEN) return process.env.SENTRY_AUTH_TOKEN;
+  return (
+    readTokenFromEnvFile(path.join(projectRoot, '.env.local')) ||
+    readTokenFromEnvFile(path.join(projectRoot, '.env'))
+  );
+}
+
 const withSentryAuthToken = (config) => {
   return withDangerousMod(config, [
     'ios',
     async (cfg) => {
-      const token = process.env.SENTRY_AUTH_TOKEN;
+      const token = resolveToken(cfg.modRequest.projectRoot);
       const propsPath = path.join(
         cfg.modRequest.platformProjectRoot,
         'sentry.properties',
       );
 
       if (!token) {
-        // Never fail prebuild: CLI/CI builds still work via inherited env, and
-        // Debug builds skip the upload entirely. Only Xcode GUI archives need
-        // the file-based token.
+        // Never fail prebuild: Debug builds skip the upload, and a contributor
+        // without the token can still work. Only Xcode GUI archives break.
         console.warn(
-          '[withSentryAuthToken] SENTRY_AUTH_TOKEN not set — ios/sentry.properties ' +
-            'will have no auth.token. Xcode GUI archives will fail the Sentry upload. ' +
-            'Add SENTRY_AUTH_TOKEN to .env.local (local) or CI secrets.',
+          '[withSentryAuthToken] No SENTRY_AUTH_TOKEN in env, .env.local, or .env — ' +
+            'ios/sentry.properties will have no auth.token and Xcode archives will fail ' +
+            'the Sentry upload.',
         );
         return cfg;
       }
@@ -41,8 +78,6 @@ const withSentryAuthToken = (config) => {
         ? fs.readFileSync(propsPath, 'utf8')
         : '';
 
-      // Strip ALL existing auth.token lines (idempotent — no duplicates on
-      // repeat prebuilds) and append the current one.
       const withoutToken = existing
         .split('\n')
         .filter((line) => !line.startsWith('auth.token='))
