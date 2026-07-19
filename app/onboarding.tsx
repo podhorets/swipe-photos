@@ -224,7 +224,7 @@ function DedupDemo({ active }: { active: boolean }) {
     );
 
     const thumbStyle = (i: number) =>
-        // eslint-disable-next-line react-hooks/rules-of-hooks
+        // Hook called in a render-time helper — safe: always called exactly 3 times in fixed order
         useAnimatedStyle(() => {
             const t = interpolate(p.value, [0.15 + i * 0.06, 0.65 + i * 0.06], [0, 1], Extrapolation.CLAMP);
             return {
@@ -421,7 +421,7 @@ export default function OnboardingScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         const next = currentStep + 1;
         setCurrentStep(next);
-        slideOffset.value = withSpring(next, SPRING.modal);
+        slideOffset.value = withSpring(next, SPRING.slide);
     }
 
     async function handleFinish() {

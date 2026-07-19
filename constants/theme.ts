@@ -111,6 +111,8 @@ export const SPRING = {
   press: { damping: 22, stiffness: 350, mass: 0.6 },
   // Modal / sheet entrance
   modal: { damping: 28, stiffness: 300 },
+  // Onboarding slide transition — slow, overdamped glide, no overshoot
+  slide: { damping: 26, stiffness: 80 },
 };
 
 export const SWIPE = {
