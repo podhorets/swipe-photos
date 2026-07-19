@@ -1,29 +1,29 @@
+import { GRADIENTS } from '@/constants/theme';
+import { gatedHaptic } from '@/lib/haptics';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useAnimatedReaction,
-    useSharedValue,
-    withTiming,
-    withSequence,
-    withDelay,
-    withRepeat,
-    interpolate,
-    Extrapolation,
     cancelAnimation,
     Easing,
+    Extrapolation,
+    interpolate,
+    useAnimatedReaction,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import * as Haptics from 'expo-haptics';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { gatedHaptic } from '@/lib/haptics';
-import { GRADIENTS } from '@/constants/theme';
 
 const FLY = 420; // off the hero viewport
 const DRAG = 48; // "hesitation" drag before commit
-const CARD_W = 112;
-const CARD_H = 136;
+const CARD_W = 110;
+const CARD_H = 134;
 
 interface PaywallHeroProps {
     /** Amber lock chip above the demo, e.g. "2 of 2 free sessions used today". */
@@ -84,7 +84,7 @@ export function PaywallHero({ lockLabel }: PaywallHeroProps) {
     }));
 
     return (
-        <View className="items-center gap-2.5" style={{ height: 190, justifyContent: 'center' }}>
+        <View className="items-center gap-2.5" style={{ height: lockLabel ? 190 : 150, justifyContent: 'center' }}>
             {lockLabel && (
                 <View
                     className="flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-full border"

@@ -23,28 +23,6 @@ const PRIVACY_URL = 'https://swipephotos.app/privacy';
 type PlanId = 'annual' | 'weekly';
 type PaywallContext = 'sessions' | 'batch' | 'chip' | 'settings';
 
-// Gradient feature card rows (design 2b)
-const PRO_FEATURES = [
-  {
-    gradient: GRADIENTS.accent,
-    icon: 'infinite' as const,
-    label: 'Unlimited review sessions',
-    sub: 'No daily limits, ever',
-  },
-  {
-    gradient: GRADIENTS.analytics,
-    icon: 'albums' as const,
-    label: 'Unlock 50 & 100-photo reviews',
-    sub: 'Up to 4× bigger sessions',
-  },
-  {
-    gradient: GRADIENTS.star,
-    icon: 'sparkles' as const,
-    label: 'AI similar-photo cleanup',
-    sub: 'Keeps the best shot, deletes the rest',
-  },
-];
-
 function headline(context: PaywallContext): { title: string; subtitle: string } {
   switch (context) {
     case 'sessions':
@@ -81,32 +59,6 @@ function perWeekPrice(pkg: PurchasesPackage | null): string {
   } catch {
     return '$0.58';
   }
-}
-
-function FeatureCard() {
-  return (
-    <GlassCard className="px-4 py-3.5 mb-5" noBlur>
-      {PRO_FEATURES.map((f, i) => (
-        <View key={f.label}>
-          {i > 0 && <View className="h-px bg-white/10 my-3" />}
-          <View className="flex-row items-center gap-3">
-            <LinearGradient
-              colors={f.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Ionicons name={f.icon} size={18} color="white" />
-            </LinearGradient>
-            <View className="flex-1">
-              <Text className="text-white text-[15px] font-semibold">{f.label}</Text>
-              <Text className="text-white/55 text-[13px]">{f.sub}</Text>
-            </View>
-          </View>
-        </View>
-      ))}
-    </GlassCard>
-  );
 }
 
 function TrialTimeline() {
@@ -201,7 +153,7 @@ export default function PaywallScreen() {
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [offeringsLoaded, setOfferingsLoaded] = useState(false);
   const [trialEligible, setTrialEligible] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('weekly');
   const [purchasing, setPurchasing] = useState(false);
   const [closeEnabled, setCloseEnabled] = useState(false);
 
@@ -303,10 +255,7 @@ export default function PaywallScreen() {
           </Text>
         </View>
 
-        {/* Gradient feature card */}
-        <FeatureCard />
-
-        {/* Plan cards */}
+        {/* Plan cards — weekly pre-selected (carries the free trial); annual keeps the anchor badge */}
         <View className="gap-3 mb-4">
           <PlanCard
             selected={selectedPlan === 'annual'}
