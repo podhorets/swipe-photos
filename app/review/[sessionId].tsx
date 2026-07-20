@@ -107,10 +107,11 @@ function GlassCircleButton({
 
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
-  const { sessionId, year, month } = useLocalSearchParams<{
+  const { sessionId, year, month, startGroup } = useLocalSearchParams<{
     sessionId: string;
     year?: string;
     month?: string;
+    startGroup?: string;
   }>();
 
   const {
@@ -196,7 +197,7 @@ export default function ReviewScreen() {
     undoOpacity.value = withTiming(1, { duration: 150 });
   }, [undoOpacity]);
 
-  const sessionKey = `${sessionId}-${year ?? ''}-${month ?? ''}`;
+  const sessionKey = `${sessionId}-${year ?? ''}-${month ?? ''}-${startGroup ?? ''}`;
   const lastStartedKey = useRef('');
   useEffect(() => {
     if (lastStartedKey.current === sessionKey) return;
@@ -206,6 +207,7 @@ export default function ReviewScreen() {
       category: sessionId as Category,
       yearFilter: year ? Number(year) : undefined,
       monthFilter: month,
+      startGroupKey: startGroup,
     });
   }, [sessionKey, startSession]);
 

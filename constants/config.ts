@@ -29,6 +29,11 @@ export const SIMILAR = {
   analysisRetryMs: 7 * 24 * 60 * 60 * 1000,
   // Rescan on tab focus when the last scan is older than this
   rescanMaxAgeMs: 24 * 60 * 60 * 1000,
+  // After the first full scan, every rescan only re-compares the newest N
+  // assets and stitches the result onto the previously found groups. Keeps
+  // "took a photo" cheap; old-timestamped imports past this slice are not
+  // re-grouped (accepted trade-off — see similarStore.runScan).
+  incrementalAssetCount: 500,
 };
 
 // Free plan limits

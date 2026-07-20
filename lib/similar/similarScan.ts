@@ -32,6 +32,12 @@ export interface SimilarScanOptions {
   onGroups?: (groupsSoFar: string[][]) => void;
   /** Checked between native batches; true aborts the scan. */
   shouldAbort?: () => boolean;
+  /**
+   * Skip all checkpoint read/write. Set for incremental slice-scans, which run
+   * over a partial index (the newest N assets) and must never read or clobber
+   * the full-scan checkpoint keyed on the whole library's photoCount.
+   */
+  skipCheckpoint?: boolean;
 }
 
 // Plain macrotask yield. NOT InteractionManager: a long-running animation can
@@ -49,7 +55,7 @@ function yieldToJS(): Promise<void> {
  */
 export async function scanSimilarGroups(
   index: AssetMeta[],
-  { onProgress, onGroups, shouldAbort }: SimilarScanOptions = {},
+  { onProgress, onGroups, shouldAbort, skipCheckpoint }: SimilarScanOptions = {},
 ): Promise<SimilarScanResult | null> {
   const photos = index.filter((a) => a.mediaType === 'photo');
 
@@ -73,7 +79,9 @@ export async function scanSimilarGroups(
   // Resume: a previous scan for this library state (deletions tolerated —
   // read-time filtering handles them) picks up mid-compare with everything it
   // had already found, instead of redoing minutes of Vision work.
-  const resume = loadScanCheckpoint(photoCount, newestCreationTime);
+  const resume = skipCheckpoint
+    ? null
+    : loadScanCheckpoint(photoCount, newestCreationTime);
   let refined: string[][];
 
   if (resume?.compareComplete) {
@@ -116,7 +124,9 @@ export async function scanSimilarGroups(
       batchPhotoCount = 0;
       // Stream results + checkpoint after every batch: the UI fills up live,
       // and a killed app resumes here instead of starting over
-      saveScanCheckpoint(photoCount, newestCreationTime, found, processedPhotos, false);
+      if (!skipCheckpoint) {
+        saveScanCheckpoint(photoCount, newestCreationTime, found, processedPhotos, false);
+      }
       onGroups?.([...found]);
       onProgress?.(processedPhotos, totalCandidatePhotos, 'compare');
       // Keep the JS thread responsive between heavy native calls
@@ -143,7 +153,9 @@ export async function scanSimilarGroups(
     if (aborted || shouldAbort?.()) return null;
 
     refined = found;
-    saveScanCheckpoint(photoCount, newestCreationTime, refined, processedPhotos, true);
+    if (!skipCheckpoint) {
+      saveScanCheckpoint(photoCount, newestCreationTime, refined, processedPhotos, true);
+    }
   }
 
   // Blur + face pass for best-shot selection (cache-first, chunked). On a
@@ -156,6 +168,6 @@ export async function scanSimilarGroups(
   const bestIds = Array.from(pickBestShots(refined, cache));
 
   // Full scan finished — the final result is persisted by the store
-  clearScanCheckpoint();
+  if (!skipCheckpoint) clearScanCheckpoint();
   return { groups: refined, bestIds, analyzerUsed: true };
 }

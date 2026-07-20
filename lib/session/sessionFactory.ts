@@ -21,6 +21,9 @@ export interface SessionRequest {
   yearFilter?: number;
   monthFilter?: string; // 'YYYY-MM'
   batchSize?: number;
+  // For similar — start the batch at the group containing this asset id (the
+  // tile the user tapped). Falls back to the first group if not found.
+  startGroupKey?: string;
 }
 
 export function createSession(
@@ -29,14 +32,21 @@ export function createSession(
   keepIds: Set<string> = new Set(),
   similarGroups: string[][] = [],
 ): Session {
-  const { category, yearFilter, monthFilter, batchSize = GALLERY.defaultBatchSize } = request;
+  const { category, yearFilter, monthFilter, startGroupKey, batchSize = GALLERY.defaultBatchSize } = request;
   let assets: AssetMeta[] = [];
   let label = '';
 
   if (category === 'similar') {
     // Batch unit is GROUPS, not photos — a session reviews `batchSize` groups
     const indexIds = new Set(index.map((a) => a.id));
-    const groups = filterGroupsForReview(similarGroups, keepIds, indexIds).slice(0, batchSize);
+    const allGroups = filterGroupsForReview(similarGroups, keepIds, indexIds);
+    // Start the batch at the tapped group (the tile the user pressed). Match by
+    // membership so a differing intra-group order can't miss it; fall back to 0
+    // when the key is stale (e.g. a rescan dropped it between render and tap).
+    const startIndex = startGroupKey
+      ? Math.max(0, allGroups.findIndex((g) => g.includes(startGroupKey)))
+      : 0;
+    const groups = allGroups.slice(startIndex, startIndex + batchSize);
     return {
       id: randomId(),
       category,

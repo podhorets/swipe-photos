@@ -185,10 +185,20 @@ export default function SimilarScreen() {
     effectiveBatchSize(planState, batchSize),
   );
 
-  function handleStartReview() {
+  function handleStartReview(startGroupKey?: string) {
     if (!gateSessionStart()) return;
-    posthog.capture('similar_review_started', { group_count: reviewCount });
-    router.push('/review/similar');
+    posthog.capture('similar_review_started', {
+      group_count: reviewCount,
+      from_tile: !!startGroupKey,
+    });
+    router.push(
+      startGroupKey
+        ? {
+            pathname: '/review/[sessionId]',
+            params: { sessionId: 'similar', startGroup: startGroupKey },
+          }
+        : '/review/similar',
+    );
   }
 
   const scanning = scanState === 'scanning';
@@ -272,7 +282,7 @@ export default function SimilarScreen() {
             }
             renderItem={({ item }) => (
               <Pressable
-                onPress={handleStartReview}
+                onPress={() => handleStartReview(item.key)}
                 accessibilityRole="button"
                 className="mb-3 active:opacity-80"
               >
