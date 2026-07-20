@@ -60,19 +60,36 @@ config plugin (configured in `app.json` with `url`, `project: swipe-photos`,
 `organization: cleaner-p7`). `/ios` is gitignored (CNG project), so nothing in that
 directory is a durable place for manual edits — the fix must happen **during prebuild**.
 
-## 2. Recommended solution: a local Expo config plugin
+## 2. Solution: a local Expo config plugin writing `ios/.xcode.env.local`
 
-A local plugin that runs at prebuild time and merges `auth.token` into
-`ios/sentry.properties`. Every prebuild — local or CI — produces a self-sufficient
-properties file. Zero recurring manual steps.
+A local plugin (`plugins/withSentryAuthToken.js`) runs at prebuild and writes
+`export SENTRY_AUTH_TOKEN=…` into **`ios/.xcode.env.local`**. Every RN build script
+phase sources that file, so sentry-cli finds the token regardless of how Xcode is
+launched (GUI archive included). Survives `expo prebuild --clean`. Zero recurring
+manual steps.
 
-> ⚠️ **Correction (learned the hard way):** an earlier version of this plugin read the
-> token from `process.env.SENTRY_AUTH_TOKEN` only, assuming `expo prebuild` populates it
-> from `.env.local`. **It does not reliably do so** — prebuild left the properties file
-> token-less and archives failed. The shipped plugin therefore resolves the token from
-> **`process.env` first (CI/EAS), then reads `.env.local` / `.env` at the project root
-> itself** (local dev). See `plugins/withSentryAuthToken.js`. The code block below is
-> the original env-only version, kept for context — the real file is the robust one.
+> ⚠️ **Two wrong turns, both fixed — read before touching this:**
+>
+> 1. **Env-only token read was a no-op.** The first version read
+>    `process.env.SENTRY_AUTH_TOKEN` only, assuming `expo prebuild` preloads `.env.local`.
+>    Prebuild logs showed it didn't populate it in time. The plugin now reads
+>    `.env.local`/`.env` at the project root directly (after checking `process.env` for
+>    CI/EAS).
+> 2. **`sentry.properties` gets clobbered.** The second version wrote `auth.token` into
+>    `ios/sentry.properties`. Prebuild logs proved the write happened
+>    (`auth.token written`) but the final file had **zero** token lines: the
+>    `@sentry/react-native/expo` plugin runs its own mod **after** ours and regenerates
+>    `sentry.properties` token-less. Array ordering did not fix it. **Solution: target
+>    `ios/.xcode.env.local` instead** — the Sentry plugin never touches it, and
+>    `pod install` preserves an existing one (both verified). This is also exactly how
+>    the sibling `cleaner-final` app supplies the token.
+>
+> The plugin also writes `export NODE_BINARY=<absolute node path>` into the same file,
+> because `.xcode.env` uses `$(command -v node)` which fails in Xcode GUI archives where
+> nvm's node isn't on PATH — the `.local` override is what lets GUI archives find node.
+>
+> The old env-only code block below is **historical** — the shipped file is the
+> `.xcode.env.local` version.
 
 ### 2.1 Plugin file: `plugins/withSentryAuthToken.js`
 
