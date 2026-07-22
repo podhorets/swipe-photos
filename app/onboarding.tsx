@@ -418,6 +418,11 @@ function TrustCard() {
 
 // ─── Steps ───────────────────────────────────────────────────────────────────
 
+// Height of the "Skip for now" row. It is subtracted back out of the CTA
+// wrapper's margin, so the row must carry a known height rather than being
+// sized by its text.
+const SKIP_ROW_HEIGHT = 36;
+
 const STEPS = [
     {
         title: 'Left deletes.\nRight keeps.',
@@ -480,7 +485,9 @@ export default function OnboardingScreen() {
     return (
         <View
             className="flex-1 bg-bg-dark"
-            style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+            // Floor the bottom inset: on home-button devices it is 0, which
+            // would leave the skip link hanging past the screen edge.
+            style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }}
         >
             <AuroraBackground variant="onboarding" />
 
@@ -579,18 +586,29 @@ export default function OnboardingScreen() {
                     )}
                 </View>
 
-                {/* Primary CTA */}
-                <GradientPillButton
-                    label={isLastStep ? 'Allow Photo Access' : 'Continue'}
-                    onPress={isLastStep ? handleFinish : goNext}
-                />
+                {/* Primary CTA. The skip row below it is cancelled out of the
+                    column with a matching negative margin, so it hangs into the
+                    bottom padding instead of lifting the CTA — the primary
+                    button holds the same line on all three steps. */}
+                <View style={isLastStep ? { marginBottom: -SKIP_ROW_HEIGHT } : undefined}>
+                    <GradientPillButton
+                        label={isLastStep ? 'Allow Photo Access' : 'Continue'}
+                        onPress={isLastStep ? handleFinish : goNext}
+                    />
 
-                {/* Skip (last step only, visually quiet) */}
-                {isLastStep && (
-                    <Pressable onPress={handleSkip} className="items-center py-2">
-                        <Text className="text-white/40 text-sm">Skip for now</Text>
-                    </Pressable>
-                )}
+                    {/* Skip (last step only, visually quiet) */}
+                    {isLastStep && (
+                        <Pressable
+                            onPress={handleSkip}
+                            accessibilityRole="button"
+                            hitSlop={{ left: 60, right: 60 }}
+                            className="items-center justify-center active:opacity-60"
+                            style={{ height: SKIP_ROW_HEIGHT }}
+                        >
+                            <Text className="text-white/40 text-sm">Skip for now</Text>
+                        </Pressable>
+                    )}
+                </View>
             </View>
         </View>
     );

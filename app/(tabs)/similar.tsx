@@ -2,12 +2,10 @@ import { useCallback, useMemo } from 'react';
 import { View, Text, FlatList, Pressable } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import { GlassCard } from '@/components/glass/GlassCard';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
-import { ProgressBar } from '@/components/ui/ProgressBar';
+import { ProgressRing } from '@/components/ui/ProgressRing';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useSimilarStore } from '@/stores/similarStore';
@@ -19,7 +17,7 @@ import { gateSessionStart } from '@/lib/sessionGate';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
 import { SIMILAR } from '@/constants/config';
-import { SCREEN } from '@/constants/theme';
+import { GRADIENTS, SCREEN } from '@/constants/theme';
 import { ProgressivePhoto } from '@/components/similar/ProgressivePhoto';
 import { posthog } from '@/lib/posthog';
 import type { AssetMeta } from '@/types';
@@ -35,6 +33,9 @@ interface DisplayGroup {
 // How many group cards the tab previews — the review session covers up to a
 // full batch regardless, so the list is a teaser, not the full inventory.
 const PREVIEW_GROUP_COUNT = 50;
+
+// Share of the scan dial owned by the compare pass; the rest is best-shot analysis
+const COMPARE_SHARE = 0.85;
 
 // Two square collage tiles per row (px-5 screen padding, 12 gap)
 const TILE_SIZE = (SCREEN.width - 40 - 12) / 2;
@@ -202,6 +203,17 @@ export default function SimilarScreen() {
   }
 
   const scanning = scanState === 'scanning';
+  // The two passes each report 0→100% of their own workload, so a raw ratio
+  // would fill the dial and snap back to zero when best-shot picking starts.
+  // Fold them into one monotonic number: compare walks the whole library,
+  // analyze only the groups it found, so compare owns most of the sweep.
+  const phaseRatio =
+    scanProgress && scanProgress.total > 0 ? scanProgress.processed / scanProgress.total : 0;
+  const scanRatio =
+    scanProgress?.phase === 'analyze'
+      ? COMPARE_SHARE + phaseRatio * (1 - COMPARE_SHARE)
+      : phaseRatio * COMPARE_SHARE;
+  const scanPct = Math.round(scanRatio * 100);
 
   return (
     <View className="flex-1 bg-bg-dark">
@@ -211,37 +223,45 @@ export default function SimilarScreen() {
         className="flex-1 px-5"
         style={{ paddingTop: insets.top + 16 }}
       >
-        <Text
-          className="text-white text-[34px] font-extrabold mb-1"
-          style={{ letterSpacing: -0.8 }}
-        >
-          Similar
-        </Text>
-        <Text className="text-white/50 text-sm mb-4">
-          {displayGroups.length > 0
-            ? `${displayGroups.length} groups · ${totalPhotos} photos · ${formatBytes(totalReclaim)} to free`
-            : scanning
-              ? 'Finding lookalike shots…'
-              : 'Near-duplicate photos, grouped for quick cleanup'}
-        </Text>
+        <View className="flex-row items-start justify-between gap-3 mb-4">
+          <View className="flex-1">
+            <Text
+              className="text-white text-[34px] font-extrabold mb-1"
+              style={{ letterSpacing: -0.8 }}
+            >
+              Similar
+            </Text>
+            <Text className="text-white/50 text-sm">
+              {displayGroups.length > 0
+                ? `${displayGroups.length} groups · ${totalPhotos} photos · ${formatBytes(totalReclaim)} to free`
+                : scanning
+                  ? 'Finding lookalike shots…'
+                  : 'Near-duplicate photos, grouped for quick cleanup'}
+            </Text>
+          </View>
 
-        {/* Scan progress — informational only; the list and CTA stay usable
-            with the previous scan's groups while a rescan runs */}
-        {scanning && (
-          <GlassCard noBlur radius={18} className="mb-3">
-            <View className="px-4 py-3">
-              <Text className="text-white/60 text-[13px] mb-2">
-                {scanProgress?.phase === 'analyze'
-                  ? 'Picking the best of each group…'
-                  : 'Comparing photos on-device…'}
-                {scanProgress ? ` ${scanProgress.processed.toLocaleString()} of ${scanProgress.total.toLocaleString()}` : ''}
-              </Text>
-              <ProgressBar
-                progress={scanProgress && scanProgress.total > 0 ? scanProgress.processed / scanProgress.total : 0}
-              />
+          {/* Scan progress — a corner dial rather than a banner. The scan is
+              informational (the list and CTA stay usable on the previous
+              scan's groups), so it shouldn't cost a row of the layout. */}
+          {scanning && (
+            <View
+              className="mt-1.5"
+              accessibilityRole="progressbar"
+              accessibilityLabel={`Scanning for similar photos, ${scanPct}% complete`}
+            >
+              <ProgressRing
+                size={48}
+                radius={19.5}
+                strokeWidth={4}
+                progress={scanRatio}
+                duration={450}
+                gradientColors={GRADIENTS.freed}
+              >
+                <Text className="text-white text-[11px] font-extrabold">{scanPct}%</Text>
+              </ProgressRing>
             </View>
-          </GlassCard>
-        )}
+          )}
+        </View>
 
         {/* Group previews / empty state */}
         {displayGroups.length === 0 ? (

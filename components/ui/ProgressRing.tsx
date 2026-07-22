@@ -18,6 +18,8 @@ interface ProgressRingProps {
   trackColor?: string;
   gradientColors?: readonly [string, string];
   color?: string; // solid stroke; ignored when gradientColors is set
+  /** Ease duration in ms. Shorten it for sources that tick faster than 800ms. */
+  duration?: number;
   children?: React.ReactNode; // absolutely-centered content
 }
 
@@ -33,6 +35,7 @@ export function ProgressRing({
   trackColor = 'rgba(255,255,255,0.1)',
   gradientColors,
   color = '#0A84FF',
+  duration = 800,
   children,
 }: ProgressRingProps) {
   const gradientId = useId();
@@ -42,10 +45,10 @@ export function ProgressRing({
 
   useEffect(() => {
     animated.value = withTiming(clamped, {
-      duration: 800,
+      duration,
       easing: Easing.out(Easing.cubic),
     });
-  }, [clamped, animated]);
+  }, [clamped, animated, duration]);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: circumference * (1 - animated.value),
