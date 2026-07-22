@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import Animated, {
     Extrapolation,
     cancelAnimation,
     Easing,
+    type SharedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
@@ -29,6 +30,8 @@ import {
     DEDUP_BEST_INDEX,
     DEDUP_DEMO_PHOTOS,
     SWIPE_DEMO_CARDS,
+    type DemoPhoto,
+    type SwipeDemoCard,
 } from '@/constants/demoPhotos';
 import { usePermissions } from '@/hooks/usePermissions';
 import { gatedHaptic } from '@/lib/haptics';
@@ -44,99 +47,186 @@ const storage = createMMKV();
 // how to fill the six slots (bundled asset or https link).
 
 // ─── Step 1 hero: auto-playing swipe demo ────────────────────────────────────
-// A deck that swipes itself through SWIPE_DEMO_CARDS on a loop, each card
-// committing the decision it was configured with — left with the DELETE
-// overlay, right with KEEP. Pure UI-thread transforms; the same ActionOverlay
-// interpolation curves as the real SwipeCard, so onboarding *is* the product.
+// A deck that swipes itself through SWIPE_DEMO_CARDS on a loop. Every card is
+// mounted once with its own photo and derives its pose (hidden → back-of-deck
+// → front → flown off) from one linear master clock, entirely on the UI
+// thread. Photos NEVER change on a mounted Image — swapping `source` mid-view
+// is what caused visible cross-fade/placeholder churn between swipes.
 
 const DEMO_W = 190;
 const DEMO_H = 254;
 const DEMO_FLY = SCREEN_WIDTH; // fully off the hero viewport
 const DEMO_DRAG = 48; // "hesitation" drag distance before commit
-const DEMO_HOLD_MS = 700; // beat the card rests before it commits
-// Back-of-deck pose. The incoming card promotes out of it, so a new photo reads
-// as the next one stepping forward rather than blinking into place.
+// Back-of-deck pose; the next card promotes out of it into the front pose
 const DEMO_BACK_SCALE = 0.94;
 const DEMO_BACK_Y = 12;
+// One beat = one card's turn: settle in, rest, drag, fly off. The clock runs
+// 0→N linearly (one unit per beat); each phase applies its own easing locally.
+const BEAT_MS = 1470;
+const F_SETTLE = 0.18; // by here the card has settled from back pose to front
+const F_DRAG = 0.48; // rest ends, hesitation drag begins
+const F_COMMIT = 0.78; // threshold crossed — fly-off begins
+// Placeholder gradient per deck position, so unfilled slots stay distinguishable
+const DECK_GRADIENTS = [GRADIENTS.accent, GRADIENTS.analytics, GRADIENTS.shield, GRADIENTS.freed] as const;
+
+/** Front-card translateX over the beat — piecewise, eased per phase. */
+function deckFrontX(u: number, dir: number): number {
+    'worklet';
+    if (u >= F_COMMIT) {
+        const t = (u - F_COMMIT) / (1 - F_COMMIT);
+        return dir * (DEMO_DRAG + (DEMO_FLY - DEMO_DRAG) * t * t);
+    }
+    if (u >= F_DRAG) {
+        const t = (u - F_DRAG) / (F_COMMIT - F_DRAG);
+        return dir * DEMO_DRAG * (1 - (1 - t) * (1 - t));
+    }
+    return 0;
+}
+
+function DeckCard({
+    clock,
+    index,
+    card,
+    total,
+}: {
+    clock: SharedValue<number>;
+    index: number;
+    card: SwipeDemoCard;
+    total: number;
+}) {
+    const dir = card.decision === 'delete' ? -1 : 1;
+    const isDelete = card.decision === 'delete';
+
+    const cardStyle = useAnimatedStyle(() => {
+        const beat = Math.floor(clock.value) % total;
+        const u = clock.value - Math.floor(clock.value);
+
+        if (beat === index) {
+            // Front: settle in from the back pose, rest, drag, fly off.
+            // Opacity starts at the back card's 0.8 so the promotion is seamless.
+            const st = Math.min(u / F_SETTLE, 1);
+            const settle = 1 - (1 - st) * (1 - st);
+            const x = deckFrontX(u, dir);
+            const flyFade = interpolate(
+                Math.abs(x),
+                [0, DEMO_FLY * 0.6, DEMO_FLY * 0.85],
+                [1, 1, 0],
+                Extrapolation.CLAMP,
+            );
+            return {
+                zIndex: 2,
+                opacity: flyFade * (0.8 + 0.2 * settle),
+                transform: [
+                    { translateX: x },
+                    { translateY: DEMO_BACK_Y * (1 - settle) },
+                    { scale: DEMO_BACK_SCALE + (1 - DEMO_BACK_SCALE) * settle },
+                    { rotate: `${interpolate(x, [-DEMO_FLY, 0, DEMO_FLY], [-0.28, 0, 0.28], Extrapolation.CLAMP)}rad` },
+                ],
+            };
+        }
+        if ((beat + 1) % total === index) {
+            // Back of deck: fade in behind the promoting front card (which starts
+            // in this exact pose and covers the pop-in)
+            return {
+                zIndex: 1,
+                opacity: interpolate(u, [0, 0.12], [0, 0.8], Extrapolation.CLAMP),
+                transform: [
+                    { translateX: 0 },
+                    { translateY: DEMO_BACK_Y },
+                    { scale: DEMO_BACK_SCALE },
+                    { rotate: '0rad' },
+                ],
+            };
+        }
+        // Off duty — parked invisible in the back pose
+        return {
+            zIndex: 0,
+            opacity: 0,
+            transform: [
+                { translateX: 0 },
+                { translateY: DEMO_BACK_Y },
+                { scale: DEMO_BACK_SCALE },
+                { rotate: '0rad' },
+            ],
+        };
+    });
+
+    const overlayStyle = useAnimatedStyle(() => {
+        const beat = Math.floor(clock.value) % total;
+        if (beat !== index) return { opacity: 0 };
+        const u = clock.value - Math.floor(clock.value);
+        const ax = Math.abs(deckFrontX(u, dir));
+        return {
+            opacity: interpolate(ax, [DEMO_DRAG * 0.35, DEMO_DRAG], [0, 1], Extrapolation.CLAMP),
+        };
+    });
+
+    return (
+        <Animated.View
+            className="absolute overflow-hidden"
+            style={[
+                {
+                    width: DEMO_W,
+                    height: DEMO_H,
+                    borderRadius: 22,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.35)',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.5,
+                    shadowRadius: 24,
+                    shadowOffset: { width: 0, height: 16 },
+                },
+                cardStyle,
+            ]}
+        >
+            <DemoFill photo={card.photo} gradient={DECK_GRADIENTS[index % DECK_GRADIENTS.length]} />
+            {/* Only the overlay for this card's scripted decision */}
+            <Animated.View
+                className="absolute inset-0 items-center justify-center gap-1.5"
+                style={[
+                    { backgroundColor: isDelete ? 'rgba(255,69,58,0.82)' : 'rgba(48,209,88,0.82)' },
+                    overlayStyle,
+                ]}
+                pointerEvents="none"
+            >
+                <Ionicons
+                    name={isDelete ? 'trash-outline' : 'checkmark-circle-outline'}
+                    size={40}
+                    color="white"
+                />
+                <Text className="text-white font-bold text-[19px] tracking-widest">
+                    {isDelete ? 'DELETE' : 'KEEP'}
+                </Text>
+            </Animated.View>
+        </Animated.View>
+    );
+}
 
 function SwipeDemo({ active }: { active: boolean }) {
-    const [index, setIndex] = useState(0);
-    const x = useSharedValue(0);
-    // Starts in the back pose so the first card promotes in like every other one
-    const promote = useSharedValue(0);
-
-    const card = SWIPE_DEMO_CARDS[index];
-    const nextCard = SWIPE_DEMO_CARDS[(index + 1) % SWIPE_DEMO_CARDS.length];
-    const direction = card.decision === 'delete' ? -1 : 1;
-
-    const advance = useCallback(() => {
-        setIndex((i) => (i + 1) % SWIPE_DEMO_CARDS.length);
-    }, []);
+    const clock = useSharedValue(0);
+    const total = SWIPE_DEMO_CARDS.length;
 
     useEffect(() => {
-        if (!active) return;
-        // Promote out of the back-of-deck pose, rest, then commit this card's
-        // decision. Advancing happens in the fly-off callback rather than on a
-        // timer, so the photo only swaps once the card is off-screen.
-        promote.value = 0;
-        promote.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) });
-        x.value = 0;
-        x.value = withDelay(
-            DEMO_HOLD_MS,
-            withSequence(
-                withTiming(direction * DEMO_DRAG, { duration: 450, easing: Easing.out(Easing.quad) }),
-                withTiming(
-                    direction * DEMO_FLY,
-                    { duration: 320, easing: Easing.in(Easing.quad) },
-                    (finished) => {
-                        if (finished) scheduleOnRN(advance);
-                    },
-                ),
-            ),
+        clock.value = 0;
+        clock.value = withRepeat(
+            withTiming(total, { duration: total * BEAT_MS, easing: Easing.linear }),
+            -1,
+            false,
         );
-        return () => {
-            cancelAnimation(x);
-            cancelAnimation(promote);
-        };
-    }, [active, index, direction, advance, x, promote]);
+        return () => cancelAnimation(clock);
+    }, [clock, total]);
 
-    // Haptic beat when the demo card "commits" — only while this step is visible
+    // Haptic beat at each commit — only while this step is visible
     useAnimatedReaction(
-        () => x.value,
+        () => clock.value % 1,
         (cur, prev) => {
             if (!active || prev === null) return;
-            const th = DEMO_DRAG - 4;
-            if ((prev > -th && cur <= -th) || (prev < th && cur >= th)) {
+            if (prev < F_COMMIT && cur >= F_COMMIT) {
                 scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Medium);
             }
         },
         [active],
     );
-
-    const cardStyle = useAnimatedStyle(() => ({
-        transform: [
-            { translateX: x.value },
-            { translateY: interpolate(promote.value, [0, 1], [DEMO_BACK_Y, 0]) },
-            { scale: interpolate(promote.value, [0, 1], [DEMO_BACK_SCALE, 1]) },
-            {
-                rotate: `${interpolate(x.value, [-DEMO_FLY, 0, DEMO_FLY], [-0.28, 0, 0.28], Extrapolation.CLAMP)}rad`,
-            },
-        ],
-        // fade before the off-screen reset so the photo swap is never seen
-        opacity: interpolate(
-            Math.abs(x.value),
-            [0, DEMO_FLY * 0.6, DEMO_FLY * 0.85],
-            [1, 1, 0],
-            Extrapolation.CLAMP,
-        ),
-    }));
-
-    const deleteOverlayStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(x.value, [-DEMO_DRAG, -DEMO_DRAG * 0.35], [1, 0], Extrapolation.CLAMP),
-    }));
-    const keepOverlayStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(x.value, [DEMO_DRAG * 0.35, DEMO_DRAG], [0, 1], Extrapolation.CLAMP),
-    }));
 
     return (
         <View className="items-center">
@@ -144,58 +234,9 @@ function SwipeDemo({ active }: { active: boolean }) {
                 className="items-center justify-center overflow-hidden"
                 style={{ width: 280, height: DEMO_H + 36 }}
             >
-                {/* Back card */}
-                <View
-                    className="overflow-hidden"
-                    style={{
-                        position: 'absolute',
-                        width: DEMO_W,
-                        height: DEMO_H,
-                        borderRadius: 22,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.25)',
-                        transform: [{ scale: 0.94 }, { translateY: 12 }],
-                        opacity: 0.8,
-                    }}
-                >
-                    <DemoFill photo={nextCard.photo} gradient={GRADIENTS.analytics} />
-                </View>
-                {/* Auto-swiping top card */}
-                <Animated.View
-                    className="absolute overflow-hidden"
-                    style={[
-                        {
-                            width: DEMO_W,
-                            height: DEMO_H,
-                            borderRadius: 22,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.35)',
-                            shadowColor: '#000',
-                            shadowOpacity: 0.5,
-                            shadowRadius: 24,
-                            shadowOffset: { width: 0, height: 16 },
-                        },
-                        cardStyle,
-                    ]}
-                >
-                    <DemoFill photo={card.photo} gradient={GRADIENTS.accent} />
-                    <Animated.View
-                        className="absolute inset-0 items-center justify-center gap-1.5"
-                        style={[{ backgroundColor: 'rgba(255,69,58,0.82)' }, deleteOverlayStyle]}
-                        pointerEvents="none"
-                    >
-                        <Ionicons name="trash-outline" size={40} color="white" />
-                        <Text className="text-white font-bold text-[19px] tracking-widest">DELETE</Text>
-                    </Animated.View>
-                    <Animated.View
-                        className="absolute inset-0 items-center justify-center gap-1.5"
-                        style={[{ backgroundColor: 'rgba(48,209,88,0.82)' }, keepOverlayStyle]}
-                        pointerEvents="none"
-                    >
-                        <Ionicons name="checkmark-circle-outline" size={40} color="white" />
-                        <Text className="text-white font-bold text-[19px] tracking-widest">KEEP</Text>
-                    </Animated.View>
-                </Animated.View>
+                {SWIPE_DEMO_CARDS.map((card, i) => (
+                    <DeckCard key={i} clock={clock} index={i} card={card} total={total} />
+                ))}
             </View>
             {/* Legend chips */}
             <View className="flex-row gap-2.5 mt-1">
