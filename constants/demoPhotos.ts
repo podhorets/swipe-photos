@@ -48,8 +48,8 @@ export const SWIPE_DEMO_CARDS: SwipeDemoCard[] = [
  * below are indices 1–3, in order.
  */
 export const DEDUP_DEMO_PHOTOS: [DemoPhoto, DemoPhoto, DemoPhoto, DemoPhoto] = [
-  "https://pbs.twimg.com/media/Fmm6MSxXwAEFmXi.jpg",
   "https://pbs.twimg.com/media/HFkTc7tXkAAbhtN.jpg",
+  "https://pbs.twimg.com/media/Fmm6MSxXwAEFmXi.jpg",
   "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/1a74f6a4-a9a2-4c0f-8785-e69049d623f3/dggrz98-886825b4-2539-4f11-b4ce-93fb99e4ba0e.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8xYTc0ZjZhNC1hOWEyLTRjMGYtODc4NS1lNjkwNDlkNjIzZjMvZGdncno5OC04ODY4MjViNC0yNTM5LTRmMTEtYjRjZS05M2ZiOTllNGJhMGUuanBnIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.U-pg-5a9loDHRyJh4zKbZz4yO-UH2vOGX8RMNAR2deA",
   "https://w.wallhaven.cc/full/e7/wallhaven-e7kvg8.jpg"
 ];

@@ -21,7 +21,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { createMMKV } from 'react-native-mmkv';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
@@ -259,133 +258,241 @@ function SwipeDemo({ active }: { active: boolean }) {
 }
 
 // ─── Step 2 hero: AI dedup demo ──────────────────────────────────────────────
-// Four takes of one scene. The main slot opens on photo 1; the take the
-// analysis prefers (DEDUP_BEST_INDEX) pulses, then trades places with it — a
-// simple cross-fade in both slots — and the Best badge lands on the new main
-// shot. The moment it does, every thumbnail is marked for deletion (red wash +
-// trash icon), which is what the freed-space chip then counts.
+// Four takes of one scene. The analysis pulses the winning thumbnail, then the
+// two photos physically lift out of their slots and fly past each other,
+// trading places; the Best badge lands on the new main shot and every
+// thumbnail is marked for deletion (red wash + trash icon). While a photo is
+// in flight its slot sits empty, showing a dark socket. The loop's rewind
+// happens behind a full fade-out, so the un-swap is never visible.
 
+const MAIN_W = 180;
+const MAIN_H = 220;
+const MAIN_R = 20;
 const THUMB = 56;
+const THUMB_R = 12;
+const THUMB_GAP = 10;
+const ROW_MT = 14;
+const DEDUP_W = THUMB * 3 + THUMB_GAP * 2;
+const DEDUP_H = MAIN_H + ROW_MT + THUMB;
+const MAIN_L = (DEDUP_W - MAIN_W) / 2;
+const THUMB_TOP = MAIN_H + ROW_MT;
+// Neutral dark-grey socket shown while a slot's photo is in flight (and behind
+// photos while they load) — quiet, no blue flashes in this demo
+const DEDUP_BG = ['#2A2A2E', '#141416'] as const;
 // Thumbnails render indices 1–3 of DEDUP_DEMO_PHOTOS, in order
 const THUMB_INDICES = [1, 2, 3] as const;
-// Quiet dark base behind every photo (and for any slot left null) — no loud
-// gradients in this demo.
-const DEDUP_EMPTY_BG = '#1C1C1E';
+
+// Phases of the master progress p (linear 0→1 over the show). The handoffs at
+// P_LIFT and P_LAND are step flips that happen on the exact frame a
+// pixel-identical traveler covers the slot — no blend is ever on screen.
+const P_PULSE = [0.05, 0.22] as const; // analysis singles out the winner
+const P_LIFT = 0.24; // photos lift out of their slots
+const P_TRAVEL = [0.26, 0.66] as const; // flight window (eased in-out)
+const P_LAND = 0.68; // photos settle into their new slots
+const P_BADGE = [0.72, 0.86] as const;
+const P_CHIP = [0.8, 0.95] as const;
+const DEDUP_SHOW_MS = 2600;
+const DEDUP_HOLD_MS = 1700;
+const DEDUP_FADE_MS = 300;
 
 const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
 
-/** Photo over the flat dark base — the dedup demo never shows gradients. */
-function DedupPhoto({ photo }: { photo: DemoPhoto }) {
+function easeInOutQuad(t: number): number {
+    'worklet';
+    return t < 0.5 ? 2 * t * t : 1 - ((2 - 2 * t) * (2 - 2 * t)) / 2;
+}
+
+/**
+ * A slot that trades its photo away mid-loop: gradient base, original photo
+ * until P_LIFT, swapped photo from P_LAND. Both flips are steps, not fades —
+ * a traveler showing the identical photo covers the slot on the flip frame,
+ * so nothing blends, and the bare dark socket shows while the photo is in flight.
+ */
+function SwapSlot({
+    p,
+    original,
+    swapped,
+    gradient,
+    gradientOpacity,
+}: {
+    p: SharedValue<number>;
+    original: DemoPhoto;
+    swapped: DemoPhoto;
+    gradient: readonly [string, string];
+    gradientOpacity?: number;
+}) {
+    const originalStyle = useAnimatedStyle(() => ({
+        opacity: p.value < P_LIFT ? 1 : 0,
+    }));
+    const swappedStyle = useAnimatedStyle(() => ({
+        opacity: p.value >= P_LAND ? 1 : 0,
+    }));
     return (
-        <View className="flex-1" style={{ backgroundColor: DEDUP_EMPTY_BG }}>
-            {photo != null && <Image source={photo} contentFit="cover" transition={150} style={FILL} />}
+        <View className="flex-1">
+            <DemoFill photo={null} gradient={gradient} gradientOpacity={gradientOpacity} />
+            <Animated.View style={[FILL, originalStyle]}>
+                <DemoFill photo={original} gradient={gradient} gradientOpacity={gradientOpacity} />
+            </Animated.View>
+            <Animated.View style={[FILL, swappedStyle]}>
+                <DemoFill photo={swapped} gradient={gradient} gradientOpacity={gradientOpacity} />
+            </Animated.View>
         </View>
     );
 }
 
 function DedupDemo({ active }: { active: boolean }) {
     const p = useSharedValue(0);
-    // Slot the winner currently occupies — it receives photo 1 in exchange
-    const winnerSlot = THUMB_INDICES.indexOf(DEDUP_BEST_INDEX);
+    // Thumbnail row slot the winner occupies (0–2); it receives photo 1 in exchange
+    const winnerSlot = DEDUP_BEST_INDEX - 1;
+    const winnerLeft = winnerSlot * (THUMB + THUMB_GAP);
 
+    // The show only runs while this step is on screen. All three slides are
+    // mounted side by side in the carousel, so an unconditional start would
+    // play the story while the user is still on step 1 — arriving mid-swap
+    // with the whole point already missed. Leaving the step resets to the
+    // start pose so the next visit begins from the top.
     useEffect(() => {
+        if (!active) {
+            cancelAnimation(p);
+            p.value = 0;
+            return;
+        }
         p.value = 0;
         p.value = withRepeat(
             withSequence(
-                withDelay(800, withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) })),
-                withDelay(1900, withTiming(0, { duration: 400 })),
-                withDelay(500, withTiming(0, { duration: 1 })),
+                // The show, on a linear clock — each phase eases itself
+                withDelay(700, withTiming(1, { duration: DEDUP_SHOW_MS, easing: Easing.linear })),
+                // Hold the result, fade the whole demo out…
+                withDelay(DEDUP_HOLD_MS, withTiming(1.15, { duration: DEDUP_FADE_MS })),
+                // …rewind while invisible, then fade back in at the start pose
+                withTiming(-0.15, { duration: 1 }),
+                withTiming(0, { duration: DEDUP_FADE_MS }),
             ),
             -1,
             false,
         );
         return () => cancelAnimation(p);
-    }, [p]);
+    }, [active, p]);
 
-    // Success beat when the swap lands
+    // Haptic beats: selection tick at the pulse, success beat at the landing
     useAnimatedReaction(
         () => p.value,
         (cur, prev) => {
             if (!active || prev === null) return;
-            if (prev < 0.6 && cur >= 0.6) {
+            if (prev < P_PULSE[0] && cur >= P_PULSE[0]) {
                 scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Light);
+            }
+            if (prev < P_LAND && cur >= P_LAND) {
+                scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Medium);
             }
         },
         [active],
     );
 
-    // One ramp drives both halves of the exchange
-    const swapStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(p.value, [0.3, 0.6], [0, 1], Extrapolation.CLAMP),
+    // p < 0 / p > 1 are the loop's hidden-rewind margins. The chip lives
+    // outside the fading container, so it applies this fade itself.
+    const loopFade = () => {
+        'worklet';
+        return p.value > 1
+            ? interpolate(p.value, [1, 1.15], [1, 0], Extrapolation.CLAMP)
+            : p.value < 0
+              ? interpolate(p.value, [-0.15, 0], [0, 1], Extrapolation.CLAMP)
+              : 1;
+    };
+    const containerStyle = useAnimatedStyle(() => ({
+        opacity: loopFade(),
     }));
-    const heroStyle = useAnimatedStyle(() => ({
+
+    // Travelers: single-photo copies that fly between the two slot rects.
+    // Visible only during [P_LIFT, P_LAND); at both edges they exactly cover a
+    // slot showing the same photo, so the step on/off is invisible.
+    const travelProgress = () => {
+        'worklet';
+        const t = (p.value - P_TRAVEL[0]) / (P_TRAVEL[1] - P_TRAVEL[0]);
+        return easeInOutQuad(Math.min(1, Math.max(0, t)));
+    };
+    const travelerAStyle = useAnimatedStyle(() => {
+        const t = travelProgress();
+        return {
+            opacity: p.value >= P_LIFT && p.value < P_LAND ? 1 : 0,
+            left: winnerLeft + (MAIN_L - winnerLeft) * t,
+            top: THUMB_TOP - THUMB_TOP * t,
+            width: THUMB + (MAIN_W - THUMB) * t,
+            height: THUMB + (MAIN_H - THUMB) * t,
+            borderRadius: THUMB_R + (MAIN_R - THUMB_R) * t,
+        };
+    });
+    const travelerBStyle = useAnimatedStyle(() => {
+        const t = travelProgress();
+        return {
+            opacity: p.value >= P_LIFT && p.value < P_LAND ? 1 : 0,
+            left: MAIN_L + (winnerLeft - MAIN_L) * t,
+            top: THUMB_TOP * t,
+            width: MAIN_W + (THUMB - MAIN_W) * t,
+            height: MAIN_H + (THUMB - MAIN_H) * t,
+            borderRadius: MAIN_R + (THUMB_R - MAIN_R) * t,
+        };
+    });
+
+    // The analysis singles the winner out with a brief pulse
+    const winnerPulse = useAnimatedStyle(() => ({
         transform: [
-            { scale: interpolate(p.value, [0.3, 0.45, 0.6], [1, 0.97, 1], Extrapolation.CLAMP) },
+            { scale: interpolate(p.value, [P_PULSE[0], 0.13, P_PULSE[1]], [1, 1.08, 1], Extrapolation.CLAMP) },
         ],
     }));
-    // The winner is singled out first, then lifts as it trades up
-    const winnerStyle = useAnimatedStyle(() => ({
+    const badgeStyle = useAnimatedStyle(() => ({
         transform: [
-            { scale: interpolate(p.value, [0.05, 0.28, 0.6], [1, 1.12, 1], Extrapolation.CLAMP) },
-            { translateY: interpolate(p.value, [0.3, 0.45, 0.6], [0, -8, 0], Extrapolation.CLAMP) },
+            { scale: interpolate(p.value, [P_BADGE[0], 0.8, P_BADGE[1]], [0, 1.15, 1], Extrapolation.CLAMP) },
         ],
     }));
-    const starStyle = useAnimatedStyle(() => ({
-        transform: [
-            { scale: interpolate(p.value, [0.6, 0.8, 0.95], [0, 1.18, 1], Extrapolation.CLAMP) },
-        ],
-    }));
-    // The moment the Best badge lands, every thumbnail is marked for deletion —
-    // winner slot included: it now holds photo 1, also a duplicate
+    // The moment the best shot takes the Best badge, every thumbnail is marked
+    // for deletion — light red wash + trash icon — which is what the freed-space
+    // chip then counts. Shared across all three slots (winner included: it now
+    // holds photo 1, also a duplicate).
     const trashWashStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(p.value, [0.6, 0.8], [0, 1], Extrapolation.CLAMP),
+        opacity: interpolate(p.value, [P_BADGE[0], P_BADGE[1]], [0, 1], Extrapolation.CLAMP),
     }));
     const trashIconStyle = useAnimatedStyle(() => ({
         transform: [
-            { scale: interpolate(p.value, [0.6, 0.75, 0.85], [0.4, 1.12, 1], Extrapolation.CLAMP) },
+            { scale: interpolate(p.value, [P_BADGE[0], 0.8, P_BADGE[1]], [0.4, 1.12, 1], Extrapolation.CLAMP) },
         ],
     }));
     const chipStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(p.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
+        opacity: loopFade() * interpolate(p.value, [P_CHIP[0], P_CHIP[1]], [0, 1], Extrapolation.CLAMP),
         transform: [
-            { translateY: interpolate(p.value, [0.75, 1], [10, 0], Extrapolation.CLAMP) },
+            { translateY: interpolate(p.value, [P_CHIP[0], P_CHIP[1]], [10, 0], Extrapolation.CLAMP) },
         ],
     }));
 
     return (
         <View className="items-center">
-            {/* Main shot — opens on photo 1, cross-fades to the picked take */}
-            <Animated.View
-                className="overflow-hidden"
-                style={[
-                    {
-                        width: 180,
-                        height: 220,
-                        borderRadius: 20,
+            <Animated.View style={[{ width: DEDUP_W, height: DEDUP_H }, containerStyle]}>
+                {/* Main slot */}
+                <View
+                    className="overflow-hidden"
+                    style={{
+                        position: 'absolute',
+                        left: MAIN_L,
+                        top: 0,
+                        width: MAIN_W,
+                        height: MAIN_H,
+                        borderRadius: MAIN_R,
                         borderWidth: 1,
                         borderColor: 'rgba(255,255,255,0.35)',
                         shadowColor: '#000',
                         shadowOpacity: 0.5,
                         shadowRadius: 24,
                         shadowOffset: { width: 0, height: 16 },
-                    },
-                    heroStyle,
-                ]}
-            >
-                <DedupPhoto photo={DEDUP_DEMO_PHOTOS[0]} />
-                <Animated.View style={[FILL, swapStyle]}>
-                    <DedupPhoto photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]} />
-                </Animated.View>
-                <Animated.View
-                    className="absolute top-2.5 left-2.5 flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-black/55"
-                    style={starStyle}
+                    }}
                 >
-                    <Ionicons name="star" size={12} color="#FFD60A" />
-                    <Text className="text-white text-xs font-bold">Best</Text>
-                </Animated.View>
-            </Animated.View>
-            {/* The other three takes — the winner among them trades up */}
-            <View className="flex-row gap-2.5 mt-3.5">
+                    <SwapSlot
+                        p={p}
+                        original={DEDUP_DEMO_PHOTOS[0]}
+                        swapped={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]}
+                        gradient={DEDUP_BG}
+                    />
+                </View>
+                {/* Thumbnail slots */}
                 {THUMB_INDICES.map((photoIndex, slot) => {
                     const isWinner = slot === winnerSlot;
                     return (
@@ -394,25 +501,30 @@ function DedupDemo({ active }: { active: boolean }) {
                             className="overflow-hidden"
                             style={[
                                 {
+                                    position: 'absolute',
+                                    left: slot * (THUMB + THUMB_GAP),
+                                    top: THUMB_TOP,
                                     width: THUMB,
                                     height: THUMB,
-                                    borderRadius: 12,
+                                    borderRadius: THUMB_R,
                                     borderWidth: 2,
                                     borderColor: 'rgba(255,69,58,0.45)',
                                 },
-                                isWinner ? winnerStyle : undefined,
+                                isWinner ? winnerPulse : undefined,
                             ]}
                         >
                             {isWinner ? (
-                                <>
-                                    <DedupPhoto photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]} />
-                                    {/* Receives photo 1 as the main slot takes this one */}
-                                    <Animated.View style={[FILL, swapStyle]}>
-                                        <DedupPhoto photo={DEDUP_DEMO_PHOTOS[0]} />
-                                    </Animated.View>
-                                </>
+                                <SwapSlot
+                                    p={p}
+                                    original={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]}
+                                    swapped={DEDUP_DEMO_PHOTOS[0]}
+                                    gradient={DEDUP_BG}
+                                />
                             ) : (
-                                <DedupPhoto photo={DEDUP_DEMO_PHOTOS[photoIndex]} />
+                                <DemoFill
+                                    photo={DEDUP_DEMO_PHOTOS[photoIndex]}
+                                    gradient={DEDUP_BG}
+                                />
                             )}
                             {/* Marked-for-deletion wash once the Best badge lands */}
                             <Animated.View
@@ -427,7 +539,51 @@ function DedupDemo({ active }: { active: boolean }) {
                         </Animated.View>
                     );
                 })}
-            </View>
+                {/* Travelers — the two photos in flight, winner on top */}
+                <Animated.View
+                    className="overflow-hidden"
+                    style={[
+                        {
+                            position: 'absolute',
+                            shadowColor: '#000',
+                            shadowOpacity: 0.45,
+                            shadowRadius: 18,
+                            shadowOffset: { width: 0, height: 10 },
+                        },
+                        travelerBStyle,
+                    ]}
+                    pointerEvents="none"
+                >
+                    <DemoFill photo={DEDUP_DEMO_PHOTOS[0]} gradient={DEDUP_BG} />
+                </Animated.View>
+                <Animated.View
+                    className="overflow-hidden"
+                    style={[
+                        {
+                            position: 'absolute',
+                            shadowColor: '#000',
+                            shadowOpacity: 0.45,
+                            shadowRadius: 18,
+                            shadowOffset: { width: 0, height: 10 },
+                        },
+                        travelerAStyle,
+                    ]}
+                    pointerEvents="none"
+                >
+                    <DemoFill
+                        photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]}
+                        gradient={DEDUP_BG}
+                    />
+                </Animated.View>
+                {/* Best badge — lands on the new main shot after the trade */}
+                <Animated.View
+                    className="flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-black/55"
+                    style={[{ position: 'absolute', left: MAIN_L + 10, top: 10 }, badgeStyle]}
+                >
+                    <Ionicons name="star" size={12} color="#FFD60A" />
+                    <Text className="text-white text-xs font-bold">Best</Text>
+                </Animated.View>
+            </Animated.View>
             {/* Freed-space payoff chip */}
             <Animated.View
                 className="flex-row items-center gap-[7px] mt-3.5 px-4 py-2 rounded-full border"

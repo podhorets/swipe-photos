@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
 import type { DemoPhoto } from '@/constants/demoPhotos';
-import type { GRADIENTS } from '@/constants/theme';
 
 const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
 
@@ -21,7 +20,7 @@ export function DemoFill({
   gradientOpacity = 1,
 }: {
   photo: DemoPhoto;
-  gradient: (typeof GRADIENTS)[keyof typeof GRADIENTS];
+  gradient: readonly [string, string];
   gradientOpacity?: number;
 }) {
   return (
