@@ -132,7 +132,7 @@ export function SessionsMeter() {
                             <Text className="text-streak text-[15px] font-extrabold" style={{ fontVariant: ['tabular-nums'] }}>
                                 {countdown}
                             </Text>
-                            <Text className="text-white text-[14px] font-bold">to start new</Text>
+                            <Text className="text-white text-[14px] font-bold">left to start</Text>
                             <FreeBadge amber />
                             <Text className="text-white text-[14px] font-bold">review</Text>
                         </View>

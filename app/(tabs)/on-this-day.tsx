@@ -3,7 +3,7 @@ import { GlassCard } from '@/components/glass/GlassCard';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { GRADIENTS } from '@/constants/theme';
-import { yearsAgoLabel } from '@/lib/dateUtils';
+import { useSpringPress } from '@/hooks/useSpringPress';
 import { getOnThisDayByYear } from '@/lib/gallery/grouper';
 import { effectiveBatchSize } from '@/lib/planUtils';
 import { posthog } from '@/lib/posthog';
@@ -14,6 +14,7 @@ import { usePlanStore } from '@/stores/planStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { AssetMeta } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
@@ -25,11 +26,13 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TILE_WIDTH = 104;
 const TILE_HEIGHT = 130;
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const DONE_GREEN = '#30D158';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,8 +44,14 @@ interface YearSection {
   data: [AssetMeta[]];
 }
 
-function reviewYear(year: number) {
+function reviewYear(year: number, left: number) {
+  Haptics.selectionAsync();
   if (!gateSessionStart()) return;
+  posthog.capture('review_session_started', {
+    category: 'on-this-day',
+    year,
+    photo_count: left,
+  });
   router.push({
     pathname: '/review/[sessionId]',
     params: { sessionId: 'on-this-day', year: String(year) },
@@ -126,6 +135,62 @@ function PhotoTile({ asset }: { asset: AssetMeta }) {
 
 // ─── Section header + per-year progress ──────────────────────────────────────
 
+/**
+ * Per-year CTA. The old affordance was the bare `3/8 · 38%` stat — it read as a
+ * label, not a control, so the fastest path into a single year was invisible.
+ * The counts moved into the subtitle and this pill carries the verb instead.
+ */
+function YearReviewButton({
+  year,
+  left,
+  started,
+}: {
+  year: number;
+  left: number;
+  started: boolean;
+}) {
+  const { animatedStyle, onPressIn, onPressOut } = useSpringPress(0.92);
+  const label = started ? 'Resume' : 'Review';
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={() => reviewYear(year, left)}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={`${label} ${year} — ${left} photo${left === 1 ? '' : 's'} left`}
+        className="flex-row items-center gap-1 rounded-full bg-accent/20 border border-accent/30 pl-3 pr-2 py-1.5 active:opacity-80"
+      >
+        <Text className="text-accent text-[13px] font-bold" style={{ letterSpacing: -0.1 }}>
+          {label}
+        </Text>
+        <Text className="text-accent/60 text-[13px] font-bold">{left}</Text>
+        <Ionicons name="chevron-forward" size={12} color="#0A84FF" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function YearDoneChip() {
+  return (
+    <View
+      className="flex-row items-center gap-1 rounded-full px-2.5 py-1.5"
+      style={{
+        backgroundColor: 'rgba(48,209,88,0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(48,209,88,0.35)',
+      }}
+    >
+      <Ionicons name="checkmark" size={13} color={DONE_GREEN} />
+      <Text className="text-[12.5px] font-bold" style={{ color: DONE_GREEN }}>
+        Done
+      </Text>
+    </View>
+  );
+}
+
 function YearHeader({
   year,
   count,
@@ -136,27 +201,30 @@ function YearHeader({
   reviewed: number;
 }) {
   const pct = count > 0 ? Math.round((reviewed / count) * 100) : 0;
+  const left = count - reviewed;
+  const isDone = left === 0;
   return (
     <>
-      <View className="flex-row items-center justify-between px-5 mb-1.5">
-        <View className="flex-row items-baseline gap-2">
+      <View className="flex-row items-center justify-between px-5 mb-1.5 gap-3">
+        <View className="flex-1 flex-row items-baseline gap-2">
           <Text className="text-white text-[19px] font-extrabold" style={{ letterSpacing: -0.3 }}>
             {year}
           </Text>
-          <Text className="text-white/40 text-[13px]">
-            {yearsAgoLabel(year)} · {count} photo{count === 1 ? '' : 's'}
+          {/* Count and progress share one line — the bar below carries the percentage */}
+          <Text className="text-white/40 text-[13px] flex-1" numberOfLines={1}>
+            {isDone
+              ? `all ${count} reviewed`
+              : reviewed === 0
+                ? `${count} photo${count === 1 ? '' : 's'}`
+                : `${reviewed} of ${count} reviewed`}
           </Text>
         </View>
-        <Pressable onPress={() => reviewYear(year)} className="active:opacity-60" hitSlop={8}>
-          <Text className="text-accent text-[13px] font-bold">
-            {reviewed}/{count} · {pct}%
-          </Text>
-        </Pressable>
+        {isDone ? <YearDoneChip /> : <YearReviewButton year={year} left={left} started={reviewed > 0} />}
       </View>
       <View className="h-[3px] rounded-full bg-white/[0.08] overflow-hidden mx-5 mb-2.5">
         <View
-          className="h-full rounded-full bg-accent"
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full"
+          style={{ width: `${pct}%`, backgroundColor: isDone ? DONE_GREEN : '#0A84FF' }}
         />
       </View>
     </>

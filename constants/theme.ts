@@ -121,6 +121,10 @@ export const SWIPE = {
   thresholdPx: SCREEN_WIDTH * 0.25,
   // Fast flick (px/s) completes a swipe at half the distance threshold
   velocityThresholdX: 800,
+  // Preview drag-to-dismiss (vertical). Looser than the card threshold — the
+  // preview is a peek, so it should let go with little effort.
+  dismissThresholdPx: SCREEN_HEIGHT * 0.14,
+  velocityThresholdY: 900,
   // Cards in the stack
   stackSize: 3,
   // Scale / translateY offsets per stack depth
