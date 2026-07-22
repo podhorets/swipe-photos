@@ -16,7 +16,8 @@
  * chose may simply not be there on first run. The paywall is far more forgiving,
  * since it appears well into the session. Bundled assets always render.
  *
- * Any slot left `null` keeps its gradient placeholder.
+ * Any slot left `null` keeps its placeholder: a gradient in the swipe deck and
+ * paywall hero, a flat dark socket in the dedup demo.
  * Recommended: portrait ~3:4, ≤1000px long edge, visually warm "keeper" shots.
  */
 export type DemoPhoto = number | string | null;

@@ -37,9 +37,11 @@ array. More or fewer than four cards works too.
 Four takes of the **same scene**, so the "these are near-duplicates" read lands.
 Index 0 opens in the main slot; indices 1–3 are the thumbnails below, in order.
 Then `DEDUP_BEST_INDEX` (default `2`, i.e. the middle thumbnail) trades places
-with index 0: it becomes the main shot and takes the Best badge, while index 0
-drops into the thumbnail it vacated. Point `DEDUP_BEST_INDEX` at 1 or 3 and the
-animation follows — the highlight ring and the swap move with it.
+with index 0: after a brief pulse it flies up to the main slot and takes the
+Best badge while index 0 flies down into the thumbnail it vacated. Point
+`DEDUP_BEST_INDEX` at 1 or 3 and the animation follows. Unlike the swipe deck,
+empty dedup slots show a flat dark socket rather than a gradient — both while a
+photo is in flight and for any slot left `null`.
 
 ## Format
 

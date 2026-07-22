@@ -21,6 +21,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { createMMKV } from 'react-native-mmkv';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
@@ -258,16 +259,29 @@ function SwipeDemo({ active }: { active: boolean }) {
 }
 
 // ─── Step 2 hero: AI dedup demo ──────────────────────────────────────────────
-// Four takes of one scene. The main slot opens on photo 1, then the take the
-// analysis prefers (DEDUP_BEST_INDEX) trades places with it and takes the Best
-// badge — the point being that the best shot is not the one you shot first.
-// Both slots hold their outgoing photo underneath and the incoming one on top,
-// so the whole trade is a single opacity ramp in two places.
+// Four takes of one scene. The main slot opens on photo 1; the take the
+// analysis prefers (DEDUP_BEST_INDEX) pulses, then trades places with it — a
+// simple cross-fade in both slots — and the Best badge lands on the new main
+// shot. The moment it does, every thumbnail is marked for deletion (red wash +
+// trash icon), which is what the freed-space chip then counts.
 
 const THUMB = 56;
-const THUMB_GRADIENTS = [GRADIENTS.accent, GRADIENTS.shield, GRADIENTS.analytics] as const;
 // Thumbnails render indices 1–3 of DEDUP_DEMO_PHOTOS, in order
 const THUMB_INDICES = [1, 2, 3] as const;
+// Quiet dark base behind every photo (and for any slot left null) — no loud
+// gradients in this demo.
+const DEDUP_EMPTY_BG = '#1C1C1E';
+
+const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
+
+/** Photo over the flat dark base — the dedup demo never shows gradients. */
+function DedupPhoto({ photo }: { photo: DemoPhoto }) {
+    return (
+        <View className="flex-1" style={{ backgroundColor: DEDUP_EMPTY_BG }}>
+            {photo != null && <Image source={photo} contentFit="cover" transition={150} style={FILL} />}
+        </View>
+    );
+}
 
 function DedupDemo({ active }: { active: boolean }) {
     const p = useSharedValue(0);
@@ -316,12 +330,19 @@ function DedupDemo({ active }: { active: boolean }) {
             { translateY: interpolate(p.value, [0.3, 0.45, 0.6], [0, -8, 0], Extrapolation.CLAMP) },
         ],
     }));
-    const ringStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(p.value, [0.08, 0.26, 0.5, 0.62], [0, 1, 1, 0], Extrapolation.CLAMP),
-    }));
     const starStyle = useAnimatedStyle(() => ({
         transform: [
             { scale: interpolate(p.value, [0.6, 0.8, 0.95], [0, 1.18, 1], Extrapolation.CLAMP) },
+        ],
+    }));
+    // The moment the Best badge lands, every thumbnail is marked for deletion —
+    // winner slot included: it now holds photo 1, also a duplicate
+    const trashWashStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(p.value, [0.6, 0.8], [0, 1], Extrapolation.CLAMP),
+    }));
+    const trashIconStyle = useAnimatedStyle(() => ({
+        transform: [
+            { scale: interpolate(p.value, [0.6, 0.75, 0.85], [0.4, 1.12, 1], Extrapolation.CLAMP) },
         ],
     }));
     const chipStyle = useAnimatedStyle(() => ({
@@ -351,9 +372,9 @@ function DedupDemo({ active }: { active: boolean }) {
                     heroStyle,
                 ]}
             >
-                <DemoFill photo={DEDUP_DEMO_PHOTOS[0]} gradient={GRADIENTS.shield} />
-                <Animated.View className="absolute inset-0" style={swapStyle}>
-                    <DemoFill photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]} gradient={GRADIENTS.shield} />
+                <DedupPhoto photo={DEDUP_DEMO_PHOTOS[0]} />
+                <Animated.View style={[FILL, swapStyle]}>
+                    <DedupPhoto photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]} />
                 </Animated.View>
                 <Animated.View
                     className="absolute top-2.5 left-2.5 flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-black/55"
@@ -382,31 +403,27 @@ function DedupDemo({ active }: { active: boolean }) {
                                 isWinner ? winnerStyle : undefined,
                             ]}
                         >
-                            <DemoFill
-                                photo={DEDUP_DEMO_PHOTOS[photoIndex]}
-                                gradient={THUMB_GRADIENTS[slot]}
-                                gradientOpacity={0.8}
-                            />
-                            {isWinner && (
+                            {isWinner ? (
                                 <>
+                                    <DedupPhoto photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]} />
                                     {/* Receives photo 1 as the main slot takes this one */}
-                                    <Animated.View className="absolute inset-0" style={swapStyle}>
-                                        <DemoFill
-                                            photo={DEDUP_DEMO_PHOTOS[0]}
-                                            gradient={THUMB_GRADIENTS[slot]}
-                                            gradientOpacity={0.8}
-                                        />
+                                    <Animated.View style={[FILL, swapStyle]}>
+                                        <DedupPhoto photo={DEDUP_DEMO_PHOTOS[0]} />
                                     </Animated.View>
-                                    <Animated.View
-                                        className="absolute inset-0"
-                                        pointerEvents="none"
-                                        style={[
-                                            { borderRadius: 10, borderWidth: 2, borderColor: '#0A84FF' },
-                                            ringStyle,
-                                        ]}
-                                    />
                                 </>
+                            ) : (
+                                <DedupPhoto photo={DEDUP_DEMO_PHOTOS[photoIndex]} />
                             )}
+                            {/* Marked-for-deletion wash once the Best badge lands */}
+                            <Animated.View
+                                pointerEvents="none"
+                                className="items-center justify-center"
+                                style={[FILL, { backgroundColor: 'rgba(255,69,58,0.38)' }, trashWashStyle]}
+                            >
+                                <Animated.View style={trashIconStyle}>
+                                    <Ionicons name="trash-outline" size={16} color="white" />
+                                </Animated.View>
+                            </Animated.View>
                         </Animated.View>
                     );
                 })}
