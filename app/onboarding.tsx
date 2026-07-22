@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { View, Text, Pressable, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -663,6 +663,71 @@ function TrustCard() {
 // sized by its text.
 const SKIP_ROW_HEIGHT = 36;
 
+/**
+ * One onboarding slide. The strip translates at full speed while the content
+ * inside lags behind it (parallax), fades, and scales slightly with distance
+ * from center — the layered depth native iOS pagers have, instead of a flat
+ * photo-strip slide.
+ */
+function OnboardingSlide({
+    index,
+    offset,
+    children,
+}: {
+    index: number;
+    offset: SharedValue<number>;
+    children: ReactNode;
+}) {
+    const contentStyle = useAnimatedStyle(() => {
+        const d = offset.value - index;
+        const dist = Math.min(Math.abs(d), 1);
+        return {
+            opacity: interpolate(d, [-1, -0.55, 0, 0.55, 1], [0, 0.7, 1, 0.7, 0], Extrapolation.CLAMP),
+            transform: [
+                { translateX: d * SCREEN_WIDTH * 0.35 },
+                { scale: 1 - dist * 0.05 },
+            ],
+        };
+    });
+    return (
+        <View className="px-8" style={{ width: SCREEN_WIDTH }}>
+            <Animated.View className="flex-1 items-center justify-center" style={contentStyle}>
+                {children}
+            </Animated.View>
+        </View>
+    );
+}
+
+/**
+ * Page dot that morphs continuously with the slide position — width stretches
+ * into the active pill and the gradient fades in as its slide arrives, instead
+ * of the active state snapping over on the state flip.
+ */
+function PageDot({ index, offset }: { index: number; offset: SharedValue<number> }) {
+    const dotStyle = useAnimatedStyle(() => {
+        const dist = Math.min(Math.abs(offset.value - index), 1);
+        return { width: 6 + 20 * (1 - dist) };
+    });
+    const fillStyle = useAnimatedStyle(() => ({
+        opacity: 1 - Math.min(Math.abs(offset.value - index), 1),
+    }));
+    return (
+        <Animated.View
+            className="h-1.5 rounded-full overflow-hidden bg-white/25"
+            style={[{ width: 6 }, dotStyle]}
+        >
+            <Animated.View style={[FILL, fillStyle]}>
+                <LinearGradient
+                    colors={GRADIENTS.accent}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ flex: 1 }}
+                />
+            </Animated.View>
+        </Animated.View>
+    );
+}
+
 const STEPS = [
     {
         title: 'Left deletes.\nRight keeps.',
@@ -693,6 +758,16 @@ export default function OnboardingScreen() {
 
     const slideStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: -slideOffset.value * SCREEN_WIDTH }],
+    }));
+
+    // Skip fades in as the last slide arrives, instead of popping on the state flip
+    const skipStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(
+            slideOffset.value,
+            [STEPS.length - 1.5, STEPS.length - 1],
+            [0, 1],
+            Extrapolation.CLAMP,
+        ),
     }));
 
     const isLastStep = currentStep === STEPS.length - 1;
@@ -738,11 +813,7 @@ export default function OnboardingScreen() {
                     style={[{ width: SCREEN_WIDTH * STEPS.length }, slideStyle]}
                 >
                     {STEPS.map((s, i) => (
-                        <View
-                            key={i}
-                            className="items-center justify-center px-8"
-                            style={{ width: SCREEN_WIDTH }}
-                        >
+                        <OnboardingSlide key={i} index={i} offset={slideOffset}>
                             {/* Hero */}
                             {i === 0 && (
                                 <View className="mb-8">
@@ -802,42 +873,33 @@ export default function OnboardingScreen() {
 
                             {/* Trust + proof card next to the permission ask */}
                             {i === 2 && <TrustCard />}
-                        </View>
+                        </OnboardingSlide>
                     ))}
                 </Animated.View>
             </View>
 
             {/* Bottom controls */}
             <View className="px-8 pb-6 gap-[18px]">
-                {/* Step dots */}
+                {/* Step dots — morph continuously with the slide position */}
                 <View className="flex-row justify-center items-center gap-2">
-                    {STEPS.map((_, i) =>
-                        i === currentStep ? (
-                            <LinearGradient
-                                key={i}
-                                colors={GRADIENTS.accent}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={{ width: 26, height: 6, borderRadius: 999 }}
-                            />
-                        ) : (
-                            <View key={i} className="w-1.5 h-1.5 rounded-full bg-white/25" />
-                        ),
-                    )}
+                    {STEPS.map((_, i) => (
+                        <PageDot key={i} index={i} offset={slideOffset} />
+                    ))}
                 </View>
 
                 {/* Primary CTA. The skip row below it is cancelled out of the
                     column with a matching negative margin, so it hangs into the
                     bottom padding instead of lifting the CTA — the primary
                     button holds the same line on all three steps. */}
-                <View style={isLastStep ? { marginBottom: -SKIP_ROW_HEIGHT } : undefined}>
+                <View style={{ marginBottom: -SKIP_ROW_HEIGHT }}>
                     <GradientPillButton
                         label={isLastStep ? 'Allow Photo Access' : 'Continue'}
                         onPress={isLastStep ? handleFinish : goNext}
                     />
 
-                    {/* Skip (last step only, visually quiet) */}
-                    {isLastStep && (
+                    {/* Skip — always mounted so layout never jumps; fades in
+                        with the arriving last slide, tappable only there */}
+                    <Animated.View style={skipStyle} pointerEvents={isLastStep ? 'auto' : 'none'}>
                         <Pressable
                             onPress={handleSkip}
                             accessibilityRole="button"
@@ -847,7 +909,7 @@ export default function OnboardingScreen() {
                         >
                             <Text className="text-white/40 text-sm">Skip for now</Text>
                         </Pressable>
-                    )}
+                    </Animated.View>
                 </View>
             </View>
         </View>
