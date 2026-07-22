@@ -1,4 +1,4 @@
-import { FREE_PLAN } from '@/constants/config';
+import { DEV_TOOLS_ENABLED, FREE_PLAN } from '@/constants/config';
 import { toDateString } from '@/lib/streakUtils';
 
 interface PlanSnapshot {
@@ -8,9 +8,9 @@ interface PlanSnapshot {
   mockPro: boolean;
 }
 
-/** True when the user has the pro entitlement (or the dev-only mock is on). */
+/** True when the user has the pro entitlement (or the mock is on in a test build). */
 export function isPro(state: PlanSnapshot): boolean {
-  if (__DEV__ && state.mockPro) return true;
+  if (DEV_TOOLS_ENABLED && state.mockPro) return true;
   return state.plan === 'pro';
 }
 

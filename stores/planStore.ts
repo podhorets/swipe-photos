@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createMMKV } from 'react-native-mmkv';
-import { STORAGE_KEYS } from '@/constants/config';
+import { FREE_PLAN, STORAGE_KEYS } from '@/constants/config';
 import { toDateString } from '@/lib/streakUtils';
 
 const storage = createMMKV();
@@ -16,7 +16,7 @@ interface PlanData {
   sessionsUsedToday: number;
   /** Local YYYY-MM-DD the counter belongs to. */
   quotaDate: string;
-  /** Dev-only override; only honored behind __DEV__ (see isPro in lib/planUtils.ts). */
+  /** Dev-tools override; only honored behind DEV_TOOLS_ENABLED (see isPro in lib/planUtils.ts). */
   mockPro: boolean;
 }
 
@@ -50,6 +50,8 @@ interface PlanState extends PlanData {
   /** Set from RevenueCat entitlement sync — never call directly from UI. */
   setPlan: (plan: Plan) => void;
   setMockPro: (value: boolean) => void;
+  /** Dev tool only: move today's quota counter in either direction. */
+  setSessionsUsedToday: (used: number) => void;
 }
 
 export const usePlanStore = create<PlanState>()((set, get) => ({
@@ -71,6 +73,16 @@ export const usePlanStore = create<PlanState>()((set, get) => ({
 
   setMockPro: (value) => {
     set({ mockPro: value });
+    savePlan({ ...get() });
+  },
+
+  setSessionsUsedToday: (used) => {
+    // Stamping today's date is what makes the value stick — a count without a
+    // matching quotaDate is treated as stale and derived back to 0.
+    set({
+      sessionsUsedToday: Math.max(0, Math.min(FREE_PLAN.sessionsPerDay, Math.round(used))),
+      quotaDate: toDateString(new Date()),
+    });
     savePlan({ ...get() });
   },
 }));

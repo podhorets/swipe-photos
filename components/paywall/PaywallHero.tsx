@@ -1,8 +1,9 @@
+import { DemoFill } from '@/components/ui/DemoFill';
+import { SWIPE_DEMO_CARDS } from '@/constants/demoPhotos';
 import { GRADIENTS } from '@/constants/theme';
 import { gatedHaptic } from '@/lib/haptics';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import Animated, {
@@ -96,10 +97,8 @@ export function PaywallHero({ lockLabel }: PaywallHeroProps) {
             )}
             <View className="items-center justify-center overflow-hidden" style={{ width: 250, height: CARD_H + 10 }}>
                 {/* Back card */}
-                <LinearGradient
-                    colors={GRADIENTS.analytics}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                <View
+                    className="overflow-hidden"
                     style={{
                         position: 'absolute',
                         width: CARD_W,
@@ -110,7 +109,9 @@ export function PaywallHero({ lockLabel }: PaywallHeroProps) {
                         transform: [{ scale: 0.94 }, { translateY: 8 }],
                         opacity: 0.85,
                     }}
-                />
+                >
+                    <DemoFill photo={SWIPE_DEMO_CARDS[1].photo} gradient={GRADIENTS.analytics} />
+                </View>
                 {/* Auto-swiping top card */}
                 <Animated.View
                     className="absolute overflow-hidden"
@@ -129,7 +130,7 @@ export function PaywallHero({ lockLabel }: PaywallHeroProps) {
                         cardStyle,
                     ]}
                 >
-                    <LinearGradient colors={GRADIENTS.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }} />
+                    <DemoFill photo={SWIPE_DEMO_CARDS[0].photo} gradient={GRADIENTS.accent} />
                     <Animated.View
                         className="absolute inset-0 items-center justify-center gap-0.5"
                         style={[{ backgroundColor: 'rgba(255,69,58,0.82)' }, delStyle]}

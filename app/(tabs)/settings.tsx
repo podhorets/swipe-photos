@@ -25,7 +25,7 @@ import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { IconSquircle } from '@/components/ui/IconSquircle';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { GRADIENTS } from '@/constants/theme';
-import { STORAGE_KEYS } from '@/constants/config';
+import { DEV_TOOLS_ENABLED, FREE_PLAN, STORAGE_KEYS } from '@/constants/config';
 import { createMMKV } from 'react-native-mmkv';
 import { posthog } from '@/lib/posthog';
 
@@ -88,6 +88,79 @@ function ToggleRow({
         trackColor={{ false: 'rgba(255,255,255,0.15)', true: '#30D158' }}
         thumbColor="white"
       />
+    </View>
+  );
+}
+
+function StepButton({
+  icon,
+  label,
+  disabled,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="w-7 h-7 rounded-full bg-white/[0.12] items-center justify-center active:opacity-60"
+      style={{ opacity: disabled ? 0.3 : 1 }}
+    >
+      <Ionicons name={icon} size={16} color="white" />
+    </Pressable>
+  );
+}
+
+/** −/+ stepper for a small bounded integer (dev tools). */
+function StepperRow({
+  icon,
+  gradient,
+  label,
+  subtitle,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  gradient: readonly [string, string];
+  label: string;
+  subtitle?: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <View className="flex-row items-center px-4 py-[13px] gap-3">
+      <IconSquircle icon={icon} colors={gradient} />
+      <View className="flex-1">
+        <Text className="text-white text-base font-medium">{label}</Text>
+        {subtitle && <Text className="text-white/40 text-xs mt-px">{subtitle}</Text>}
+      </View>
+      <View className="flex-row items-center gap-1.5">
+        <StepButton
+          icon="remove"
+          label={`${label}: decrease`}
+          disabled={value <= min}
+          onPress={() => onChange(value - 1)}
+        />
+        <Text className="text-white text-[15px] font-bold text-center" style={{ width: 18 }}>
+          {value}
+        </Text>
+        <StepButton
+          icon="add"
+          label={`${label}: increase`}
+          disabled={value >= max}
+          onPress={() => onChange(value + 1)}
+        />
+      </View>
     </View>
   );
 }
@@ -162,6 +235,10 @@ export default function SettingsScreen() {
   const setMockPro = usePlanStore((s) => s.setMockPro);
   const mockPro = planState.mockPro;
   const pro = isPro(planState);
+  // A count carrying a past quotaDate is stale — the app derives it as 0, so the
+  // stepper has to show 0 too or its first tap would look like it did nothing.
+  const sessionsUsedToday =
+    planState.quotaDate === toDateString(new Date()) ? planState.sessionsUsedToday : 0;
 
   const index = useGalleryStore((s) => s.index);
 
@@ -323,26 +400,27 @@ export default function SettingsScreen() {
           </View>
         </Section>
 
-        {/* Developer (dev builds only) */}
-        {__DEV__ && (
+        {/* Developer — also shipped in TestFlight builds; see DEV_TOOLS_ENABLED */}
+        {DEV_TOOLS_ENABLED && (
           <Section title="Developer">
             <ToggleRow
               icon="construct"
               gradient={GRADIENTS.analytics}
               label="Mock Pro entitlement"
-              subtitle="Dev-only: simulate an active subscription"
+              subtitle="Simulate an active subscription"
               value={mockPro}
               onValueChange={setMockPro}
             />
             <RowDivider />
-            <NavRow
+            <StepperRow
               icon="hourglass"
               gradient={GRADIENTS.notify}
               label="Use up free sessions"
-              value={`${planState.quotaDate === toDateString(new Date()) ? planState.sessionsUsedToday : 0} used`}
-              onPress={() => {
-                usePlanStore.getState().recordCompletedSession();
-              }}
+              subtitle={`Sessions used today, of ${FREE_PLAN.sessionsPerDay} free`}
+              value={sessionsUsedToday}
+              min={0}
+              max={FREE_PLAN.sessionsPerDay}
+              onChange={(next) => usePlanStore.getState().setSessionsUsedToday(next)}
             />
             <RowDivider />
             <NavRow

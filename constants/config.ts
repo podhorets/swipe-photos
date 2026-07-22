@@ -42,6 +42,15 @@ export const FREE_PLAN = {
   maxBatchSize: 25,
 };
 
+/**
+ * Gates Settings → Developer and the mock switches it drives.
+ *
+ * TEMPORARY: `true` so the section ships in TestFlight builds, where __DEV__ is
+ * false. Set back to `__DEV__` before the public release — with this on, any
+ * tester can grant themselves the Pro entitlement from Settings.
+ */
+export const DEV_TOOLS_ENABLED = true;
+
 // RevenueCat
 export const PRO = {
   entitlementId: 'pro',

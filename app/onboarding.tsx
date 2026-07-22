@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,11 +20,16 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { createMMKV } from 'react-native-mmkv';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { DemoFill } from '@/components/ui/DemoFill';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
+import {
+    DEDUP_BEST_INDEX,
+    DEDUP_DEMO_PHOTOS,
+    SWIPE_DEMO_CARDS,
+} from '@/constants/demoPhotos';
 import { usePermissions } from '@/hooks/usePermissions';
 import { gatedHaptic } from '@/lib/haptics';
 import { STORAGE_KEYS } from '@/constants/config';
@@ -34,83 +39,66 @@ import { posthog } from '@/lib/posthog';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const storage = createMMKV();
 
-// ─── Demo photos (6 slots) ───────────────────────────────────────────────────
-// Onboarding runs BEFORE photo permission, so it can't show the user's library —
-// but statically bundled photos (shipped inside the app binary) are fine.
-// Drop your JPG/PNG files into assets/onboarding/ and replace the `null`s below
-// with require() calls. Any slot left `null` keeps its gradient placeholder.
-// Recommended: portrait ~3:4, ≤1000px long edge, visually warm "keeper" shots.
-const DEMO_PHOTOS = {
-    // Screen 1 — swipe demo: the card that auto-swipes left/right (most visible slot)
-    swipeTopCard: null as number | null, // TODO: require('../assets/onboarding/swipe-top.jpg')
-    // Screen 1 — swipe demo: the card peeking out behind it (dimmed, mostly covered)
-    swipeBackCard: null as number | null, // TODO: require('../assets/onboarding/swipe-back.jpg')
-    // Screen 2 — dedup demo: the big starred "Best" shot that gets kept
-    dedupHero: null as number | null, // TODO: require('../assets/onboarding/dedup-best.jpg')
-    // Screen 2 — dedup demo: three near-duplicates that sweep into the hero.
-    // For the story to read, use 3 slightly-different takes of the SAME scene as dedupHero.
-    dedupThumbs: [
-        null as number | null, // TODO: require('../assets/onboarding/dedup-dupe-1.jpg')
-        null as number | null, // TODO: require('../assets/onboarding/dedup-dupe-2.jpg')
-        null as number | null, // TODO: require('../assets/onboarding/dedup-dupe-3.jpg')
-    ],
-};
-
-// Fills a demo card with the bundled photo when provided, else the gradient placeholder.
-function DemoFill({
-    photo,
-    gradient,
-    gradientOpacity = 1,
-}: {
-    photo: number | null;
-    gradient: (typeof GRADIENTS)[keyof typeof GRADIENTS];
-    gradientOpacity?: number;
-}) {
-    if (photo != null) {
-        return <Image source={photo} contentFit="cover" style={{ flex: 1 }} />;
-    }
-    return (
-        <LinearGradient
-            colors={gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ flex: 1, opacity: gradientOpacity }}
-        />
-    );
-}
+// Demo photos live in constants/demoPhotos.ts — onboarding runs BEFORE photo
+// permission, so it can never show the user's own library. See that file for
+// how to fill the six slots (bundled asset or https link).
 
 // ─── Step 1 hero: auto-playing swipe demo ────────────────────────────────────
-// A card stack that swipes itself — left with the DELETE overlay, right with
-// KEEP — on a 6s loop. Pure UI-thread transforms; the same ActionOverlay
+// A deck that swipes itself through SWIPE_DEMO_CARDS on a loop, each card
+// committing the decision it was configured with — left with the DELETE
+// overlay, right with KEEP. Pure UI-thread transforms; the same ActionOverlay
 // interpolation curves as the real SwipeCard, so onboarding *is* the product.
 
 const DEMO_W = 190;
 const DEMO_H = 254;
 const DEMO_FLY = SCREEN_WIDTH; // fully off the hero viewport
 const DEMO_DRAG = 48; // "hesitation" drag distance before commit
+const DEMO_HOLD_MS = 700; // beat the card rests before it commits
+// Back-of-deck pose. The incoming card promotes out of it, so a new photo reads
+// as the next one stepping forward rather than blinking into place.
+const DEMO_BACK_SCALE = 0.94;
+const DEMO_BACK_Y = 12;
 
 function SwipeDemo({ active }: { active: boolean }) {
+    const [index, setIndex] = useState(0);
     const x = useSharedValue(0);
+    // Starts in the back pose so the first card promotes in like every other one
+    const promote = useSharedValue(0);
+
+    const card = SWIPE_DEMO_CARDS[index];
+    const nextCard = SWIPE_DEMO_CARDS[(index + 1) % SWIPE_DEMO_CARDS.length];
+    const direction = card.decision === 'delete' ? -1 : 1;
+
+    const advance = useCallback(() => {
+        setIndex((i) => (i + 1) % SWIPE_DEMO_CARDS.length);
+    }, []);
 
     useEffect(() => {
+        if (!active) return;
+        // Promote out of the back-of-deck pose, rest, then commit this card's
+        // decision. Advancing happens in the fly-off callback rather than on a
+        // timer, so the photo only swaps once the card is off-screen.
+        promote.value = 0;
+        promote.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) });
         x.value = 0;
-        x.value = withRepeat(
+        x.value = withDelay(
+            DEMO_HOLD_MS,
             withSequence(
-                // pause → drag left → fly off → (invisible) teleport back
-                withDelay(700, withTiming(-DEMO_DRAG, { duration: 450, easing: Easing.out(Easing.quad) })),
-                withTiming(-DEMO_FLY, { duration: 320, easing: Easing.in(Easing.quad) }),
-                withTiming(0, { duration: 1 }),
-                // pause → drag right → fly off → teleport back
-                withDelay(900, withTiming(DEMO_DRAG, { duration: 450, easing: Easing.out(Easing.quad) })),
-                withTiming(DEMO_FLY, { duration: 320, easing: Easing.in(Easing.quad) }),
-                withTiming(0, { duration: 1 }),
-                withDelay(900, withTiming(0, { duration: 1 })),
+                withTiming(direction * DEMO_DRAG, { duration: 450, easing: Easing.out(Easing.quad) }),
+                withTiming(
+                    direction * DEMO_FLY,
+                    { duration: 320, easing: Easing.in(Easing.quad) },
+                    (finished) => {
+                        if (finished) scheduleOnRN(advance);
+                    },
+                ),
             ),
-            -1,
-            false,
         );
-        return () => cancelAnimation(x);
-    }, [x]);
+        return () => {
+            cancelAnimation(x);
+            cancelAnimation(promote);
+        };
+    }, [active, index, direction, advance, x, promote]);
 
     // Haptic beat when the demo card "commits" — only while this step is visible
     useAnimatedReaction(
@@ -128,11 +116,13 @@ function SwipeDemo({ active }: { active: boolean }) {
     const cardStyle = useAnimatedStyle(() => ({
         transform: [
             { translateX: x.value },
+            { translateY: interpolate(promote.value, [0, 1], [DEMO_BACK_Y, 0]) },
+            { scale: interpolate(promote.value, [0, 1], [DEMO_BACK_SCALE, 1]) },
             {
                 rotate: `${interpolate(x.value, [-DEMO_FLY, 0, DEMO_FLY], [-0.28, 0, 0.28], Extrapolation.CLAMP)}rad`,
             },
         ],
-        // fade just before the off-screen teleport so the reset is invisible
+        // fade before the off-screen reset so the photo swap is never seen
         opacity: interpolate(
             Math.abs(x.value),
             [0, DEMO_FLY * 0.6, DEMO_FLY * 0.85],
@@ -168,7 +158,7 @@ function SwipeDemo({ active }: { active: boolean }) {
                         opacity: 0.8,
                     }}
                 >
-                    <DemoFill photo={DEMO_PHOTOS.swipeBackCard} gradient={GRADIENTS.analytics} />
+                    <DemoFill photo={nextCard.photo} gradient={GRADIENTS.analytics} />
                 </View>
                 {/* Auto-swiping top card */}
                 <Animated.View
@@ -188,7 +178,7 @@ function SwipeDemo({ active }: { active: boolean }) {
                         cardStyle,
                     ]}
                 >
-                    <DemoFill photo={DEMO_PHOTOS.swipeTopCard} gradient={GRADIENTS.accent} />
+                    <DemoFill photo={card.photo} gradient={GRADIENTS.accent} />
                     <Animated.View
                         className="absolute inset-0 items-center justify-center gap-1.5"
                         style={[{ backgroundColor: 'rgba(255,69,58,0.82)' }, deleteOverlayStyle]}
@@ -227,24 +217,29 @@ function SwipeDemo({ active }: { active: boolean }) {
 }
 
 // ─── Step 2 hero: AI dedup demo ──────────────────────────────────────────────
-// Three near-duplicate thumbnails collapse into the starred "best" card; a
-// freed-space chip pops in. One progress shared value drives every element.
+// Four takes of one scene. The main slot opens on photo 1, then the take the
+// analysis prefers (DEDUP_BEST_INDEX) trades places with it and takes the Best
+// badge — the point being that the best shot is not the one you shot first.
+// Both slots hold their outgoing photo underneath and the incoming one on top,
+// so the whole trade is a single opacity ramp in two places.
 
 const THUMB = 56;
 const THUMB_GRADIENTS = [GRADIENTS.accent, GRADIENTS.shield, GRADIENTS.analytics] as const;
-// Each thumb converges on the hero card's center
-const THUMB_TX = [64, 0, -64];
+// Thumbnails render indices 1–3 of DEDUP_DEMO_PHOTOS, in order
+const THUMB_INDICES = [1, 2, 3] as const;
 
 function DedupDemo({ active }: { active: boolean }) {
     const p = useSharedValue(0);
+    // Slot the winner currently occupies — it receives photo 1 in exchange
+    const winnerSlot = THUMB_INDICES.indexOf(DEDUP_BEST_INDEX);
 
     useEffect(() => {
         p.value = 0;
         p.value = withRepeat(
             withSequence(
-                withDelay(900, withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) })),
-                withDelay(1800, withTiming(0, { duration: 350 })),
-                withDelay(400, withTiming(0, { duration: 1 })),
+                withDelay(800, withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) })),
+                withDelay(1900, withTiming(0, { duration: 400 })),
+                withDelay(500, withTiming(0, { duration: 1 })),
             ),
             -1,
             false,
@@ -252,65 +247,73 @@ function DedupDemo({ active }: { active: boolean }) {
         return () => cancelAnimation(p);
     }, [p]);
 
-    // Success beat when the group collapses
+    // Success beat when the swap lands
     useAnimatedReaction(
         () => p.value,
         (cur, prev) => {
             if (!active || prev === null) return;
-            if (prev < 0.7 && cur >= 0.7) {
+            if (prev < 0.6 && cur >= 0.6) {
                 scheduleOnRN(gatedHaptic, Haptics.ImpactFeedbackStyle.Light);
             }
         },
         [active],
     );
 
-    const thumbStyle = (i: number) =>
-        // Hook called in a render-time helper — safe: always called exactly 3 times in fixed order
-        useAnimatedStyle(() => {
-            const t = interpolate(p.value, [0.15 + i * 0.06, 0.65 + i * 0.06], [0, 1], Extrapolation.CLAMP);
-            return {
-                opacity: 1 - t,
-                transform: [
-                    { translateX: t * THUMB_TX[i] },
-                    { translateY: t * -120 },
-                    { scale: 1 - t * 0.85 },
-                ],
-            };
-        });
-    const thumb0 = thumbStyle(0);
-    const thumb1 = thumbStyle(1);
-    const thumb2 = thumbStyle(2);
-
+    // One ramp drives both halves of the exchange
+    const swapStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(p.value, [0.3, 0.6], [0, 1], Extrapolation.CLAMP),
+    }));
+    const heroStyle = useAnimatedStyle(() => ({
+        transform: [
+            { scale: interpolate(p.value, [0.3, 0.45, 0.6], [1, 0.97, 1], Extrapolation.CLAMP) },
+        ],
+    }));
+    // The winner is singled out first, then lifts as it trades up
+    const winnerStyle = useAnimatedStyle(() => ({
+        transform: [
+            { scale: interpolate(p.value, [0.05, 0.28, 0.6], [1, 1.12, 1], Extrapolation.CLAMP) },
+            { translateY: interpolate(p.value, [0.3, 0.45, 0.6], [0, -8, 0], Extrapolation.CLAMP) },
+        ],
+    }));
+    const ringStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(p.value, [0.08, 0.26, 0.5, 0.62], [0, 1, 1, 0], Extrapolation.CLAMP),
+    }));
     const starStyle = useAnimatedStyle(() => ({
         transform: [
-            { scale: interpolate(p.value, [0.55, 0.8, 1], [0, 1.18, 1], Extrapolation.CLAMP) },
+            { scale: interpolate(p.value, [0.6, 0.8, 0.95], [0, 1.18, 1], Extrapolation.CLAMP) },
         ],
     }));
     const chipStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(p.value, [0.7, 1], [0, 1], Extrapolation.CLAMP),
+        opacity: interpolate(p.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
         transform: [
-            { translateY: interpolate(p.value, [0.7, 1], [10, 0], Extrapolation.CLAMP) },
+            { translateY: interpolate(p.value, [0.75, 1], [10, 0], Extrapolation.CLAMP) },
         ],
     }));
 
     return (
         <View className="items-center">
-            {/* Hero — the kept "best" shot */}
-            <View
+            {/* Main shot — opens on photo 1, cross-fades to the picked take */}
+            <Animated.View
                 className="overflow-hidden"
-                style={{
-                    width: 180,
-                    height: 220,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.35)',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.5,
-                    shadowRadius: 24,
-                    shadowOffset: { width: 0, height: 16 },
-                }}
+                style={[
+                    {
+                        width: 180,
+                        height: 220,
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.35)',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.5,
+                        shadowRadius: 24,
+                        shadowOffset: { width: 0, height: 16 },
+                    },
+                    heroStyle,
+                ]}
             >
-                <DemoFill photo={DEMO_PHOTOS.dedupHero} gradient={GRADIENTS.shield} />
+                <DemoFill photo={DEDUP_DEMO_PHOTOS[0]} gradient={GRADIENTS.shield} />
+                <Animated.View className="absolute inset-0" style={swapStyle}>
+                    <DemoFill photo={DEDUP_DEMO_PHOTOS[DEDUP_BEST_INDEX]} gradient={GRADIENTS.shield} />
+                </Animated.View>
                 <Animated.View
                     className="absolute top-2.5 left-2.5 flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-black/55"
                     style={starStyle}
@@ -318,31 +321,54 @@ function DedupDemo({ active }: { active: boolean }) {
                     <Ionicons name="star" size={12} color="#FFD60A" />
                     <Text className="text-white text-xs font-bold">Best</Text>
                 </Animated.View>
-            </View>
-            {/* Near-duplicate thumbnails that sweep into the hero */}
+            </Animated.View>
+            {/* The other three takes — the winner among them trades up */}
             <View className="flex-row gap-2.5 mt-3.5">
-                {[thumb0, thumb1, thumb2].map((style, i) => (
-                    <Animated.View
-                        key={i}
-                        className="overflow-hidden"
-                        style={[
-                            {
-                                width: THUMB,
-                                height: THUMB,
-                                borderRadius: 12,
-                                borderWidth: 2,
-                                borderColor: 'rgba(255,69,58,0.45)',
-                            },
-                            style,
-                        ]}
-                    >
-                        <DemoFill
-                            photo={DEMO_PHOTOS.dedupThumbs[i]}
-                            gradient={THUMB_GRADIENTS[i]}
-                            gradientOpacity={0.8}
-                        />
-                    </Animated.View>
-                ))}
+                {THUMB_INDICES.map((photoIndex, slot) => {
+                    const isWinner = slot === winnerSlot;
+                    return (
+                        <Animated.View
+                            key={photoIndex}
+                            className="overflow-hidden"
+                            style={[
+                                {
+                                    width: THUMB,
+                                    height: THUMB,
+                                    borderRadius: 12,
+                                    borderWidth: 2,
+                                    borderColor: 'rgba(255,69,58,0.45)',
+                                },
+                                isWinner ? winnerStyle : undefined,
+                            ]}
+                        >
+                            <DemoFill
+                                photo={DEDUP_DEMO_PHOTOS[photoIndex]}
+                                gradient={THUMB_GRADIENTS[slot]}
+                                gradientOpacity={0.8}
+                            />
+                            {isWinner && (
+                                <>
+                                    {/* Receives photo 1 as the main slot takes this one */}
+                                    <Animated.View className="absolute inset-0" style={swapStyle}>
+                                        <DemoFill
+                                            photo={DEDUP_DEMO_PHOTOS[0]}
+                                            gradient={THUMB_GRADIENTS[slot]}
+                                            gradientOpacity={0.8}
+                                        />
+                                    </Animated.View>
+                                    <Animated.View
+                                        className="absolute inset-0"
+                                        pointerEvents="none"
+                                        style={[
+                                            { borderRadius: 10, borderWidth: 2, borderColor: '#0A84FF' },
+                                            ringStyle,
+                                        ]}
+                                    />
+                                </>
+                            )}
+                        </Animated.View>
+                    );
+                })}
             </View>
             {/* Freed-space payoff chip */}
             <Animated.View
