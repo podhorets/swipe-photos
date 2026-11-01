@@ -91,6 +91,5 @@ export const SESSION = {
   preloadAhead: 5,
 };
 
-// Estimated average photo size for "reclaimable" display
-export const AVG_PHOTO_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
+// Estimated average video size for "reclaimable" display
 export const AVG_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB

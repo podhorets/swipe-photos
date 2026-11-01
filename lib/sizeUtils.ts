@@ -29,12 +29,10 @@ export async function fetchAssetSize(asset: AssetMeta): Promise<number> {
     });
     if (info.localUri && !info.isNetworkAsset) {
       const file = new File(info.localUri);
-      console.log('real ', file.size);
       if (file.exists) return file.size;
     }
   } catch {
     // fall through
   }
-  console.log('estimated');
   return estimateSizeFromAsset(asset);
 }

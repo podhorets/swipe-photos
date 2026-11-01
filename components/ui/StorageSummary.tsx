@@ -1,8 +1,8 @@
 import { GlassCard } from '@/components/glass/GlassCard';
 import { ProgressRing } from '@/components/ui/ProgressRing';
-import { AVG_PHOTO_SIZE_BYTES, AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 import { GRADIENTS } from '@/constants/theme';
 import { formatBytes } from '@/lib/dateUtils';
+import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { computeStreak, getWeekCompletions } from '@/lib/streakUtils';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useKeepStore } from '@/stores/keepStore';
@@ -104,7 +104,10 @@ export function StorageSummary() {
     return {
       photoCount: photos,
       videoCount: videos,
-      estimatedSize: photos * AVG_PHOTO_SIZE_BYTES + videos * AVG_VIDEO_SIZE_BYTES,
+      // Per-asset estimate from dimensions/duration (same model the trash
+      // uses before real sizes arrive) — a flat 4 MB/photo was off by 10× on
+      // libraries of smaller images
+      estimatedSize: index.reduce((sum, a) => sum + estimateSizeFromAsset(a), 0),
       reviewedRatio: index.length > 0 ? Math.min(1, keepIds.size / index.length) : 0,
     };
   }, [index, keepIds]);
@@ -154,7 +157,7 @@ export function StorageSummary() {
             {index.length.toLocaleString()} items
           </Text>
           <Text className="text-white/45 text-[13px] mt-0.5">
-            {formatBytes(estimatedSize, 0)} on device
+            ≈ {formatBytes(estimatedSize, 0)} on device
           </Text>
         </View>
       </View>
