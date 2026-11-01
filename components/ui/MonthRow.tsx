@@ -76,7 +76,12 @@ export function MonthRow({ label, count, progress, isComplete, coverUri, onPress
                   progress={progress}
                   trackColor="rgba(255,255,255,0.12)"
                 >
-                  <Text className="text-white/70 text-[9.5px] font-bold">{pct}</Text>
+                  <Text
+                    className="text-white/70 text-[9px] font-bold tracking-tighter"
+                    accessibilityLabel={`${pct} percent reviewed`}
+                  >
+                    {pct}%
+                  </Text>
                 </ProgressRing>
               </View>
             )}
