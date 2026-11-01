@@ -810,6 +810,9 @@ export default function OnboardingScreen() {
 
     function handleSkip() {
         posthog.capture('onboarding_skipped', { step: currentStep });
+        // Seen is seen: without this the full intro replays on every cold
+        // start. Missing photo access is handled by Library's own locked state.
+        storage.set(STORAGE_KEYS.hasCompletedOnboarding, true);
         router.replace('/(tabs)');
     }
 
