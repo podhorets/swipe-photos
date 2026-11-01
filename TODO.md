@@ -38,10 +38,21 @@ _Last updated: 2026-11-01_
       Name *Swipe Photos: Photo Cleaner*, subtitle, keywords, promotional text, description (it must keep the
       Terms of Use link), privacy label answers, review notes and 6 screenshots.
       All written out in Parts 2–4 of the submission guide.
+  - [ ] Make the first two screenshots the Similar grid and a Similar group, not a plain swipe card
+        (the order is in Part 2). Photo cleaners are a crowded category; this shows what's different.
+  - [ ] Record a 30–60 second screen recording of the Similar flow and the Trash review, and attach it
+        to the review notes. Keep it for a reply if Apple rejects under 4.3 (spam).
 
 - [ ] **6. After uploading the build.**
   - [ ] Check your email for ITMS-91053 / 91061 (privacy manifest) warnings, and send them to Claude to fix.
   - [ ] Install it from TestFlight on an iPad once; reviewers often test on one.
+
+## If App Review rejects
+
+- [ ] **Under 4.3 (Design: Spam):** reply in App Store Connect with the template in Part 4 of the submission
+      guide and attach the screen recording. Check that its claims are true for you (for example, that this is
+      the only app of its kind on your account) before sending. If that fails, appeal to the App Review Board.
+- [ ] **Anything else:** send Claude the rejection text.
 
 ## After approval
 

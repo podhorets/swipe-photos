@@ -62,9 +62,12 @@ After approval: set `APP_STORE_ID` in `constants/config.ts` (enables the "Rate S
 
 **Keywords (100):**
 ```
-cleaner,cleanup,storage,duplicate,similar,gallery,camera roll,declutter,organize,delete,memories
+cleanup,storage,duplicate,similar,gallery,camera roll,declutter,organize,delete,memories,burst
 ```
-Don't repeat words from the name; no competitor or brand names (2.3.7).
+94 of 100 characters. Words already in the name ("swipe", "photos", "cleaner") are indexed from the name, so
+repeating them here only wastes space. Every keyword must describe something the app really does, and no
+competitor or brand names (2.3.7). "burst" fits because Similar groups shots taken seconds apart; don't add
+"blurry", "junk", "boost" or "virus": the app has no blurry-photo finder and can't clean the phone itself.
 
 **Promotional text (170):**
 ```
@@ -79,7 +82,7 @@ REVIEW YOUR WAY
 • Random stacks for a quick 5-minute session
 • Go month by month through your whole library
 • On This Day: revisit photos taken on today's date in past years
-• Similar photos: look-alike shots grouped together, with the sharpest one suggested as the best
+• Similar photos: look-alike shots grouped together, with the sharpest one starred for you. Star the ones to keep and clear the rest
 
 NOTHING IS DELETED BY ACCIDENT
 • Photos you swipe left go to a Trash you review before anything is deleted
@@ -105,11 +108,12 @@ The EULA link must be in the description of **every** localization (3.1.2).
 **What's New (1.0):** `First release.`
 
 ### Screenshots (6.9" — 1320 × 2868, required)
-Capture from the iPhone 17 Pro Max simulator with `npm run seed:photos` data, all from the real app UI:
-1. Swipe card mid-swipe with the KEEP overlay — caption "Swipe right to keep"
-2. Swipe card with the DELETE overlay — "Swipe left to delete"
+Capture from the iPhone 17 Pro Max simulator with `npm run seed:photos` data, all from the real app UI.
+Lead with what basic swipe apps don't have — reviewers and shoppers both judge from the first two:
+1. Similar tab grid with the Best badges — caption "Find look-alike shots in seconds"
+2. A Similar group with stars on the keepers — "Star the keepers, clear the rest"
 3. Trash review grid — "Check everything before it's deleted"
-4. Similar groups with the Best badge — "Find look-alike shots"
+4. Swipe card mid-swipe with the KEEP overlay — "Or swipe through one photo at a time"
 5. By Month list — "Go through your library month by month"
 6. On This Day — "Revisit today in past years"
 
@@ -141,13 +145,19 @@ Location, Identifiers used for tracking. These match `ios.privacyManifests` in `
 - **Notes** (paste; attach a screen recording of the flow if possible):
 
 ```
-Swipe Photos is a photo-library cleaner. No account or login is required.
+Swipe Photos is a photo-library cleaner, written from scratch by an independent developer (no template or white-label code). No account or login is required.
+
+WHAT'S DIFFERENT FROM BASIC SWIPE APPS
+- Similar photos: look-alike shots are grouped on the device (Apple Vision feature prints), and the sharpest one is starred automatically. The user stars any photos to keep and clears the rest of the group in one tap.
+- Nothing is deleted by accident: every deletion goes through a Trash review screen, then the iOS confirmation, then 30 days in Recently Deleted.
+- Several ways in: by month, On This Day, screenshots, videos, or a random stack.
+- Everything runs on the iPhone; photos are never uploaded, and there are no accounts.
 
 HOW IT WORKS
 1. On first launch, three intro screens explain the app; "Continue" on the last one shows the iOS photo-library permission prompt.
 2. Library tab → tap "Random 25" (or a month on the Months tab). Swipe right to keep, left to mark for deletion; or use the buttons.
 3. Close the session (X) → "Review Trash" → Delete. Photos are deleted with PHPhotoLibrary, so iOS shows its own confirmation, and the photos go to Recently Deleted (recoverable for 30 days).
-4. Similar tab groups look-alike shots (taken within seconds of each other; on device, Apple Vision feature prints refine the groups and pick the sharpest shot). To see a group, take 3–4 quick photos of the same scene.
+4. Similar photos (the card on the Library tab, or the Similar tab) groups look-alike shots (taken within seconds of each other; on device, Apple Vision feature prints refine the groups and pick the sharpest shot). In a group, tap photos to star the ones to keep; "Delete" removes the unstarred ones. To see a group, take 3–4 quick photos of the same scene. If the device has no photos, the Library tab explains this.
 5. On This Day (third tab) shows photos taken on today's date in previous years.
 
 WHY FULL PHOTO LIBRARY ACCESS
@@ -158,6 +168,31 @@ The free plan allows 2 reviews per day of up to 25 photos. Pro (weekly with a 3-
 
 The app is iPhone-only and supports iPad compatibility mode. Tested on iPhone 17 Pro (iOS 26.2).
 ```
+
+### If App Review rejects under 4.3 (Design: Spam)
+
+Photo cleaners are a crowded category, so a 4.3 rejection is possible even for original work. Don't resubmit
+unchanged and don't argue; reply in App Store Connect (App Review › the rejection › Reply) with specifics, and
+attach a 30–60 second screen recording of the Similar flow and the Trash review. Paste and adjust:
+
+```
+Hello, and thank you for reviewing Swipe Photos.
+
+Swipe Photos was written from scratch by me as an independent developer; it doesn't use a template, a purchased codebase or white-label code, and it is the only app of this kind on my account.
+
+What it offers that basic photo-swiping apps don't:
+1. Similar photos: look-alike shots are grouped on the device with Apple Vision feature prints, and the sharpest one is starred automatically. People star the photos they want to keep and clear the rest of the group in one step.
+2. A safety-first delete flow: nothing is deleted from a swipe. Every deletion goes through a Trash review screen, then the iOS confirmation, then 30 days in Recently Deleted.
+3. Several ways to review: by month, On This Day, screenshots, videos or a random stack, with progress kept per category.
+4. Privacy: all analysis runs on the iPhone, photos are never uploaded, and there are no accounts.
+
+I've attached a short screen recording of the Similar flow and the Trash review. To try it, take 3–4 photos of the same scene, then open the "Similar photos" card on the Library tab.
+
+I'd be grateful if you could take another look. If something specific makes it seem too close to another app, please let me know and I'll address it.
+```
+
+If the reply doesn't help, submit an appeal to the App Review Board (developer.apple.com/contact/app-store/?topic=appeal)
+with the same text. Only change the app if the rejection names something concrete.
 
 ---
 
@@ -177,4 +212,7 @@ The app is iPhone-only and supports iPad compatibility mode. Tested on iPhone 17
 - **Settings:** Manage subscription (Apple sheet), Restore Purchases, Help & Support, Privacy Policy, Terms of Use. "Rate" is hidden until `APP_STORE_ID` is set.
 - **Release safety:** the Developer section (Mock Pro) exists only in dev builds. The crash screen shows no stack traces and reports to Sentry. Sentry sends no PII and records no routine sessions; the analytics toggle covers it.
 - **Licensed, bundled demo images** (Unsplash License) instead of hot-linked social-media photos.
+- **Distinct at first glance (4.3):** the Library tab leads with a "Similar photos" card (groups and space to free),
+  not just swipe stacks. An empty library (common on review devices) shows how to get started instead of a grid of
+  zeros; with Limited Access and nothing selected, it points to the banner that opens the photo picker.
 - **Privacy manifest** in `app.json`: required-reason APIs (UserDefaults, FileTimestamp, SystemBootTime, DiskSpace) and collected data types.
