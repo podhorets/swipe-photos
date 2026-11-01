@@ -27,7 +27,7 @@ const CARD_W = 110;
 const CARD_H = 134;
 
 interface PaywallHeroProps {
-    /** Amber lock chip above the demo, e.g. "2 of 2 free sessions used today". */
+    /** Amber lock chip above the demo, e.g. "2 of 2 free reviews used today". */
     lockLabel?: string;
 }
 

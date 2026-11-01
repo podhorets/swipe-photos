@@ -5,6 +5,7 @@ import Purchases, {
   PurchasesOffering,
   PurchasesPackage,
 } from 'react-native-purchases';
+import { Linking } from 'react-native';
 import { PRO } from '@/constants/config';
 import { usePlanStore } from '@/stores/planStore';
 
@@ -93,6 +94,19 @@ export async function restore(): Promise<boolean> {
     return !!info.entitlements.active[PRO.entitlementId];
   } catch {
     return false;
+  }
+}
+
+/**
+ * Opens Apple's subscription management sheet; falls back to the App Store
+ * subscriptions page (never a web page, which can't manage subscriptions).
+ */
+export async function manageSubscriptions(): Promise<void> {
+  try {
+    if (!isConfigured) throw new Error('not configured');
+    await Purchases.showManageSubscriptions();
+  } catch {
+    await Linking.openURL('itms-apps://apps.apple.com/account/subscriptions').catch(() => {});
   }
 }
 

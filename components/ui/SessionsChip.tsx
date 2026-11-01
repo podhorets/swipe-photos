@@ -32,7 +32,7 @@ export function SessionsChip() {
     <Pressable
       onPress={() => router.push({ pathname: '/paywall', params: { context: 'chip' } })}
       accessibilityRole="button"
-      accessibilityLabel={remaining > 0 ? `${remaining} free sessions left today` : 'Free sessions refill soon'}
+      accessibilityLabel={remaining > 0 ? `${remaining} free reviews left today` : 'Free reviews refill at midnight'}
       className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-[rgba(10,132,255,0.15)] border border-[rgba(10,132,255,0.3)]"
     >
       <Text className="text-[13px]">{remaining > 0 ? '⚡' : '⏳'}</Text>

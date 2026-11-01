@@ -69,12 +69,6 @@ export const PRO = {
   entitlementId: 'pro',
 };
 
-// Shown on the paywall when RevenueCat offerings can't be loaded
-export const FALLBACK_PRICING = {
-  weekly: '$4.99',
-  annual: '$29.99',
-};
-
 // Gallery indexing
 export const GALLERY = {
   // Assets fetched per page during indexing

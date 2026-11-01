@@ -2,73 +2,122 @@ import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { PaywallHero } from '@/components/paywall/PaywallHero';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
-import { FALLBACK_PRICING, FREE_PLAN } from '@/constants/config';
+import { FREE_PLAN, LEGAL } from '@/constants/config';
 import { GRADIENTS } from '@/constants/theme';
 import { posthog } from '@/lib/posthog';
 import { isPro, sessionsRemaining } from '@/lib/planUtils';
-import { checkTrialEligibility, loadOfferings, purchase, restore } from '@/lib/purchases';
+import {
+  checkTrialEligibility,
+  loadOfferings,
+  manageSubscriptions,
+  purchase,
+  restore,
+} from '@/lib/purchases';
 import { usePlanStore } from '@/stores/planStore';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
-const PRIVACY_URL = 'https://swipephotos.app/privacy';
-const MANAGE_SUBSCRIPTION_URL = 'https://apps.apple.com/account/subscriptions';
 
 type PlanId = 'annual' | 'weekly';
 type PaywallContext = 'sessions' | 'batch' | 'chip' | 'settings';
 
-function headline(context: PaywallContext): { title: string; subtitle: string } {
+const SUBSCRIPTION_NAME = 'Swipe Photos Pro';
+
+// Every benefit here must be true of the code (lib/planUtils.ts) — a paywall
+// that promises features the app doesn't have fails Guideline 2.3.1.
+const BENEFITS = [
+  { icon: 'infinite' as const, text: `Unlimited reviews every day (free: ${FREE_PLAN.sessionsPerDay} a day)` },
+  { icon: 'albums' as const, text: `Review up to 100 photos at a time (free: ${FREE_PLAN.maxBatchSize})` },
+];
+
+function headline(context: PaywallContext): string {
   switch (context) {
     case 'sessions':
-      return {
-        title: "You're on a roll.\nDon't stop now.",
-        subtitle: "You've used today's free sessions. Pro keeps you swiping.",
-      };
+      return "You're on a roll.\nDon't stop now.";
     case 'batch':
-      return {
-        title: 'Clear 100 photos\nin one sitting',
-        subtitle: `Free reviews ${FREE_PLAN.maxBatchSize} at a time. Pro batches are 4× bigger — same swipes, four times the progress.`,
-      };
+      return 'Clear 100 photos\nin one sitting';
     case 'chip':
-      return {
-        title: 'Clean your library\n10× faster',
-        subtitle: '',
-      };
+      return 'Clean your library\nwithout limits';
     default:
-      return {
-        title: 'Your backlog,\ngone this week',
-        subtitle: 'Unlimited sessions and 100-photo batches, from $0.58/week.',
-      };
+      return 'Clear your backlog\nwith Pro';
   }
 }
 
-/** Weekly-equivalent price for the annual package, e.g. "$0.58". */
-function perWeekPrice(pkg: PurchasesPackage | null): string {
-  if (!pkg) return '$0.58';
+function formatPrice(amount: number, currencyCode: string): string | null {
   try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: pkg.product.currencyCode,
-    }).format(pkg.product.price / 52);
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(amount);
   } catch {
-    return '$0.58';
+    return null;
   }
 }
 
-function TrialTimeline() {
+/** Weekly-equivalent of the yearly price, e.g. "$0.58" — computed from the store price. */
+function perWeekPrice(pkg: PurchasesPackage | null): string | null {
+  if (!pkg) return null;
+  return formatPrice(pkg.product.price / 52, pkg.product.currencyCode);
+}
+
+/** Yearly savings vs 52 weekly payments, from real store prices (null if not a saving). */
+function yearlySavingsPercent(weekly: PurchasesPackage | null, annual: PurchasesPackage | null): number | null {
+  if (!weekly || !annual || weekly.product.currencyCode !== annual.product.currencyCode) return null;
+  const pct = Math.floor((1 - annual.product.price / (weekly.product.price * 52)) * 100);
+  return pct > 0 ? pct : null;
+}
+
+/** Free-trial length from the product's intro offer, e.g. "3-day" — null when there is no free trial. */
+function freeTrialLabel(pkg: PurchasesPackage | null): { short: string; days: number | null } | null {
+  const intro = pkg?.product.introPrice;
+  if (!intro || intro.price !== 0) return null;
+  const n = intro.periodNumberOfUnits;
+  switch (intro.periodUnit) {
+    case 'DAY':
+      return { short: `${n}-day`, days: n };
+    case 'WEEK':
+      return { short: n === 1 ? '1-week' : `${n}-week`, days: n * 7 };
+    case 'MONTH':
+      return { short: n === 1 ? '1-month' : `${n}-month`, days: null };
+    default:
+      return null;
+  }
+}
+
+function Benefits() {
+  return (
+    <GlassCard radius={24} className="mb-4">
+      <View className="p-4 gap-3">
+        <Text className="text-white text-[15px] font-bold">{SUBSCRIPTION_NAME} includes</Text>
+        {BENEFITS.map((b) => (
+          <View key={b.text} className="flex-row items-center gap-3">
+            <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center">
+              <Ionicons name={b.icon} size={16} color="#0A84FF" />
+            </View>
+            <Text className="flex-1 text-white/80 text-[14px]">{b.text}</Text>
+          </View>
+        ))}
+      </View>
+    </GlassCard>
+  );
+}
+
+function TrialTimeline({ days, renewalPrice }: { days: number | null; renewalPrice: string }) {
   const steps = [
-    { icon: 'lock-open' as const, title: 'Today: everything unlocks', sub: 'Unlimited sessions and 100-photo batches, instantly.' },
-    { icon: 'notifications' as const, title: 'Day 2: reminder', sub: "We'll notify you before the trial ends. No surprises." },
-    { icon: 'star' as const, title: 'Day 3: trial ends', sub: 'Billing starts — cancel anytime before in Settings.' },
+    { icon: 'lock-open' as const, title: 'Today: Pro unlocks', sub: 'Free for the length of your trial.' },
+    {
+      icon: 'calendar' as const,
+      title: days ? `Day ${days}: trial ends` : 'Trial ends',
+      sub: `You'll be charged ${renewalPrice} per week unless you cancel at least 24 hours before the trial ends.`,
+    },
+    {
+      icon: 'close-circle' as const,
+      title: 'Cancel anytime',
+      sub: 'In Settings › your name › Subscriptions.',
+    },
   ];
   return (
     <View className="p-4 mb-4 bg-white/10 border border-white/[0.16] rounded-3xl">
@@ -82,7 +131,7 @@ function TrialTimeline() {
           </View>
           <View className={i < steps.length - 1 ? 'flex-1 pb-4' : 'flex-1'}>
             <Text className="text-white text-[15px] font-semibold">{s.title}</Text>
-            <Text className="text-white/45 text-[13px] mt-0.5">{s.sub}</Text>
+            <Text className="text-white/60 text-[13px] mt-0.5">{s.sub}</Text>
           </View>
         </View>
       ))}
@@ -96,18 +145,23 @@ interface PlanCardProps {
   title: string;
   price: string;
   priceSuffix: string;
-  sub: string;
-  badge?: string;
+  sub?: string | null;
+  badge?: string | null;
 }
 
 function PlanCard({ selected, onPress, title, price, priceSuffix, sub, badge }: PlanCardProps) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${title}, ${price} ${priceSuffix}${sub ? `, ${sub}` : ''}`}
+    >
       <View
         className={
           selected
-            ? 'rounded-3xl border-2 border-accent bg-accent/10 px-4 py-3.5'
-            : 'rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3.5'
+            ? 'rounded-3xl border-2 border-accent bg-accent/10 px-4 py-3.5 min-h-[64px] justify-center'
+            : 'rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3.5 min-h-[64px] justify-center'
         }
       >
         {badge && (
@@ -123,7 +177,7 @@ function PlanCard({ selected, onPress, title, price, priceSuffix, sub, badge }: 
           </View>
         )}
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-3 flex-1">
             <View
               className={
                 selected
@@ -133,17 +187,30 @@ function PlanCard({ selected, onPress, title, price, priceSuffix, sub, badge }: 
             >
               {selected && <Ionicons name="checkmark" size={12} color="white" />}
             </View>
-            <View>
+            <View className="flex-1">
               <Text className="text-white text-[16px] font-bold">{title}</Text>
-              <Text className="text-white/45 text-[12px] mt-0.5">{sub}</Text>
+              {!!sub && <Text className="text-white/60 text-[12px] mt-0.5">{sub}</Text>}
             </View>
           </View>
+          {/* Billed amount is the most prominent number on the card */}
           <View className="items-end">
-            <Text className="text-white text-[17px] font-extrabold">{price}</Text>
-            <Text className="text-white/40 text-[12px]">{priceSuffix}</Text>
+            <Text className="text-white text-[18px] font-extrabold">{price}</Text>
+            <Text className="text-white/60 text-[12px]">{priceSuffix}</Text>
           </View>
         </View>
       </View>
+    </Pressable>
+  );
+}
+
+function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      className="min-h-[44px] px-2 items-center justify-center active:opacity-60"
+    >
+      <Text className="text-white/60 text-[13px] underline">{label}</Text>
     </Pressable>
   );
 }
@@ -158,46 +225,44 @@ export default function PaywallScreen() {
   const [trialEligible, setTrialEligible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('weekly');
   const [purchasing, setPurchasing] = useState(false);
-  const [closeEnabled, setCloseEnabled] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   // Pro users can still land here via the /paywall deep link — never sell them
   // a second subscription, point them at subscription management instead
   const pro = usePlanStore((s) => isPro(s));
 
-  // Close button: fade in after 1.5s (present but understated — no dark patterns)
-  const closeOpacity = useSharedValue(0);
-  useEffect(() => {
-    closeOpacity.value = withDelay(1500, withTiming(1, { duration: 400 }));
-    const t = setTimeout(() => setCloseEnabled(true), 1500);
-    return () => clearTimeout(t);
-  }, [closeOpacity]);
-  const closeStyle = useAnimatedStyle(() => ({ opacity: closeOpacity.value }));
-
-  useEffect(() => {
-    posthog.capture('paywall_shown', { context });
+  const fetchOfferings = useCallback(() => {
+    setOfferingsLoaded(false);
     loadOfferings().then((o) => {
       setOffering(o);
       setOfferingsLoaded(true);
       const weeklyId = o?.weekly?.product.identifier;
       if (weeklyId) checkTrialEligibility(weeklyId).then(setTrialEligible);
     });
-  }, [context]);
+  }, []);
+
+  useEffect(() => {
+    posthog.capture('paywall_shown', { context });
+    fetchOfferings();
+  }, [context, fetchOfferings]);
 
   const weeklyPkg = offering?.weekly ?? null;
   const annualPkg = offering?.annual ?? null;
   const purchasesAvailable = !!(weeklyPkg && annualPkg);
+  // Real store prices only — never show made-up fallback prices
+  const weeklyPrice = weeklyPkg?.product.priceString ?? '';
+  const annualPrice = annualPkg?.product.priceString ?? '';
 
-  const weeklyPrice = weeklyPkg?.product.priceString ?? FALLBACK_PRICING.weekly;
-  const annualPrice = annualPkg?.product.priceString ?? FALLBACK_PRICING.annual;
-
-  const { title, subtitle } = headline(context);
+  const savings = yearlySavingsPercent(weeklyPkg, annualPkg);
+  const trial = freeTrialLabel(weeklyPkg);
+  const showTrial = !pro && selectedPlan === 'weekly' && trialEligible && !!trial;
 
   // Lock chip only when the daily quota actually ran out (sessionGate opens the
   // paywall with context 'sessions'). Opened from Settings, the batch picker, or
-  // the chip, the user may still have sessions left — claiming otherwise is false.
+  // the chip, the user may still have reviews left — claiming otherwise is false.
   const lockLabel = useMemo(() => {
     if (context !== 'sessions') return undefined;
     if (sessionsRemaining(usePlanStore.getState()) > 0) return undefined;
-    return `${FREE_PLAN.sessionsPerDay} of ${FREE_PLAN.sessionsPerDay} free sessions used today`;
+    return `${FREE_PLAN.sessionsPerDay} of ${FREE_PLAN.sessionsPerDay} free reviews used today`;
   }, [context]);
 
   function close() {
@@ -206,10 +271,7 @@ export default function PaywallScreen() {
   }
 
   async function handlePurchase() {
-    if (!purchasesAvailable) {
-      Alert.alert('Purchases Unavailable', 'The store is not reachable right now. Please try again later.');
-      return;
-    }
+    if (!purchasesAvailable) return;
     const pkg = selectedPlan === 'annual' ? annualPkg! : weeklyPkg!;
     setPurchasing(true);
     posthog.capture('purchase_started', { package: pkg.identifier, context });
@@ -217,7 +279,7 @@ export default function PaywallScreen() {
     setPurchasing(false);
     if (result === 'purchased') {
       posthog.capture('purchase_completed', { package: pkg.identifier, context });
-      if (selectedPlan === 'weekly' && trialEligible) posthog.capture('trial_started');
+      if (showTrial) posthog.capture('trial_started');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } else if (result === 'failed') {
@@ -228,24 +290,32 @@ export default function PaywallScreen() {
   }
 
   async function handleRestore() {
+    setRestoring(true);
     const restored = await restore();
+    setRestoring(false);
     posthog.capture('restore_completed', { restored });
     if (restored) {
-      Alert.alert('Welcome Back', 'Your Pro subscription has been restored.');
+      Alert.alert('Purchases Restored', `${SUBSCRIPTION_NAME} is active again.`);
       router.back();
     } else {
-      Alert.alert('Nothing to Restore', 'No previous purchases were found for this Apple ID.');
+      Alert.alert('Nothing to Restore', 'No active subscription was found for this Apple ID.');
     }
   }
 
-  const showTrial = !pro && selectedPlan === 'weekly' && trialEligible;
-  const ctaLabel = pro
-    ? 'Manage Subscription'
-    : showTrial
-    ? 'Start My 3-Day Free Trial'
-    : selectedPlan === 'annual'
-      ? `Unlock Unlimited — ${annualPrice}/year`
-      : `Continue — ${weeklyPrice}/week`;
+  // Neutral CTA: Apple rejects paywalls that promote the free trial more
+  // conspicuously than the billed amount (3.1.2) — the trial is described in
+  // the plan card, the timeline and the disclosure instead.
+  const ctaLabel = pro ? 'Manage Subscription' : 'Continue';
+
+  // Auto-renewal disclosure (Guideline 3.1.2): price, period, trial, renewal and
+  // cancellation terms, directly under the purchase button.
+  const disclosure = pro
+    ? `${SUBSCRIPTION_NAME} is active on this Apple ID.`
+    : !purchasesAvailable
+      ? ''
+      : showTrial
+        ? `Free for ${trial!.short.replace('-', ' ')}s, then ${weeklyPrice} per week. Payment is charged to your Apple ID when the trial ends. The subscription renews automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in your App Store account settings.`
+        : `${selectedPlan === 'annual' ? `${annualPrice} per year` : `${weeklyPrice} per week`}, charged to your Apple ID at confirmation of purchase. The subscription renews automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in your App Store account settings.`;
 
   return (
     <View className="flex-1 bg-bg-dark" style={{ paddingTop: insets.top }}>
@@ -253,91 +323,109 @@ export default function PaywallScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6"
+        contentContainerClassName="px-6 pt-10"
         showsVerticalScrollIndicator={false}
       >
         {/* Living hero: lock chip (sessions) + auto-swiping demo */}
         <PaywallHero lockLabel={lockLabel} />
 
-        {/* Headline */}
-        <View className="items-center mt-2">
+        {/* Headline + subscription name */}
+        <View className="items-center mt-2 mb-4">
           <Text
-            className="text-white font-extrabold text-center mb-4"
-            style={{ fontSize: 32, lineHeight: 37, letterSpacing: -0.8 }}
+            className="text-white font-extrabold text-center"
+            style={{ fontSize: 30, lineHeight: 35, letterSpacing: -0.8 }}
           >
-            {title}
+            {headline(context)}
           </Text>
+          <Text className="text-white/60 text-[14px] mt-2">{SUBSCRIPTION_NAME} · auto-renewable subscription</Text>
         </View>
 
-        {/* Plan cards — weekly pre-selected (carries the free trial); annual keeps the anchor badge */}
-        <View className="gap-3 mb-4">
-          <PlanCard
-            selected={selectedPlan === 'annual'}
-            onPress={() => setSelectedPlan('annual')}
-            title="Yearly"
-            price={annualPrice}
-            priceSuffix="per year"
-            sub={`Just ${perWeekPrice(annualPkg)}/week`}
-            badge="BEST VALUE · SAVE 88%"
-          />
-          <PlanCard
-            selected={selectedPlan === 'weekly'}
-            onPress={() => setSelectedPlan('weekly')}
-            title="Weekly"
-            price={weeklyPrice}
-            priceSuffix="per week"
-            sub={trialEligible ? '3-day free trial included' : 'Flexible, cancel anytime'}
-          />
-        </View>
+        {/* Plan cards — or a clear error with retry when the store is unreachable */}
+        {!offeringsLoaded ? (
+          <View className="h-[150px] items-center justify-center mb-4">
+            <ActivityIndicator color="white" />
+          </View>
+        ) : purchasesAvailable ? (
+          <View className="gap-3 mb-4">
+            <PlanCard
+              selected={selectedPlan === 'annual'}
+              onPress={() => setSelectedPlan('annual')}
+              title="Yearly"
+              price={annualPrice}
+              priceSuffix="per year"
+              sub={perWeekPrice(annualPkg) ? `${perWeekPrice(annualPkg)} per week, billed yearly` : null}
+              badge={savings ? `BEST VALUE · SAVE ${savings}%` : null}
+            />
+            <PlanCard
+              selected={selectedPlan === 'weekly'}
+              onPress={() => setSelectedPlan('weekly')}
+              title="Weekly"
+              price={weeklyPrice}
+              priceSuffix="per week"
+              sub={trialEligible && trial ? `${trial.short} free trial, then ${weeklyPrice} per week` : 'Billed weekly'}
+            />
+          </View>
+        ) : (
+          !pro && (
+            <GlassCard radius={24} className="mb-4">
+              <View className="p-5 items-center gap-3">
+                <Ionicons name="cloud-offline-outline" size={28} color="rgba(255,255,255,0.6)" />
+                <Text className="text-white text-[15px] font-semibold text-center">
+                  Subscription options couldn’t be loaded
+                </Text>
+                <Text className="text-white/60 text-[13px] text-center">
+                  Check your internet connection and try again.
+                </Text>
+                <Pressable
+                  onPress={fetchOfferings}
+                  accessibilityRole="button"
+                  className="min-h-[44px] px-6 rounded-full bg-white/15 items-center justify-center active:opacity-70"
+                >
+                  <Text className="text-white font-semibold">Try Again</Text>
+                </Pressable>
+              </View>
+            </GlassCard>
+          )
+        )}
 
-        {/* Trial timeline (weekly + eligible only) */}
-        {showTrial && <TrialTimeline />}
+        <Benefits />
+
+        {/* Trial timeline (weekly + eligible free trial only) */}
+        {showTrial && <TrialTimeline days={trial!.days} renewalPrice={weeklyPrice} />}
       </ScrollView>
 
-      {/* Sticky CTA */}
-      <View className="px-6 gap-1" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+      {/* Sticky CTA + full disclosure + required links, always visible */}
+      <View className="px-6 pt-2 gap-1.5" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <GradientPillButton
           label={ctaLabel}
-          onPress={pro ? () => WebBrowser.openBrowserAsync(MANAGE_SUBSCRIPTION_URL).catch(() => {}) : handlePurchase}
+          onPress={pro ? manageSubscriptions : handlePurchase}
           loading={!pro && (purchasing || !offeringsLoaded)}
-          disabled={!pro && offeringsLoaded && !purchasesAvailable}
+          disabled={!pro && (!purchasesAvailable || restoring)}
         />
-        <Text className="text-white/30 text-[11px] text-center" style={{ lineHeight: 15 }}>
-          {pro
-            ? 'Swipe Photos Pro is active on this Apple ID.'
-            : showTrial
-            ? `Free for 3 days, then ${weeklyPrice}/week. Auto-renews until cancelled in Settings. Cancel anytime.`
-            : `Auto-renews ${selectedPlan === 'annual' ? `at ${annualPrice}/year` : `at ${weeklyPrice}/week`} until cancelled in Settings.`}
-        </Text>
-        <View className="flex-row justify-center gap-5">
-          <Pressable onPress={handleRestore} hitSlop={8}>
-            <Text className="text-white/40 text-[12px]">Restore Purchases</Text>
-          </Pressable>
-          <Pressable onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} hitSlop={8}>
-            <Text className="text-white/40 text-[12px]">Terms</Text>
-          </Pressable>
-          <Pressable onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} hitSlop={8}>
-            <Text className="text-white/40 text-[12px]">Privacy</Text>
-          </Pressable>
+        {!!disclosure && (
+          <Text className="text-white/60 text-[12px] text-center" style={{ lineHeight: 16 }}>
+            {disclosure}
+          </Text>
+        )}
+        <View className="flex-row justify-center">
+          <FooterLink label={restoring ? 'Restoring…' : 'Restore Purchases'} onPress={handleRestore} />
+          <FooterLink label="Terms of Use" onPress={() => WebBrowser.openBrowserAsync(LEGAL.termsUrl)} />
+          <FooterLink label="Privacy Policy" onPress={() => WebBrowser.openBrowserAsync(LEGAL.privacyUrl)} />
         </View>
       </View>
 
-      {/* Delayed-fade close — rendered last so it wins the hit test over the ScrollView */}
-      <Animated.View
-        style={[closeStyle, { position: 'absolute', left: 20, top: insets.top + 8, zIndex: 10 }]}
-        pointerEvents={closeEnabled ? 'auto' : 'none'}
+      {/* Close — visible and tappable from the first frame (no delayed dismiss) */}
+      <Pressable
+        onPress={close}
+        disabled={purchasing}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        className="absolute left-4 w-11 h-11 rounded-full bg-white/15 items-center justify-center active:opacity-70"
+        style={{ top: insets.top + 4, zIndex: 10 }}
       >
-        <Pressable
-          onPress={close}
-          disabled={purchasing}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center"
-        >
-          <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
-        </Pressable>
-      </Animated.View>
+        <Ionicons name="close" size={22} color="rgba(255,255,255,0.9)" />
+      </Pressable>
     </View>
   );
 }
