@@ -38,7 +38,7 @@ for (i, f) in files.enumerated() {
     var date = randomDate()
     // ~8%: same month/day in a previous year
     if i % 12 == 5 {
-        date = cal.date(byAdding: .year, value: -(1 + i % 3), to: now)!
+        date = cal.date(byAdding: .year, value: -(1 + (i / 12) % 3), to: now)!
             .addingTimeInterval(-Double.random(in: 0...36000, using: &rng))
         counts.onThisDay += 1
     }
