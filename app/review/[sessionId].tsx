@@ -18,7 +18,7 @@ import { GroupReview, type GroupReviewHandle } from '@/components/similar/GroupR
 import { ActionButton } from '@/components/ui/ActionButton';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SessionComplete } from '@/components/ui/SessionComplete';
-import { GRADIENTS, REVIEW_CARD } from '@/constants/theme';
+import { COLORS, GRADIENTS, REVIEW_CARD } from '@/constants/theme';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 
@@ -29,54 +29,82 @@ const PRELOAD_CARD_HEIGHT = REVIEW_CARD.height;
 const PRELOAD_TIMEOUT_MS = 2000;
 
 /**
- * Two-line action button for the group review bar. Titles lead with the
- * OUTCOME ("Keep All …" / "Delete N") so neither button needs decoding —
- * the old pair both started with "Keep", which read ambiguously.
+ * Outcome button for the group review bar. Titles lead with the OUTCOME
+ * ("Keep All" / "Delete N") so neither needs decoding — the old pair both
+ * started with "Keep", which read ambiguously. Each wears its outcome's color
+ * as a border; `highlighted` fades in a fill and glow when the stars make it
+ * the obvious choice (every photo starred → Keep All, none → Delete).
  */
 function GroupActionButton({
   icon,
   title,
   subtitle,
-  destructive = false,
+  tone,
+  highlighted,
   disabled = false,
   onPress,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
   subtitle: string;
-  destructive?: boolean;
+  tone: 'keep' | 'delete';
+  highlighted: boolean;
   disabled?: boolean;
   onPress: () => void;
 }) {
-  const content = (
-    <View className="flex-row items-center justify-center gap-2.5 py-3 px-3">
-      <Ionicons name={icon} size={18} color="white" />
-      <View>
-        <Text className="text-white text-[15px] font-bold" style={{ letterSpacing: -0.2 }}>
-          {title}
-        </Text>
-        <Text className="text-white/60 text-[11px] mt-px">{subtitle}</Text>
-      </View>
-    </View>
-  );
+  const color = tone === 'keep' ? COLORS.keep.solid : COLORS.delete.solid;
+  const glow = useSharedValue(highlighted ? 1 : 0);
+  useEffect(() => {
+    glow.value = withTiming(highlighted ? 1 : 0, { duration: 220 });
+  }, [highlighted, glow]);
+  const glowStyle = useAnimatedStyle(() => ({ shadowOpacity: glow.value * 0.7 }));
+  const fillStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
 
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={`${title} — ${subtitle}`}
-      className="flex-1 rounded-3xl overflow-hidden active:opacity-80"
-      style={{ opacity: disabled ? 0.35 : 1 }}
+    // The glow (an iOS shadow) lives on this wrapper: the Pressable clips its
+    // own corners, which would clip a shadow drawn on it too
+    <Animated.View
+      className="flex-1 rounded-3xl bg-bg-dark"
+      style={[
+        { shadowColor: color, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+        glowStyle,
+        { opacity: disabled ? 0.35 : 1 },
+      ]}
     >
-      {destructive ? (
-        <LinearGradient colors={GRADIENTS.delete} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          {content}
-        </LinearGradient>
-      ) : (
-        <View className="bg-white/10 border border-white/[0.16] rounded-3xl">{content}</View>
-      )}
-    </Pressable>
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`${title} — ${subtitle}`}
+        className={`rounded-3xl overflow-hidden border-2 bg-white/10 active:opacity-80 ${
+          tone === 'keep'
+            ? highlighted
+              ? 'border-[#30D158]'
+              : 'border-[rgba(48,209,88,0.55)]'
+            : highlighted
+              ? 'border-[#FF453A]'
+              : 'border-[rgba(255,69,58,0.55)]'
+        }`}
+      >
+        <Animated.View className="absolute inset-0" style={fillStyle} pointerEvents="none">
+          <LinearGradient
+            colors={tone === 'keep' ? GRADIENTS.freed : GRADIENTS.delete}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+        <View className="flex-row items-center justify-center gap-2.5 py-3 px-3">
+          <Ionicons name={icon} size={18} color={highlighted ? 'white' : color} />
+          <View>
+            <Text className="text-white text-[15px] font-bold" style={{ letterSpacing: -0.2 }}>
+              {title}
+            </Text>
+            <Text className="text-white/70 text-[11px] mt-px">{subtitle}</Text>
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -231,12 +259,12 @@ export default function ReviewScreen() {
   }, []);
 
   function handleSwipeLeft() {
-    if (isSimilar) groupReviewRef.current?.dismiss('left');
+    if (isSimilar) groupReviewRef.current?.resolve('keepAll');
     else swipeStackRef.current?.dismiss('left');
   }
 
   function handleSwipeRight() {
-    if (isSimilar) groupReviewRef.current?.dismiss('right');
+    if (isSimilar) groupReviewRef.current?.resolve('keepStarred');
     else swipeStackRef.current?.dismiss('right');
   }
 
@@ -457,7 +485,8 @@ export default function ReviewScreen() {
       </View>
 
       {/* Action bar — similar sessions resolve each group with two explicit
-          outcome buttons (no swipe gestures here) */}
+          outcome buttons (no swipe gestures here). Starring every photo lights
+          up Keep All; unstarring every photo lights up Delete. */}
       {isSimilar ? (
         <View
           className="flex-row items-stretch justify-center gap-3 px-6"
@@ -465,19 +494,22 @@ export default function ReviewScreen() {
         >
           <GroupActionButton
             icon="checkmark-circle-outline"
+            tone="keep"
             title="Keep All"
             subtitle="Nothing gets deleted"
+            highlighted={pendingCounts.deleteCount === 0 && pendingCounts.keptCount > 0}
             onPress={handleSwipeLeft}
           />
           <GroupActionButton
             icon="trash-outline"
-            destructive
+            tone="delete"
             title={pendingCounts.deleteCount > 0 ? `Delete ${pendingCounts.deleteCount}` : 'Delete'}
             subtitle={
-              multiBest
-                ? `Keeps ${pendingCounts.keptCount} starred`
-                : 'Keeps ★ best photo'
+              pendingCounts.keptCount === 0
+                ? 'Nothing kept'
+                : `Keeps ${pendingCounts.keptCount} starred`
             }
+            highlighted={pendingCounts.keptCount === 0 && pendingCounts.deleteCount > 0}
             disabled={pendingCounts.deleteCount === 0}
             onPress={handleSwipeRight}
           />

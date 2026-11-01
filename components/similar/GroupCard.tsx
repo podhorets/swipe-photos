@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { REVIEW_CARD } from '@/constants/theme';
+import { COLORS, REVIEW_CARD } from '@/constants/theme';
 import { formatBytes } from '@/lib/dateUtils';
 import { ProgressivePhoto } from '@/components/similar/ProgressivePhoto';
 
@@ -12,62 +12,72 @@ const THUMB_SIZE = 76;
 
 interface GroupCardProps {
   groupIds: string[];
-  bestId: string;
-  keeperIds: Set<string>;
-  /** Multi mode: thumbnail taps toggle stars on any number of keepers.
-   *  Single mode: taps replace the one best — everything else gets deleted. */
+  /** Photo shown large — the last one tapped (the suggested best at first). */
+  heroId: string;
+  /** Starred photos are kept; the rest are deleted when the group is accepted. */
+  starredIds: Set<string>;
+  /** Multi mode: thumbnail taps toggle stars on any number of photos.
+   *  One mode: taps move the single star (or remove it). */
   multiBest: boolean;
   uriById: Map<string, string>;
   sizeById: Map<string, number>;
-  onSelectBest: (id: string) => void;
+  onToggleStar: (id: string) => void;
   onPreview: (id: string) => void;
 }
 
 /**
- * One duplicate group: hero preview of the current best pick plus a thumbnail
- * rail of all members. Everything not marked keep gets deleted when the group
- * is accepted; badges show each photo's fate.
+ * One duplicate group: hero preview of the last tapped photo plus a thumbnail
+ * rail of all members. Everything not starred gets deleted when the group is
+ * accepted; badges show each photo's fate.
  */
 export function GroupCard({
   groupIds,
-  bestId,
-  keeperIds,
+  heroId,
+  starredIds,
   multiBest,
   uriById,
   sizeById,
-  onSelectBest,
+  onToggleStar,
   onPreview,
 }: GroupCardProps) {
   // The suggested best leads the rail. Order is frozen at group load (the
-  // component remounts per group) — picking a different best moves only the
+  // component remounts per group) — starring or unstarring moves only the
   // badges, never the thumbnails, so nothing jumps under the user's finger.
   const railIdsRef = useRef<string[] | null>(null);
   if (railIdsRef.current === null) {
-    railIdsRef.current = [bestId, ...groupIds.filter((id) => id !== bestId)];
+    railIdsRef.current = [heroId, ...groupIds.filter((id) => id !== heroId)];
   }
   const railIds = railIdsRef.current;
 
-  const deleteIds = groupIds.filter((id) => id !== bestId && !keeperIds.has(id));
+  const deleteIds = groupIds.filter((id) => !starredIds.has(id));
   const freeBytes = deleteIds.reduce((sum, id) => sum + (sizeById.get(id) ?? 0), 0);
-  const heroUri = uriById.get(bestId);
+  const heroUri = uriById.get(heroId);
+  const heroKept = starredIds.has(heroId);
 
   return (
     <View style={{ width: GROUP_HERO_WIDTH }}>
-      {/* Hero — current best pick */}
+      {/* Hero — last tapped photo, dimmed when it's headed for deletion */}
       <View
-        className="rounded-3xl overflow-hidden bg-bg-card border border-white/10"
+        className={`rounded-3xl overflow-hidden bg-bg-card border ${
+          heroKept ? 'border-white/10' : 'border-[rgba(255,69,58,0.45)]'
+        }`}
         style={{ width: GROUP_HERO_WIDTH, height: GROUP_HERO_HEIGHT }}
       >
         {heroUri && (
-          <Pressable onPress={() => onPreview(bestId)} accessibilityLabel="Preview best photo">
+          <Pressable onPress={() => onPreview(heroId)} accessibilityLabel="Preview photo">
             <ProgressivePhoto uri={heroUri} width={GROUP_HERO_WIDTH} height={GROUP_HERO_HEIGHT} />
           </Pressable>
         )}
+        {!heroKept && <View className="absolute inset-0 bg-black/35" pointerEvents="none" />}
 
-        {/* Best badge */}
+        {/* Fate badge — the hero's star state, in words */}
         <View className="absolute top-3 left-3 flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/55">
-          <Ionicons name="star" size={12} color="#FFD60A" />
-          <Text className="text-white text-[12px] font-bold">Best</Text>
+          <Ionicons
+            name={heroKept ? 'star' : 'trash-outline'}
+            size={12}
+            color={heroKept ? '#FFD60A' : COLORS.destructive}
+          />
+          <Text className="text-white text-[12px] font-bold">{heroKept ? 'Keep' : 'Delete'}</Text>
         </View>
 
         {/* Info chips */}
@@ -88,7 +98,7 @@ export function GroupCard({
         </View>
       </View>
 
-      {/* Thumbnail rail — suggested best first; tap = make best, circle = toggle keep */}
+      {/* Thumbnail rail — suggested best first; tap = star or unstar */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -97,21 +107,18 @@ export function GroupCard({
       >
         {railIds.map((id) => {
           const uri = uriById.get(id);
-          const isBest = id === bestId;
-          const isKept = isBest || keeperIds.has(id);
+          const isKept = starredIds.has(id);
           const willDelete = !isKept;
           return (
             <Pressable
               key={id}
-              onPress={() => onSelectBest(id)}
+              onPress={() => onToggleStar(id)}
               accessibilityLabel={
-                multiBest
-                  ? isKept
-                    ? 'Starred — tap to delete instead'
-                    : 'Marked for deletion — tap to star and keep'
-                  : isBest
-                    ? 'Best photo'
-                    : 'Make this the best photo'
+                isKept
+                  ? 'Starred to keep — tap to delete instead'
+                  : multiBest
+                    ? 'Marked for deletion — tap to star and keep'
+                    : 'Marked for deletion — tap to keep this one instead'
               }
               className={
                 isKept
@@ -142,8 +149,9 @@ export function GroupCard({
                 </View>
               )}
 
-              {/* Every kept photo carries a star — one in single mode, any
-                  number in multi mode. No other selection states exist. */}
+              {/* Every kept photo carries a star — at most one in One mode,
+                  any number in Multi mode, or none (the whole group goes).
+                  No other selection states exist. */}
               {isKept && (
                 <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFD60A] items-center justify-center">
                   <Ionicons name="star" size={11} color="black" />

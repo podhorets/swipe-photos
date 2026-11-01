@@ -1,10 +1,12 @@
 import type { SwipeDecision } from '@/types';
 
 /**
- * A similar-photos group must never be fully deleted. If every member is
- * marked delete, flip the best shot (or the last member) back to keep.
+ * Keeping the starred photos must never delete a whole group. If every member
+ * is marked delete, flip the best shot (or the last member) back to keep.
  * The review UI makes this unreachable (the best is always kept); this is
  * the defensive backstop, mirroring cleani's applySimilarPhotosSafetyRule.
+ * Unstarring every photo is the user's explicit choice to delete a whole group
+ * and skips this rule.
  */
 export function enforceKeepBest(
   groupIds: string[],

@@ -15,13 +15,16 @@ import { useSimilarStore } from '@/stores/similarStore';
 import { enforceKeepBest } from '@/lib/similar/safetyRule';
 import { GroupCard } from '@/components/similar/GroupCard';
 import { SCREEN } from '@/constants/theme';
-import type { SwipeDecision, SwipeDirection } from '@/types';
+import type { SwipeDecision } from '@/types';
 
 const EMPTY_SET: Set<string> = new Set();
 
+/** keepAll = skip the group; keepStarred = delete every photo not starred (all of them if none are). */
+export type GroupOutcome = 'keepAll' | 'keepStarred';
+
 export interface GroupReviewHandle {
-  /** Fly the current group off: 'right' = accept (clean), 'left' = skip (keep all). */
-  dismiss: (direction: SwipeDirection) => void;
+  /** Fly the current group off and apply the outcome: keepAll exits left, keepStarred right. */
+  resolve: (outcome: GroupOutcome) => void;
 }
 
 interface GroupReviewProps {
@@ -62,55 +65,59 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
     [currentGroupKey, uriById],
   );
 
-  // Per-group UI state, derived-with-override: the default best comes from the
-  // scan (else last usable) and is correct on the FIRST render of every group —
-  // an effect-based reset would paint one frame with the previous group's best
-  // (stale hero photo). User picks live in `override`, valid only while the
-  // group key matches.
+  // Per-group UI state, derived-with-override: by default the scan's best (else
+  // the last usable photo) is starred and shown large, correct on the FIRST
+  // render of every group — an effect-based reset would paint one frame with
+  // the previous group's photo. User picks live in `override`, valid only
+  // while the group key matches.
   const [override, setOverride] = useState<{
     key: string;
-    bestId: string;
-    keeperIds: Set<string>;
+    heroId: string;
+    starredIds: Set<string>;
   } | null>(null);
 
   const defaultBest =
     usableIds.find((id) => bestIdsFromScan.has(id)) ?? usableIds[usableIds.length - 1] ?? null;
   const hasOverride = override !== null && override.key === currentGroupKey;
-  const bestId = hasOverride ? override.bestId : defaultBest;
-  const keeperIds = hasOverride ? override.keeperIds : EMPTY_SET;
+  // Shown large: the last photo tapped, so its new state is visible
+  const heroId = hasOverride ? override.heroId : defaultBest;
+  // Starred = kept. Anything from none (the whole group is deleted) to all.
+  const starredIds = useMemo(
+    () => (hasOverride ? override.starredIds : defaultBest ? new Set([defaultBest]) : EMPTY_SET),
+    [hasOverride, override, defaultBest],
+  );
 
-  // Switching Multi → One collapses the selection to just the current best;
+  // Switching Multi → One leaves at most one star (the hero's, if starred);
   // extra stars don't survive the mode change (and don't silently reappear)
   useEffect(() => {
-    if (multiBest || keeperIds.size === 0 || !currentGroupKey || !bestId) return;
-    setOverride({ key: currentGroupKey, bestId, keeperIds: EMPTY_SET });
-  }, [multiBest, keeperIds, currentGroupKey, bestId]);
+    if (multiBest || starredIds.size <= 1 || !currentGroupKey || !heroId) return;
+    const keep = starredIds.has(heroId) ? heroId : [...starredIds][0];
+    setOverride({ key: currentGroupKey, heroId, starredIds: new Set([keep]) });
+  }, [multiBest, starredIds, currentGroupKey, heroId]);
 
-  const pendingDeleteCount =
-    bestId && currentGroup
-      ? usableIds.filter((id) => id !== bestId && !keeperIds.has(id)).length
-      : 0;
-  const keptCount = usableIds.length - pendingDeleteCount;
+  const keptCount = usableIds.filter((id) => starredIds.has(id)).length;
+  const pendingDeleteCount = usableIds.length - keptCount;
   useEffect(() => {
     onPendingChange?.(pendingDeleteCount, keptCount);
   }, [pendingDeleteCount, keptCount, onPendingChange]);
 
   // ── Group resolution ──────────────────────────────────────────────────────
 
-  function resolveGroup(direction: SwipeDirection) {
-    if (!currentGroup || !bestId) return;
+  function resolveGroup(outcome: GroupOutcome) {
+    if (!currentGroup) return;
     let map: Record<string, SwipeDecision> = {};
-    if (direction === 'left') {
+    if (outcome === 'keepAll') {
       // Skip — keep everything
       for (const id of currentGroup) map[id] = 'keep';
       gatedHaptic(Haptics.ImpactFeedbackStyle.Medium);
     } else {
-      // Accept — keep best + keepers (+ unusable members, defensively), delete the rest
+      // Keep the starred photos (+ unusable members, which were never shown),
+      // delete the rest. No stars is the user's explicit choice to delete the
+      // whole group, so the keep-best backstop only guards the starred case.
       for (const id of currentGroup) {
-        const usable = uriById.has(id);
-        map[id] = !usable || id === bestId || keeperIds.has(id) ? 'keep' : 'delete';
+        map[id] = !uriById.has(id) || starredIds.has(id) ? 'keep' : 'delete';
       }
-      map = enforceKeepBest(currentGroup, map, bestIdsFromScan);
+      if (starredIds.size > 0) map = enforceKeepBest(currentGroup, map, bestIdsFromScan);
       gatedHaptic(Haptics.ImpactFeedbackStyle.Heavy);
     }
     useSessionStore.getState().decideMany(map);
@@ -136,28 +143,28 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
 
   const translateX = useSharedValue(0);
 
-  function completeDismiss(direction: SwipeDirection) {
-    resolveGroup(direction);
+  function completeDismiss(outcome: GroupOutcome) {
+    resolveGroup(outcome);
     translateX.value = 0; // next group renders centered
   }
 
-  function flyOff(direction: SwipeDirection) {
+  function flyOff(outcome: GroupOutcome) {
     'worklet';
-    const target = (direction === 'right' ? 1 : -1) * SCREEN.width * 1.2;
+    const target = (outcome === 'keepAll' ? -1 : 1) * SCREEN.width * 1.2;
     translateX.value = withTiming(target, { duration: 220 }, (finished) => {
-      if (finished) runOnJS(completeDismiss)(direction);
+      if (finished) runOnJS(completeDismiss)(outcome);
     });
   }
 
   useImperativeHandle(ref, () => ({
-    dismiss: (direction: SwipeDirection) => {
-      if (!currentGroup || !bestId) return;
-      flyOff(direction);
+    resolve: (outcome: GroupOutcome) => {
+      if (!currentGroup || !heroId) return;
+      flyOff(outcome);
     },
   }));
 
   // Buttons-only review: no pan gesture. The directional fly-off remains as
-  // feedback (left = kept, right = cleaned) but is triggered via dismiss().
+  // feedback (left = kept, right = cleaned) but is triggered via resolve().
   const cardStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -165,42 +172,30 @@ export function GroupReview({ onSessionComplete, onPreview, onPendingChange, ref
     ],
   }));
 
-  if (!session || !currentGroup || !bestId) return null;
+  if (!session || !currentGroup || !heroId) return null;
 
   return (
     <Animated.View style={cardStyle}>
       <Animated.View key={currentGroupKey} entering={FadeIn.duration(160)}>
         <GroupCard
           groupIds={usableIds}
-          bestId={bestId}
-          keeperIds={keeperIds}
+          heroId={heroId}
+          starredIds={starredIds}
           multiBest={multiBest}
           uriById={uriById}
           sizeById={sizeById}
-          onSelectBest={(id) => {
-            if (!currentGroupKey || !bestId) return;
-            if (multiBest) {
-              // Multi mode: taps toggle stars. The hero follows the latest
-              // starred photo; un-starring the last kept photo is blocked.
-              const keepers = new Set(keeperIds);
-              if (id === bestId) {
-                const promoted = usableIds.find((k) => keepers.has(k));
-                if (!promoted) return; // last star — a group can never lose all keeps
-                keepers.delete(promoted);
-                setOverride({ key: currentGroupKey, bestId: promoted, keeperIds: keepers });
-              } else if (keepers.has(id)) {
-                keepers.delete(id);
-                setOverride({ key: currentGroupKey, bestId, keeperIds: keepers });
-              } else {
-                keepers.add(bestId);
-                setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
-              }
+          onToggleStar={(id) => {
+            if (!currentGroupKey) return;
+            const starred = new Set(starredIds);
+            if (starred.has(id)) {
+              // Any star can go, the last one too: no stars deletes the group
+              starred.delete(id);
             } else {
-              // Single mode: tap replaces the one best
-              const keepers = new Set(keeperIds);
-              keepers.delete(id); // best is always kept — drop redundant keeper mark
-              setOverride({ key: currentGroupKey, bestId: id, keeperIds: keepers });
+              // One mode moves the single star; Multi mode adds another
+              if (!multiBest) starred.clear();
+              starred.add(id);
             }
+            setOverride({ key: currentGroupKey, heroId: id, starredIds: starred });
             gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
           }}
           onPreview={onPreview}
