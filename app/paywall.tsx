@@ -5,13 +5,15 @@ import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { FALLBACK_PRICING, FREE_PLAN } from '@/constants/config';
 import { GRADIENTS } from '@/constants/theme';
 import { posthog } from '@/lib/posthog';
+import { sessionsRemaining } from '@/lib/planUtils';
 import { checkTrialEligibility, loadOfferings, purchase, restore } from '@/lib/purchases';
+import { usePlanStore } from '@/stores/planStore';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import type { PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -186,6 +188,15 @@ export default function PaywallScreen() {
 
   const { title, subtitle } = headline(context);
 
+  // Lock chip only when the daily quota actually ran out (sessionGate opens the
+  // paywall with context 'sessions'). Opened from Settings, the batch picker, or
+  // the chip, the user may still have sessions left — claiming otherwise is false.
+  const lockLabel = useMemo(() => {
+    if (context !== 'sessions') return undefined;
+    if (sessionsRemaining(usePlanStore.getState()) > 0) return undefined;
+    return `${FREE_PLAN.sessionsPerDay} of ${FREE_PLAN.sessionsPerDay} free sessions used today`;
+  }, [context]);
+
   function close() {
     posthog.capture('paywall_dismissed', { context });
     router.back();
@@ -243,7 +254,7 @@ export default function PaywallScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Living hero: lock chip (sessions) + auto-swiping demo */}
-        <PaywallHero lockLabel='2 of 2 free sessions used today' />
+        <PaywallHero lockLabel={lockLabel} />
 
         {/* Headline */}
         <View className="items-center mt-2">
