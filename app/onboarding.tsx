@@ -609,10 +609,12 @@ const TRUST_ROWS = [
         sub: 'No uploads. No accounts. No cloud.',
     },
     {
+        // Feature claim, not social proof — no ratings or install counts until
+        // the App Store has real ones to back them up
         gradient: GRADIENTS.star,
-        icon: 'star' as const,
-        title: '4.8 ★★★★★', // TODO: keep in sync with real App Store rating
-        sub: 'Millions of photos cleaned',
+        icon: 'sparkles' as const,
+        title: 'Smart duplicate finder',
+        sub: 'Groups look-alike shots, stars the sharpest',
     },
     {
         gradient: GRADIENTS.delete,

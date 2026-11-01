@@ -174,7 +174,6 @@ export default function PaywallScreen() {
       setOffering(o);
       setOfferingsLoaded(true);
       const weeklyId = o?.weekly?.product.identifier;
-      console.log('weeklyId', weeklyId);
       if (weeklyId) checkTrialEligibility(weeklyId).then(setTrialEligible);
     });
   }, [context]);
@@ -236,8 +235,6 @@ export default function PaywallScreen() {
   }
 
   const showTrial = selectedPlan === 'weekly' && trialEligible;
-  console.log(showTrial);
-  console.log(trialEligible);
   const ctaLabel = showTrial
     ? 'Start My 3-Day Free Trial'
     : selectedPlan === 'annual'
