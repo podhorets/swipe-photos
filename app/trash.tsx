@@ -5,6 +5,7 @@ import {
   Pressable,
   FlatList,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -197,56 +198,65 @@ export default function TrashScreen() {
 
     setIsDeleting(true);
     try {
-      // deleteAssetsAsync shows a native iOS "Delete X Photos?" confirmation dialog
+      // deleteAssetsAsync shows a native iOS "Delete X Photos?" confirmation dialog.
+      // performChanges is atomic: it rejects when the user taps "Don't Allow" (or
+      // on any other failure) and nothing is deleted. Assets already deleted
+      // externally don't reject — they're just absent from the fetch.
       await MediaLibrary.deleteAssetsAsync(idsToDelete);
-    } catch {
-      // Asset was already deleted externally — fall through to clean up
-    } finally {
-      // Remove deleted assets from gallery index
-      removeAssets(idsToDelete);
-
-      // IDs that were deselected (user changed mind) + all 'keep' decisions from session
-      const deselectedIds = deleteIds.filter((id) => !selected.has(id));
-      const sessionKeepIds = Object.entries(sessionDecisions)
-        .filter(([, d]) => d === 'keep')
-        .map(([id]) => id);
-      const allKeptIds = [...deselectedIds, ...sessionKeepIds];
-      if (allKeptIds.length > 0) {
-        useKeepStore.getState().addMany(allKeptIds);
-      }
-
+    } catch (e) {
       setIsDeleting(false);
-
-      useStreakStore.getState().recordSession();
-      // Free-plan quota: a session only counts once photos are actually cleaned
-      // (or kept via the zero-deletion path in review/[sessionId].tsx). Discarding
-      // the trash intentionally does not consume a session.
-      usePlanStore.getState().recordCompletedSession();
-
-      const freedBytes = idsToDelete.reduce((sum, id) => {
-        const real = sessionSizeSnapshot.get(id);
-        const asset = deleteAssets.find(a => a.id === id);
-        return sum + (real ?? (asset ? estimateSizeFromAsset(asset) : 0));
-      }, 0);
-
-      useStatsStore.getState().addFreedBytes(freedBytes);
-      useStatsStore.getState().addDeletedCount(idsToDelete.length);
-
-      posthog.capture('photos_deleted', {
-        deleted_count: idsToDelete.length,
-        kept_count: allKeptIds.length,
-        freed_bytes: freedBytes,
-        face_id_used: faceIdEnabled,
-      });
-
-      // Show inline summary
-      setSummaryStats({
-        total: Object.keys(sessionDecisions).length,
-        kept: allKeptIds.length,
-        freedBytes,
-      });
-      setShowSummary(true);
+      // PHPhotosError.userCancelled (3072) — user changed their mind; stay in trash
+      const message = e instanceof Error ? e.message : String(e);
+      if (!/3072|cancel/i.test(message)) {
+        Alert.alert('Couldn’t Delete Photos', 'Nothing was deleted. Please try again.');
+      }
+      return;
     }
+
+    // Remove deleted assets from gallery index
+    removeAssets(idsToDelete);
+
+    // IDs that were deselected (user changed mind) + all 'keep' decisions from session
+    const deselectedIds = deleteIds.filter((id) => !selected.has(id));
+    const sessionKeepIds = Object.entries(sessionDecisions)
+      .filter(([, d]) => d === 'keep')
+      .map(([id]) => id);
+    const allKeptIds = [...deselectedIds, ...sessionKeepIds];
+    if (allKeptIds.length > 0) {
+      useKeepStore.getState().addMany(allKeptIds);
+    }
+
+    setIsDeleting(false);
+
+    useStreakStore.getState().recordSession();
+    // Free-plan quota: a session only counts once photos are actually cleaned
+    // (or kept via the zero-deletion path in review/[sessionId].tsx). Discarding
+    // the trash intentionally does not consume a session.
+    usePlanStore.getState().recordCompletedSession();
+
+    const freedBytes = idsToDelete.reduce((sum, id) => {
+      const real = sessionSizeSnapshot.get(id);
+      const asset = deleteAssets.find(a => a.id === id);
+      return sum + (real ?? (asset ? estimateSizeFromAsset(asset) : 0));
+    }, 0);
+
+    useStatsStore.getState().addFreedBytes(freedBytes);
+    useStatsStore.getState().addDeletedCount(idsToDelete.length);
+
+    posthog.capture('photos_deleted', {
+      deleted_count: idsToDelete.length,
+      kept_count: allKeptIds.length,
+      freed_bytes: freedBytes,
+      face_id_used: faceIdEnabled,
+    });
+
+    // Show inline summary
+    setSummaryStats({
+      total: Object.keys(sessionDecisions).length,
+      kept: allKeptIds.length,
+      freedBytes,
+    });
+    setShowSummary(true);
   }
 
   if (deleteAssets.length === 0 && !showSummary) {
