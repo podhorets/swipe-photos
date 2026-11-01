@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { useGalleryStore } from '@/stores/galleryStore';
@@ -330,16 +331,21 @@ export default function SimilarScreen() {
           className="absolute left-5 right-5"
           style={{ bottom: Math.max(insets.bottom, 26) + 66 }}
         >
+          {/* Notes float over the photo grid — the scrim pill keeps them legible */}
           {scanning ? (
-            <Text className="text-white/35 text-[11px] text-center mb-2">
-              Scan running — reviewing already-found groups
-            </Text>
+            <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2">
+              <Text className="text-white/75 text-[11px] text-center">
+                Scan running — reviewing already-found groups
+              </Text>
+            </View>
           ) : (
             !analyzerUsed &&
             scannedAt > 0 && (
-              <Text className="text-white/35 text-[11px] text-center mb-2">
-                Grouped by time only — visual matching unavailable on this build
-              </Text>
+              <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2">
+                <Text className="text-white/75 text-[11px] text-center">
+                  Grouped by time only — visual matching unavailable on this build
+                </Text>
+              </View>
             )
           )}
           <GradientPillButton
@@ -350,6 +356,7 @@ export default function SimilarScreen() {
           />
         </View>
       )}
+      <StatusBarScrim />
     </View>
   );
 }

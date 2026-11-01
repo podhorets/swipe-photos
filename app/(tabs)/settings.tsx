@@ -22,6 +22,7 @@ import { cancelOnThisDayNotification, scheduleOnThisDayNotification } from '@/li
 import { useGalleryStore } from '@/stores/galleryStore';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { IconSquircle } from '@/components/ui/IconSquircle';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { GRADIENTS } from '@/constants/theme';
@@ -435,6 +436,7 @@ export default function SettingsScreen() {
           </Section>
         )}
       </ScrollView>
+      <StatusBarScrim />
     </View>
   );
 }

@@ -9,6 +9,7 @@ import { getByMonth } from '@/lib/gallery/grouper';
 import { monthLabel } from '@/lib/dateUtils';
 import { MonthRow } from '@/components/ui/MonthRow';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { posthog } from '@/lib/posthog';
 import { gateSessionStart } from '@/lib/sessionGate';
 
@@ -141,6 +142,7 @@ export default function ByMonthScreen() {
         }}
         ListHeaderComponent={header}
       />
+      <StatusBarScrim />
     </View>
   );
 }

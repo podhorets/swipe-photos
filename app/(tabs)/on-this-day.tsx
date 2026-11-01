@@ -1,4 +1,5 @@
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { ProgressRing } from '@/components/ui/ProgressRing';
@@ -370,6 +371,7 @@ export default function OnThisDayScreen() {
           />
         </View>
       )}
+      <StatusBarScrim />
     </View>
   );
 }

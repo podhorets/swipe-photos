@@ -1,4 +1,5 @@
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { CategoryTile } from '@/components/ui/CategoryTile';
 import { IconSquircle } from '@/components/ui/IconSquircle';
@@ -325,6 +326,7 @@ export default function HomeScreen() {
         {/*  /!*</Pressable>*!/*/}
         {/*</View>*/}
       </ScrollView>
+      <StatusBarScrim />
     </View>
   );
 }
