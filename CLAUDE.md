@@ -7,6 +7,7 @@
 - **Hot reload after that:** `npx expo start` (Dev Client app on device picks it up)
 - **NativeWind v4 babel setup:** `jsxImportSource: 'nativewind'` on `babel-preset-expo` — NOT a separate `nativewind/babel` plugin entry.
 - **`react-native-mmkv` v4 requires `react-native-nitro-modules`** as a peer dependency — install it explicitly, then rebuild native.
+- **Seed a simulator photo library:** `npm run seed:photos -- [count] [device]` (defaults: 320, booted). Adds ~430 photos with spread-out dates, near-duplicate bursts, blurry shots, and "On This Day" matches for today. Re-running adds more; erase the simulator for a clean library.
 
 ---
 
