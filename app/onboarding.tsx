@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { View, Text, Pressable, Dimensions } from 'react-native';
+import { View, Text, Pressable, Dimensions, Alert, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -784,7 +784,21 @@ export default function OnboardingScreen() {
     async function handleFinish() {
         if (!isMediaGranted) {
             const result = await requestMedia();
-            if (!result?.granted) return;
+            if (!result?.granted) {
+                // iOS shows its prompt once; after a denial the button would
+                // otherwise do nothing at all. Explain and offer Settings.
+                if (result && !result.canAskAgain) {
+                    Alert.alert(
+                        'Photo Access Is Off',
+                        'Swipe Photos needs access to your library to review photos. You can turn it on in Settings.',
+                        [
+                            { text: 'Not Now', style: 'cancel' },
+                            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+                        ],
+                    );
+                }
+                return;
+            }
         }
         // Notifications optional — don't block on denial
         await requestNotifications();

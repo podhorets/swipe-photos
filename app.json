@@ -23,6 +23,7 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Swipe Photos shows your photos so you can review and clean them up.",
         "NSPhotoLibraryAddUsageDescription": "Swipe Photos needs permission to save changes to your photo library.",
+        "PHPhotoLibraryPreventAutomaticLimitedAccessAlert": true,
         "NSFaceIDUsageDescription": "Face ID protects bulk deletion so photos are never removed by accident.",
         "ITSAppUsesNonExemptEncryption": false
       },
