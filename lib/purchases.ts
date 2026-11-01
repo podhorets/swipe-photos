@@ -8,8 +8,17 @@ import Purchases, {
 import { PRO } from '@/constants/config';
 import { usePlanStore } from '@/stores/planStore';
 
-const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
-const isConfigured = !!apiKey && apiKey.startsWith('appl_');
+const productionKey = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
+// RevenueCat Test Store key (test_…): simulated purchases with no App Store
+// Connect, works on the simulator via `expo run:ios`. Dev builds only — the
+// __DEV__ guard keeps it out of release bundles, so it can never ship.
+const testStoreKey = __DEV__ ? process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY : undefined;
+const apiKey = testStoreKey?.startsWith('test_')
+  ? testStoreKey
+  : productionKey?.startsWith('appl_')
+    ? productionKey
+    : undefined;
+const isConfigured = !!apiKey;
 
 let initialized = false;
 
