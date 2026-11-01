@@ -149,15 +149,15 @@ export default function ReviewScreen() {
   // This screen never touches galleryStore.index during an active session.
   const phase = useSessionStore((s) => s.phase);
   const uriById = useSessionStore((s) => s.uriSnapshot);
-  const decisions = useSessionStore((s) => s.decisions);
-
-  // Group progress for similar sessions
-  const { totalGroups, groupsLeft } = useMemo(() => {
-    const groups = session?.groups ?? [];
-    if (!isSimilar || groups.length === 0) return { totalGroups: 0, groupsLeft: 0 };
-    const resolved = groups.filter((g) => g.every((id) => id in decisions)).length;
-    return { totalGroups: groups.length, groupsLeft: groups.length - resolved };
-  }, [isSimilar, session?.id, decisions]);
+  // Group progress for similar sessions. Selects a number, not `decisions`, so a
+  // regular swipe session doesn't re-render this whole screen on every decision.
+  const resolvedGroups = useSessionStore((s) =>
+    isSimilar && s.session?.groups
+      ? s.session.groups.filter((g) => g.every((id) => id in s.decisions)).length
+      : 0,
+  );
+  const totalGroups = isSimilar ? session?.groups?.length ?? 0 : 0;
+  const groupsLeft = totalGroups - resolvedGroups;
 
   const [showComplete, setShowComplete] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
