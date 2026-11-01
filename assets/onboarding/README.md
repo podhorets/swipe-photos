@@ -61,3 +61,14 @@ the first successful load, and the paywall (seen well into a session) is much
 more forgiving. If you bundle only one, make it `SWIPE_DEMO_CARDS[0]`.
 
 Drop bundled files in this folder; delete it if you go all-in on links.
+
+## Current photos and licensing
+
+All demo photos are bundled (no network needed on first launch) and come from
+[Unsplash](https://unsplash.com) via picsum.photos, under the
+[Unsplash License](https://unsplash.com/license) — free for commercial use,
+no attribution required. They were cropped to 3:4 at 900×1200.
+`dedup-1…4` are four edits (crop, blur, exposure) of a single photo so the
+near-duplicate demo reads as one scene; `dedup-3` is the sharp "best" take.
+Never hot-link images from social networks or wallpaper sites: they are
+unlicensed and the links can disappear or change content at any time.
