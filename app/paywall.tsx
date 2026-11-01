@@ -5,7 +5,7 @@ import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { FALLBACK_PRICING, FREE_PLAN } from '@/constants/config';
 import { GRADIENTS } from '@/constants/theme';
 import { posthog } from '@/lib/posthog';
-import { sessionsRemaining } from '@/lib/planUtils';
+import { isPro, sessionsRemaining } from '@/lib/planUtils';
 import { checkTrialEligibility, loadOfferings, purchase, restore } from '@/lib/purchases';
 import { usePlanStore } from '@/stores/planStore';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 const PRIVACY_URL = 'https://swipephotos.app/privacy';
+const MANAGE_SUBSCRIPTION_URL = 'https://apps.apple.com/account/subscriptions';
 
 type PlanId = 'annual' | 'weekly';
 type PaywallContext = 'sessions' | 'batch' | 'chip' | 'settings';
@@ -158,6 +159,9 @@ export default function PaywallScreen() {
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('weekly');
   const [purchasing, setPurchasing] = useState(false);
   const [closeEnabled, setCloseEnabled] = useState(false);
+  // Pro users can still land here via the /paywall deep link — never sell them
+  // a second subscription, point them at subscription management instead
+  const pro = usePlanStore((s) => isPro(s));
 
   // Close button: fade in after 1.5s (present but understated — no dark patterns)
   const closeOpacity = useSharedValue(0);
@@ -234,8 +238,10 @@ export default function PaywallScreen() {
     }
   }
 
-  const showTrial = selectedPlan === 'weekly' && trialEligible;
-  const ctaLabel = showTrial
+  const showTrial = !pro && selectedPlan === 'weekly' && trialEligible;
+  const ctaLabel = pro
+    ? 'Manage Subscription'
+    : showTrial
     ? 'Start My 3-Day Free Trial'
     : selectedPlan === 'annual'
       ? `Unlock Unlimited — ${annualPrice}/year`
@@ -292,12 +298,14 @@ export default function PaywallScreen() {
       <View className="px-6 gap-1" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <GradientPillButton
           label={ctaLabel}
-          onPress={handlePurchase}
-          loading={purchasing || !offeringsLoaded}
-          disabled={offeringsLoaded && !purchasesAvailable}
+          onPress={pro ? () => WebBrowser.openBrowserAsync(MANAGE_SUBSCRIPTION_URL).catch(() => {}) : handlePurchase}
+          loading={!pro && (purchasing || !offeringsLoaded)}
+          disabled={!pro && offeringsLoaded && !purchasesAvailable}
         />
         <Text className="text-white/30 text-[11px] text-center" style={{ lineHeight: 15 }}>
-          {showTrial
+          {pro
+            ? 'Swipe Photos Pro is active on this Apple ID.'
+            : showTrial
             ? `Free for 3 days, then ${weeklyPrice}/week. Auto-renews until cancelled in Settings. Cancel anytime.`
             : `Auto-renews ${selectedPlan === 'annual' ? `at ${annualPrice}/year` : `at ${weeklyPrice}/week`} until cancelled in Settings.`}
         </Text>

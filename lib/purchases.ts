@@ -101,9 +101,10 @@ export async function checkTrialEligibility(productId: string): Promise<boolean>
   if (!isConfigured) return false;
   try {
     const result = await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
-    // TODO: refactor paywal for the case when user already user trial INTRO_ELIGIBILITY_STATUS_INELIGIBLE = 1,
-    // return result[productId]?.status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE;
-    return true;
+    // Only ELIGIBLE promises a trial. INELIGIBLE (trial already used),
+    // NO_INTRO_OFFER_EXISTS and UNKNOWN fall back to plain pricing copy —
+    // advertising a trial Apple won't grant is an App Review rejection.
+    return result[productId]?.status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE;
   } catch {
     return false;
   }
