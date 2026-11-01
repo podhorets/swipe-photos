@@ -288,14 +288,16 @@ export default function ReviewScreen() {
         `${deleteCount} photo${deleteCount === 1 ? '' : 's'} marked to delete.`,
         [
           {
-            text: 'Discard & Close',
-            style: 'cancel',
-            onPress: () => router.back(),
-          },
-          {
             text: 'Review Trash',
             onPress: () => router.replace('/trash'),
           },
+          {
+            text: 'Discard & Close',
+            style: 'destructive',
+            onPress: () => router.back(),
+          },
+          // Accidental X tap — dismiss and keep swiping
+          { text: 'Keep Reviewing', style: 'cancel' },
         ],
       );
     } else {
@@ -328,6 +330,10 @@ export default function ReviewScreen() {
   if (phase !== 'active' || !session || !sessionReady) {
     return (
       <View className="flex-1 bg-bg-dark items-center justify-center">
+        {/* Full-screen modal has no back gesture — never leave this state without an exit */}
+        <View className="absolute left-5" style={{ top: insets.top + 12 }}>
+          <GlassCircleButton icon="close" onPress={() => router.back()} label="Close session" />
+        </View>
         <Text className="text-white/50">Loading session…</Text>
         {/* Off-screen pre-decode: render first 3 cards at exact card size so SDWebImage
             populates its memory cache before SwipeStack mounts. Once the top card fires
