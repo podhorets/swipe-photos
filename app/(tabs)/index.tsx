@@ -28,6 +28,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useSimilarStore } from '@/stores/similarStore';
 import type { Category } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
@@ -48,7 +49,7 @@ export default function HomeScreen() {
   const keepIds = useKeepStore((s) => s.keepIds);
   const batchSize = useSettingsStore((s) => s.batchSize);
   const planState = usePlanStore();
-  const { isMediaGranted, isMediaLimited } = usePermissions();
+  const { mediaStatus, requestMedia, isMediaGranted, isMediaLimited } = usePermissions();
 
   // Free plan clamps the tile label to match the actual session size
   const displayBatchSize = effectiveBatchSize(planState, batchSize);
@@ -167,21 +168,37 @@ export default function HomeScreen() {
     }
   }
 
-  // Permission denied — show locked state with Settings deep link
+  // Permission status still loading — render the backdrop only, so the locked
+  // state below doesn't flash on every cold start
+  if (!mediaStatus) {
+    return (
+      <View className="flex-1 bg-bg-dark">
+        <AuroraBackground />
+      </View>
+    );
+  }
+
+  // No access yet. If iOS can still ask, "Continue" leads straight to the
+  // system prompt (never "Allow" — Guideline 5.1.1(iv)); otherwise only
+  // Settings can grant it.
   if (!isMediaGranted) {
+    const canAsk = mediaStatus.canAskAgain;
     return (
       <View className="flex-1 bg-bg-dark items-center justify-center px-8" style={{ paddingTop: insets.top }}>
         <AuroraBackground />
-        <Ionicons name="lock-closed-outline" size={64} color="rgba(255,255,255,0.2)" />
-        <Text className="text-white text-2xl font-bold mt-6 text-center">Photo Access Required</Text>
-        <Text className="text-white/50 text-base mt-3 text-center leading-6">
-          Swipe Photos needs access to your library to help you review and clean up photos.
+        <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.25)" />
+        <Text className="text-white text-2xl font-bold mt-6 text-center">Photo Access Needed</Text>
+        <Text className="text-white/60 text-base mt-3 text-center leading-6">
+          {canAsk
+            ? 'Swipe Photos shows your photos one at a time so you can keep or delete them. Your photos never leave your iPhone.'
+            : 'Photo access is turned off. To review your photos, allow access for Swipe Photos in Settings › Privacy & Security › Photos.'}
         </Text>
         <Pressable
-          onPress={() => Linking.openSettings()}
-          className="mt-8 bg-white/15 rounded-full px-8 py-4"
+          onPress={() => (canAsk ? requestMedia() : Linking.openSettings())}
+          accessibilityRole="button"
+          className="mt-8 bg-white/15 rounded-full px-8 min-h-[50px] items-center justify-center active:opacity-70"
         >
-          <Text className="text-white font-semibold text-base">Open Settings</Text>
+          <Text className="text-white font-semibold text-base">{canAsk ? 'Continue' : 'Open Settings'}</Text>
         </Pressable>
       </View>
     );
@@ -205,7 +222,7 @@ export default function HomeScreen() {
             className="text-white text-[34px] font-extrabold"
             style={{ letterSpacing: -0.8 }}
           >
-            Swiper
+            Swipe Photos
           </Text>
           <View className="flex-row items-center gap-2">
             <StreakChip />
@@ -218,7 +235,8 @@ export default function HomeScreen() {
         {/* Limited access banner */}
         {isMediaLimited && (
           <Pressable
-            onPress={() => Linking.openSettings()}
+            onPress={() => MediaLibrary.presentPermissionsPickerAsync().catch(() => Linking.openSettings())}
+            accessibilityRole="button"
             className="flex-row items-center gap-3 rounded-2xl px-4 py-3 mb-3"
             style={{ backgroundColor: 'rgba(255,159,10,0.12)', borderWidth: 1, borderColor: 'rgba(255,159,10,0.25)' }}
           >
@@ -226,7 +244,7 @@ export default function HomeScreen() {
             <View className="flex-1">
               <Text className="text-streak text-sm font-semibold">Limited photo access</Text>
               <Text className="text-streak/70 text-xs mt-0.5">
-                You've granted access to {index.length.toLocaleString()} photos. Tap to expand in Settings.
+                Swipe Photos can see {index.length.toLocaleString()} of your photos. Tap to choose more.
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="rgba(255,159,10,0.4)" />

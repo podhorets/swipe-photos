@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as MediaLibrary from 'expo-media-library';
 import { useGalleryStore } from '@/stores/galleryStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   buildIndex,
   loadCachedIndex,
@@ -13,11 +14,16 @@ import {
  */
 export function useGalleryIndex() {
   const { setIndex, setIndexing, applyDelta } = useGalleryStore();
+  // Re-read when the app returns to the foreground — i.e. after the iOS prompt
+  // or the Settings app — so a later grant starts indexing without a relaunch
+  const { isMediaGranted } = usePermissions();
   // Prevent double-indexing on StrictMode double-mount
   const didInit = useRef(false);
 
   useEffect(() => {
-    if (didInit.current) return;
+    // Without access every MediaLibrary read rejects; wait for the grant
+    // instead of raising the prompt implicitly from a background fetch
+    if (!isMediaGranted || didInit.current) return;
     didInit.current = true;
 
     async function init() {
@@ -35,8 +41,12 @@ export function useGalleryIndex() {
       setIndex(fresh);
     }
 
-    init();
-  }, [setIndex, setIndexing]);
+    init().catch(() => {
+      // Access revoked mid-build — allow a retry on the next grant
+      didInit.current = false;
+      setIndexing(false, 0);
+    });
+  }, [isMediaGranted, setIndex, setIndexing]);
 
   useEffect(() => {
     // Subscribe to library changes for incremental updates
@@ -45,7 +55,9 @@ export function useGalleryIndex() {
 
       if (!event.hasIncrementalChanges) {
         // Full change — trigger a rebuild
-        buildIndex().then((fresh) => useGalleryStore.getState().setIndex(fresh));
+        buildIndex()
+          .then((fresh) => useGalleryStore.getState().setIndex(fresh))
+          .catch(() => {});
         return;
       }
 

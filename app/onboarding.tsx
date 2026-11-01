@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { View, Text, Pressable, Dimensions, Alert, Linking } from 'react-native';
+import { View, Text, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -605,8 +605,8 @@ const TRUST_ROWS = [
     {
         gradient: GRADIENTS.freed,
         icon: 'phone-portrait-outline' as const,
-        title: '100% on-device',
-        sub: 'No uploads. No accounts. No cloud.',
+        title: 'Your photos stay on your iPhone',
+        sub: 'Never uploaded. No account needed.',
     },
     {
         // Feature claim, not social proof — no ratings or install counts until
@@ -659,11 +659,6 @@ function TrustCard() {
 }
 
 // ─── Steps ───────────────────────────────────────────────────────────────────
-
-// Height of the "Skip for now" row. It is subtracted back out of the CTA
-// wrapper's margin, so the row must carry a known height rather than being
-// sized by its text.
-const SKIP_ROW_HEIGHT = 36;
 
 /**
  * One onboarding slide. The strip translates at full speed while the content
@@ -733,23 +728,23 @@ function PageDot({ index, offset }: { index: number; offset: SharedValue<number>
 const STEPS = [
     {
         title: 'Left deletes.\nRight keeps.',
-        subtitle: "Breeze through hundreds of photos a minute. It's oddly satisfying.",
+        subtitle: "Go through your library one photo at a time. It's oddly satisfying.",
     },
     {
-        title: 'Gigabytes hide\nin duplicates',
+        title: 'Duplicates\ntake up space',
         subtitle:
-            'On-device AI finds look-alike bursts, stars the sharpest shot, and deletes the rest in one tap.',
+            'Swipe Photos groups look-alike shots, stars the sharpest one, and lets you clear the rest in one tap.',
     },
     {
         title: 'See what your\nlibrary is hiding',
         subtitle:
-            "We scan your photos on your iPhone — nothing ever leaves your device — and show what's safe to delete.",
+            'Next, iOS will ask for access to your photo library so Swipe Photos can show your photos. They never leave your iPhone.',
     },
 ];
 
 export default function OnboardingScreen() {
     const insets = useSafeAreaInsets();
-    const { isMediaGranted, requestMedia, requestNotifications } = usePermissions();
+    const { mediaStatus, requestMedia } = usePermissions();
 
     const [currentStep, setCurrentStep] = useState(0);
     const slideOffset = useSharedValue(0);
@@ -762,16 +757,6 @@ export default function OnboardingScreen() {
         transform: [{ translateX: -slideOffset.value * SCREEN_WIDTH }],
     }));
 
-    // Skip fades in as the last slide arrives, instead of popping on the state flip
-    const skipStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(
-            slideOffset.value,
-            [STEPS.length - 1.5, STEPS.length - 1],
-            [0, 1],
-            Extrapolation.CLAMP,
-        ),
-    }));
-
     const isLastStep = currentStep === STEPS.length - 1;
 
     function goNext() {
@@ -781,38 +766,17 @@ export default function OnboardingScreen() {
         slideOffset.value = withSpring(next, SPRING.slide);
     }
 
+    // Last step: "Continue" always leads straight to the iOS prompt (Guideline
+    // 5.1.1(iv) — a pre-permission screen must not offer a way around it or
+    // say "Allow"). Whatever the user answers, they land in the app; Library
+    // shows its own locked state with an Open Settings link if access is off.
     async function handleFinish() {
-        if (!isMediaGranted) {
-            const result = await requestMedia();
-            if (!result?.granted) {
-                // iOS shows its prompt once; after a denial the button would
-                // otherwise do nothing at all. Explain and offer Settings.
-                if (result && !result.canAskAgain) {
-                    Alert.alert(
-                        'Photo Access Is Off',
-                        'Swipe Photos needs access to your library to review photos. You can turn it on in Settings.',
-                        [
-                            { text: 'Not Now', style: 'cancel' },
-                            { text: 'Open Settings', onPress: () => Linking.openSettings() },
-                        ],
-                    );
-                }
-                return;
-            }
+        if (!mediaStatus?.granted && mediaStatus?.canAskAgain !== false) {
+            await requestMedia();
         }
-        // Notifications optional — don't block on denial
-        await requestNotifications();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         storage.set(STORAGE_KEYS.hasCompletedOnboarding, true);
         posthog.capture('onboarding_completed');
-        router.replace('/(tabs)');
-    }
-
-    function handleSkip() {
-        posthog.capture('onboarding_skipped', { step: currentStep });
-        // Seen is seen: without this the full intro replays on every cold
-        // start. Missing photo access is handled by Library's own locked state.
-        storage.set(STORAGE_KEYS.hasCompletedOnboarding, true);
         router.replace('/(tabs)');
     }
 
@@ -820,7 +784,7 @@ export default function OnboardingScreen() {
         <View
             className="flex-1 bg-bg-dark"
             // Floor the bottom inset: on home-button devices it is 0, which
-            // would leave the skip link hanging past the screen edge.
+            // would leave the CTA flush against the screen edge.
             style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }}
         >
             <AuroraBackground variant="onboarding" />
@@ -906,30 +870,12 @@ export default function OnboardingScreen() {
                     ))}
                 </View>
 
-                {/* Primary CTA. The skip row below it is cancelled out of the
-                    column with a matching negative margin, so it hangs into the
-                    bottom padding instead of lifting the CTA — the primary
-                    button holds the same line on all three steps. */}
-                <View style={{ marginBottom: -SKIP_ROW_HEIGHT }}>
-                    <GradientPillButton
-                        label={isLastStep ? 'Allow Photo Access' : 'Continue'}
-                        onPress={isLastStep ? handleFinish : goNext}
-                    />
-
-                    {/* Skip — always mounted so layout never jumps; fades in
-                        with the arriving last slide, tappable only there */}
-                    <Animated.View style={skipStyle} pointerEvents={isLastStep ? 'auto' : 'none'}>
-                        <Pressable
-                            onPress={handleSkip}
-                            accessibilityRole="button"
-                            hitSlop={{ left: 60, right: 60 }}
-                            className="items-center justify-center active:opacity-60"
-                            style={{ height: SKIP_ROW_HEIGHT }}
-                        >
-                            <Text className="text-white/40 text-sm">Skip for now</Text>
-                        </Pressable>
-                    </Animated.View>
-                </View>
+                {/* Same label on every step: on the last one it leads straight
+                    to the iOS photo prompt, so it must not read "Allow" */}
+                <GradientPillButton
+                    label="Continue"
+                    onPress={isLastStep ? handleFinish : goNext}
+                />
             </View>
         </View>
     );
