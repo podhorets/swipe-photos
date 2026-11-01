@@ -19,17 +19,21 @@ import * as Sentry from '@sentry/react-native';
 Sentry.init({
   dsn: 'https://5f918fbd3f8c5901db3e4ecde4d73e35@o4511027063291904.ingest.de.sentry.io/4511338069950544',
 
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
+  // Settings → "Share Analytics" covers crash reports too (applies on next launch)
+  enabled: !__DEV__ && useSettingsStore.getState().analyticsOptIn,
 
-  // Enable Logs
+  // No IP address, cookies or user data — matches the App Store privacy label
+  sendDefaultPii: false,
+
   enableLogs: true,
 
-  // Configure Session Replay
-  replaysSessionSampleRate: 0.1,
+  // Replays only around crashes, with every image and text masked: the user's
+  // photos must never leave the device
+  replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration()],
+  integrations: [
+    Sentry.mobileReplayIntegration({ maskAllText: true, maskAllImages: true, maskAllVectors: true }),
+  ],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,

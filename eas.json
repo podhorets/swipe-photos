@@ -9,24 +9,26 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
-      }
+      },
+      "environment": "development"
     },
     "preview": {
       "autoIncrement": true,
       "distribution": "internal",
       "ios": {
         "simulator": false
-      }
+      },
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "simulator": false
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {
-    "production": {
-    }
+    "production": {}
   }
 }

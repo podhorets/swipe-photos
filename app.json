@@ -21,13 +21,14 @@
       "bundleIdentifier": "com.podhorets.swipephotos",
       "buildNumber": "1",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Swipe Photos shows your photos so you can review and clean them up.",
-        "NSPhotoLibraryAddUsageDescription": "Swipe Photos needs permission to save changes to your photo library.",
+        "NSPhotoLibraryUsageDescription": "Swipe Photos shows your photos one at a time so you can choose which to keep or delete, right on this iPhone.",
         "PHPhotoLibraryPreventAutomaticLimitedAccessAlert": true,
-        "NSFaceIDUsageDescription": "Face ID protects bulk deletion so photos are never removed by accident.",
+        "NSFaceIDUsageDescription": "Swipe Photos uses Face ID to confirm it's you before deleting photos when Face ID Lock is on.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
@@ -38,19 +39,56 @@
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
             "NSPrivacyAccessedAPITypeReasons": [
-              "C617.1"
+              "C617.1",
+              "0A2A.1",
+              "3B52.1"
             ]
           },
           {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
             "NSPrivacyAccessedAPITypeReasons": [
-              "CA92.1"
+              "35F9.1"
             ]
           },
           {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
             "NSPrivacyAccessedAPITypeReasons": [
-              "C617.1"
+              "E174.1",
+              "85F4.1"
+            ]
+          }
+        ],
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeCrashData",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherDiagnosticData",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeProductInteraction",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAnalytics"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePurchaseHistory",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
             ]
           }
         ]
@@ -61,15 +99,15 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Swipe Photos shows your photos so you can review and clean them up.",
-          "savePhotosPermission": "Swipe Photos needs permission to save changes to your photo library.",
+          "photosPermission": "Swipe Photos shows your photos one at a time so you can choose which to keep or delete, right on this iPhone.",
+          "savePhotosPermission": false,
           "isAccessMediaLocationEnabled": true
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Face ID protects bulk deletion so photos are never removed by accident."
+          "faceIDPermission": "Swipe Photos uses Face ID to confirm it's you before deleting photos when Face ID Lock is on."
         }
       ],
       [

@@ -43,13 +43,26 @@ export const FREE_PLAN = {
 };
 
 /**
- * Gates Settings → Developer and the mock switches it drives.
- *
- * TEMPORARY: `true` so the section ships in TestFlight builds, where __DEV__ is
- * false. Set back to `__DEV__` before the public release — with this on, any
- * tester can grant themselves the Pro entitlement from Settings.
+ * Gates Settings → Developer and the mock switches it drives. Development
+ * builds only: TestFlight and App Store builds are the same binary, and a
+ * reviewer who finds a switch that grants Pro for free rejects the app.
  */
-export const DEV_TOOLS_ENABLED = true;
+export const DEV_TOOLS_ENABLED = __DEV__;
+
+// Public pages linked from the paywall, Settings and App Store Connect. Must be
+// live before submission — a dead privacy policy link is an automatic rejection.
+// Ready-to-host sources live in docs/legal/.
+export const LEGAL = {
+  privacyUrl: 'https://swipephotos.app/privacy',
+  // Apple's standard EULA — also set as the License Agreement in App Store Connect
+  termsUrl: 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+  supportUrl: 'https://swipephotos.app/support',
+};
+
+// Numeric App Store ID (App Store Connect → App Information → Apple ID). The
+// "Rate Swipe Photos" row stays hidden until this is set, so a placeholder link
+// can never ship.
+export const APP_STORE_ID = '';
 
 // RevenueCat
 export const PRO = {
