@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from 'react';
-import { View, Text, FlatList, Pressable } from 'react-native';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, Pressable, type ListRenderItemInfo } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -31,9 +31,9 @@ interface DisplayGroup {
   reclaimBytes: number;
 }
 
-// How many group cards the tab previews — the review session covers up to a
-// full batch regardless, so the list is a teaser, not the full inventory.
-const PREVIEW_GROUP_COUNT = 50;
+// Groups added to the grid per page as the user scrolls. The header totals and
+// the review CTA always cover every group; only the collages are paged.
+const PAGE_SIZE = 20;
 
 // Share of the scan dial owned by the compare pass; the rest is best-shot analysis
 const COMPARE_SHARE = 0.85;
@@ -96,6 +96,31 @@ function GroupCollage({ uris, memberCount }: { uris: string[]; memberCount: numb
     </View>
   );
 }
+
+/** One grid cell. Memoized so paging and scan-progress ticks skip loaded tiles. */
+const GroupTile = memo(function GroupTile({
+  group,
+  onPress,
+}: {
+  group: DisplayGroup;
+  onPress: (groupKey: string) => void;
+}) {
+  return (
+    <Pressable
+      onPress={() => onPress(group.key)}
+      accessibilityRole="button"
+      className="mb-3 active:opacity-80"
+    >
+      <GroupCollage uris={group.previewUris} memberCount={group.memberIds.length} />
+      <View className="flex-row items-center justify-between mt-1.5 px-0.5">
+        <Text className="text-white text-[13px] font-semibold">
+          {group.memberIds.length} photos
+        </Text>
+        <Text className="text-white/45 text-[12px]">{formatBytes(group.reclaimBytes)}</Text>
+      </View>
+    </Pressable>
+  );
+});
 
 export default function SimilarScreen() {
   const insets = useSafeAreaInsets();
@@ -175,10 +200,14 @@ export default function SimilarScreen() {
     });
   }, [groups, keepIds, index, bestIds, assetById]);
 
-  const previewGroups = useMemo(
-    () => displayGroups.slice(0, PREVIEW_GROUP_COUNT),
-    [displayGroups],
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visibleGroups = useMemo(
+    () => displayGroups.slice(0, visibleCount),
+    [displayGroups, visibleCount],
   );
+  const loadMoreGroups = useCallback(() => {
+    setVisibleCount((n) => (n < displayGroups.length ? n + PAGE_SIZE : n));
+  }, [displayGroups.length]);
 
   const totalPhotos = displayGroups.reduce((n, g) => n + g.memberIds.length, 0);
   const totalReclaim = displayGroups.reduce((n, g) => n + g.reclaimBytes, 0);
@@ -187,21 +216,31 @@ export default function SimilarScreen() {
     effectiveBatchSize(planState, batchSize),
   );
 
-  function handleStartReview(startGroupKey?: string) {
-    if (!gateSessionStart()) return;
-    posthog.capture('similar_review_started', {
-      group_count: reviewCount,
-      from_tile: !!startGroupKey,
-    });
-    router.push(
-      startGroupKey
-        ? {
-            pathname: '/review/[sessionId]',
-            params: { sessionId: 'similar', startGroup: startGroupKey },
-          }
-        : '/review/similar',
-    );
-  }
+  const handleStartReview = useCallback(
+    (startGroupKey?: string) => {
+      if (!gateSessionStart()) return;
+      posthog.capture('similar_review_started', {
+        group_count: reviewCount,
+        from_tile: !!startGroupKey,
+      });
+      router.push(
+        startGroupKey
+          ? {
+              pathname: '/review/[sessionId]',
+              params: { sessionId: 'similar', startGroup: startGroupKey },
+            }
+          : '/review/similar',
+      );
+    },
+    [reviewCount],
+  );
+
+  const renderGroup = useCallback(
+    ({ item }: ListRenderItemInfo<DisplayGroup>) => (
+      <GroupTile group={item} onPress={handleStartReview} />
+    ),
+    [handleStartReview],
+  );
 
   const scanning = scanState === 'scanning';
   // The two passes each report 0→100% of their own workload, so a raw ratio
@@ -296,36 +335,21 @@ export default function SimilarScreen() {
           )
         ) : (
           <FlatList
-            data={previewGroups}
+            data={visibleGroups}
             keyExtractor={(g) => g.key}
             numColumns={2}
             columnWrapperStyle={{ gap: 12 }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: insets.bottom + 190 }}
-            ListFooterComponent={
-              displayGroups.length > PREVIEW_GROUP_COUNT ? (
-                <Text className="text-white/35 text-[13px] text-center mt-1 mb-2">
-                  +{(displayGroups.length - PREVIEW_GROUP_COUNT).toLocaleString()} more groups ready to review
-                </Text>
-              ) : null
-            }
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => handleStartReview(item.key)}
-                accessibilityRole="button"
-                className="mb-3 active:opacity-80"
-              >
-                <GroupCollage uris={item.previewUris} memberCount={item.memberIds.length} />
-                <View className="flex-row items-center justify-between mt-1.5 px-0.5">
-                  <Text className="text-white text-[13px] font-semibold">
-                    {item.memberIds.length} photos
-                  </Text>
-                  <Text className="text-white/45 text-[12px]">
-                    {formatBytes(item.reclaimBytes)}
-                  </Text>
-                </View>
-              </Pressable>
-            )}
+            // Counts are rows (numColumns=2). Each collage is up to 8 image
+            // decodes, and the defaults (10 rows up front, ±10 screens kept)
+            // mounted every group at once; keep about ±2 screens instead.
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={5}
+            onEndReached={loadMoreGroups}
+            onEndReachedThreshold={1}
+            renderItem={renderGroup}
           />
         )}
       </View>
@@ -338,10 +362,12 @@ export default function SimilarScreen() {
         <View
           className="absolute left-5 right-5"
           style={{ bottom: Math.max(insets.bottom, 26) + 66 }}
+          // Only the button takes touches; drags on the notes scroll the grid
+          pointerEvents="box-none"
         >
           {/* Notes float over the photo grid — the scrim pill keeps them legible */}
           {scanning ? (
-            <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2">
+            <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2" pointerEvents="none">
               <Text className="text-white/75 text-[11px] text-center">
                 Scan running — reviewing already-found groups
               </Text>
@@ -349,7 +375,7 @@ export default function SimilarScreen() {
           ) : (
             !analyzerUsed &&
             scannedAt > 0 && (
-              <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2">
+              <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2" pointerEvents="none">
                 <Text className="text-white/75 text-[11px] text-center">
                   Grouped by when photos were taken
                 </Text>
@@ -360,7 +386,7 @@ export default function SimilarScreen() {
             label={`Review ${reviewCount} group${reviewCount === 1 ? '' : 's'}`}
             icon="sparkles"
             variant="freed"
-            onPress={handleStartReview}
+            onPress={() => handleStartReview()}
           />
         </View>
       )}
