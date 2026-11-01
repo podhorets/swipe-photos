@@ -3,7 +3,7 @@ import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, LogBox } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
 import { enableMapSet } from 'immer';
@@ -37,6 +37,10 @@ Sentry.init({
 
 // Required for Immer to handle Set and Map in Zustand stores
 enableMapSet();
+
+// Expected in dev with EXPO_PUBLIC_REVENUECAT_TEST_KEY; its LogBox toast sits
+// over the bottom CTAs on every launch
+if (__DEV__) LogBox.ignoreLogs(['Using a Test Store API key']);
 
 SplashScreen.preventAutoHideAsync();
 
