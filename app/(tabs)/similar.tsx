@@ -277,12 +277,20 @@ export default function SimilarScreen() {
                 <Ionicons name="copy-outline" size={32} color="rgba(255,255,255,0.6)" />
               </View>
               <Text className="text-white text-lg font-bold mb-1.5">
-                {isIndexing || scannedAt === 0 ? 'Getting ready…' : 'No similar photos'}
+                {/* An empty library never gets scanned (scannedAt stays 0) —
+                    don't promise a scan that will never come */}
+                {!isIndexing && index.length === 0
+                  ? 'No photos yet'
+                  : isIndexing || scannedAt === 0
+                    ? 'Getting ready…'
+                    : 'No similar photos'}
               </Text>
-              <Text className="text-white/45 text-sm text-center px-10" style={{ lineHeight: 20 }}>
-                {isIndexing || scannedAt === 0
-                  ? 'Your library is being scanned for lookalike shots.'
-                  : 'Nice — no near-duplicates left in your library.'}
+              <Text className="text-white/60 text-sm text-center px-10" style={{ lineHeight: 20 }}>
+                {!isIndexing && index.length === 0
+                  ? 'Look-alike shots from your library will show up here.'
+                  : isIndexing || scannedAt === 0
+                    ? 'Your library is being scanned for lookalike shots.'
+                    : 'Nice — no near-duplicates left in your library.'}
               </Text>
             </View>
           )
@@ -343,7 +351,7 @@ export default function SimilarScreen() {
             scannedAt > 0 && (
               <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2">
                 <Text className="text-white/75 text-[11px] text-center">
-                  Grouped by time only — visual matching unavailable on this build
+                  Grouped by when photos were taken
                 </Text>
               </View>
             )

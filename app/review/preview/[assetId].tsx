@@ -43,6 +43,7 @@ function ChromeButton({
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={label}
+      hitSlop={6}
       className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 active:opacity-70"
     >
       {busy ? <ActivityIndicator size="small" color="white" /> : <Ionicons name={icon} size={20} color="white" />}

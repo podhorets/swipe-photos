@@ -196,7 +196,11 @@ export function SessionComplete({
               width={SCREEN_WIDTH - 56}
               colors={GRADIENTS.freed}
             />
-            <Text className="text-white/55 text-[15px] font-semibold mt-0.5">storage freed</Text>
+            <Text className="text-white/60 text-[15px] font-semibold mt-0.5">moved to Recently Deleted</Text>
+            {/* Accurate claim (2.3.1): space comes back only once iOS purges them */}
+            <Text className="text-white/45 text-[12px] mt-1 text-center">
+              Space is freed when Recently Deleted is emptied, or after 30 days.
+            </Text>
           </View>
         )}
 

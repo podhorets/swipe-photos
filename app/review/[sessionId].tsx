@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { useSession } from '@/hooks/useSession';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -97,6 +98,7 @@ function GlassCircleButton({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
+      hitSlop={6}
       className="items-center justify-center rounded-full bg-[rgba(24,24,28,0.6)] border border-white/[0.16] active:opacity-70"
       style={{ width: size, height: size }}
     >
@@ -326,6 +328,28 @@ export default function ReviewScreen() {
       keptCount: d.filter((v) => v === 'keep').length,
     };
   }, [showComplete]);
+
+  // Nothing to review (e.g. a month whose photos were all kept already) — say
+  // so instead of waiting on a stack that will never fill
+  if (phase === 'active' && session && session.assetIds.length === 0) {
+    return (
+      <View className="flex-1 bg-bg-dark items-center justify-center px-8">
+        <AuroraBackground />
+        <Ionicons name="checkmark-done-circle-outline" size={64} color="rgba(48,209,88,0.8)" />
+        <Text className="text-white text-2xl font-bold mt-5 text-center">All caught up</Text>
+        <Text className="text-white/60 text-base mt-2 text-center leading-6">
+          There are no photos left to review here.
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          className="mt-8 bg-white/15 rounded-full px-8 min-h-[50px] items-center justify-center active:opacity-70"
+        >
+          <Text className="text-white font-semibold text-base">Done</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (phase !== 'active' || !session || !sessionReady) {
     return (

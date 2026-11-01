@@ -102,8 +102,12 @@ function EmptyTrash() {
     <View className="flex-1 items-center justify-center gap-3">
       <Ionicons name="trash-outline" size={56} color="rgba(255,255,255,0.15)" />
       <Text className="text-white/30 text-base">No photos marked for deletion</Text>
-      <Pressable onPress={() => router.back()} className="mt-2">
-        <Text className="text-white/50 text-sm">Go back</Text>
+      <Pressable
+        onPress={() => router.back()}
+        accessibilityRole="button"
+        className="mt-2 min-h-[44px] px-6 justify-center active:opacity-60"
+      >
+        <Text className="text-white/60 text-base">Go back</Text>
       </Pressable>
     </View>
   );
@@ -304,7 +308,12 @@ export default function TrashScreen() {
             Last check before deleting — tap to keep instead
           </Text>
         </View>
-        <Pressable onPress={toggleSelectAll} className="active:opacity-60" hitSlop={8}>
+        <Pressable
+          onPress={toggleSelectAll}
+          accessibilityRole="button"
+          className="min-h-[44px] justify-center active:opacity-60"
+          hitSlop={12}
+        >
           <Text className="text-accent text-sm font-semibold">
             {allSelected ? 'Deselect all' : 'Select all'}
           </Text>
@@ -355,7 +364,7 @@ export default function TrashScreen() {
                   </Text>
                   <Text className="text-white/45 text-xs mt-px">
                     {selected.size > 0
-                      ? `${formatBytes(selectedBytes)} will be freed`
+                      ? `About ${formatBytes(selectedBytes)} · recoverable for 30 days`
                       : 'Tap photos to select'}
                   </Text>
                 </View>

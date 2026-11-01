@@ -6,6 +6,7 @@ import {
   Pressable,
   Switch,
   Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -26,7 +27,8 @@ import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { IconSquircle } from '@/components/ui/IconSquircle';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { GRADIENTS } from '@/constants/theme';
-import { DEV_TOOLS_ENABLED, FREE_PLAN, STORAGE_KEYS } from '@/constants/config';
+import { APP_STORE_ID, DEV_TOOLS_ENABLED, FREE_PLAN, LEGAL, STORAGE_KEYS } from '@/constants/config';
+import { manageSubscriptions, restore } from '@/lib/purchases';
 import { createMMKV } from 'react-native-mmkv';
 import { posthog } from '@/lib/posthog';
 
@@ -280,8 +282,12 @@ export default function SettingsScreen() {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Enable notifications in Settings > Swipe Photos > Notifications.',
+          'Notifications Are Off',
+          'To get On This Day reminders, allow notifications for Swipe Photos in Settings.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
         );
         return;
       }
@@ -323,11 +329,26 @@ export default function SettingsScreen() {
             value={pro ? 'Active' : undefined}
             onPress={() => {
               if (pro) {
-                // Manage/cancel lives in the App Store subscription settings
-                WebBrowser.openBrowserAsync('https://apps.apple.com/account/subscriptions').catch(() => {});
+                // Manage/cancel lives in Apple's subscription sheet
+                manageSubscriptions();
               } else {
                 router.push({ pathname: '/paywall', params: { context: 'settings' } });
               }
+            }}
+          />
+          <RowDivider />
+          <NavRow
+            icon="refresh"
+            gradient={GRADIENTS.accent}
+            label="Restore Purchases"
+            onPress={async () => {
+              const restored = await restore();
+              Alert.alert(
+                restored ? 'Purchases Restored' : 'Nothing to Restore',
+                restored
+                  ? 'Swipe Photos Pro is active again.'
+                  : 'No active subscription was found for this Apple ID.',
+              );
             }}
           />
         </Section>
@@ -352,8 +373,8 @@ export default function SettingsScreen() {
           <ToggleRow
             icon="bar-chart"
             gradient={GRADIENTS.analytics}
-            label="Analytics"
-            subtitle="Help improve the app (anonymous)"
+            label="Share Analytics"
+            subtitle="Anonymous usage and crash reports. Never your photos."
             value={analyticsOptIn}
             onValueChange={(v) => {
               posthog.capture('setting_changed', { setting: 'analytics', value: v });
@@ -376,12 +397,26 @@ export default function SettingsScreen() {
 
         {/* About */}
         <Section title="About">
+          {/* Hidden until the App Store ID exists — a placeholder link is a broken feature */}
+          {!!APP_STORE_ID && (
+            <>
+              <NavRow
+                icon="star"
+                gradient={GRADIENTS.star}
+                label="Rate Swipe Photos"
+                onPress={() => {
+                  Linking.openURL(`itms-apps://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`).catch(() => {});
+                }}
+              />
+              <RowDivider />
+            </>
+          )}
           <NavRow
-            icon="star"
-            gradient={GRADIENTS.star}
-            label="Rate Swipe Photos"
+            icon="help-buoy"
+            gradient={GRADIENTS.notify}
+            label="Help & Support"
             onPress={() => {
-              WebBrowser.openBrowserAsync('https://apps.apple.com').catch(() => {});
+              WebBrowser.openBrowserAsync(LEGAL.supportUrl).catch(() => {});
             }}
           />
           <RowDivider />
@@ -390,7 +425,16 @@ export default function SettingsScreen() {
             gradient={GRADIENTS.shield}
             label="Privacy Policy"
             onPress={() => {
-              WebBrowser.openBrowserAsync('https://swipephotos.app/privacy').catch(() => {});
+              WebBrowser.openBrowserAsync(LEGAL.privacyUrl).catch(() => {});
+            }}
+          />
+          <RowDivider />
+          <NavRow
+            icon="document-text"
+            gradient={GRADIENTS.analytics}
+            label="Terms of Use"
+            onPress={() => {
+              WebBrowser.openBrowserAsync(LEGAL.termsUrl).catch(() => {});
             }}
           />
           <RowDivider />
@@ -401,7 +445,7 @@ export default function SettingsScreen() {
           </View>
         </Section>
 
-        {/* Developer — also shipped in TestFlight builds; see DEV_TOOLS_ENABLED */}
+        {/* Developer — development builds only; see DEV_TOOLS_ENABLED */}
         {DEV_TOOLS_ENABLED && (
           <Section title="Developer">
             <ToggleRow
