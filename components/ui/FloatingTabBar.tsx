@@ -13,6 +13,7 @@ const TAB_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyp
   'by-month': { label: 'Months', icon: 'calendar-number' },
   'on-this-day': { label: 'Memories', icon: 'sparkles' },
   similar: { label: 'Similar', icon: 'copy' },
+  feed: { label: 'Feed', icon: 'albums' },
   settings: { label: 'Settings', icon: 'settings-sharp' },
 };
 

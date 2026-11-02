@@ -20,6 +20,7 @@ export default function TabLayout() {
         <Tabs.Screen name="by-month" options={{ title: 'By Month' }} />
         <Tabs.Screen name="on-this-day" options={{ title: 'On This Day' }} />
         <Tabs.Screen name="similar" options={{ title: 'Similar' }} />
+        <Tabs.Screen name="feed" options={{ title: 'Feed' }} />
         <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
       </Tabs>
     </>

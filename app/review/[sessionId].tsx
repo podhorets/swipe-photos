@@ -10,6 +10,7 @@ import { useSession } from '@/hooks/useSession';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useKeepStore } from '@/stores/keepStore';
+import { useFeedStore } from '@/stores/feedStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { usePlanStore } from '@/stores/planStore';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -233,11 +234,15 @@ export default function ReviewScreen() {
     if (lastStartedKey.current === sessionKey) return;
     lastStartedKey.current = sessionKey;
     setShowComplete(false);
+    // Story sessions (Feed POC) get their photos from the story the user tapped
+    const story = sessionId === 'story' ? useFeedStore.getState().pendingStory : null;
     startSession({
       category: sessionId as Category,
       yearFilter: year ? Number(year) : undefined,
       monthFilter: month,
       startGroupKey: startGroup,
+      storyIds: story?.ids,
+      storyTitle: story?.title,
     });
   }, [sessionKey, startSession]);
 

@@ -25,7 +25,8 @@ export type Category =
   | 'screenshots'
   | 'videos'
   | 'random'
-  | 'similar';
+  | 'similar'
+  | 'story';
 
 export interface CategoryInfo {
   id: Category;

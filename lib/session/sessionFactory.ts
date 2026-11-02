@@ -24,6 +24,9 @@ export interface SessionRequest {
   // For similar — start the batch at the group containing this asset id (the
   // tile the user tapped). Falls back to the first group if not found.
   startGroupKey?: string;
+  // For story — the story's photos (newest first) and its title
+  storyIds?: string[];
+  storyTitle?: string;
 }
 
 export function createSession(
@@ -99,6 +102,14 @@ export function createSession(
       assets = getRandom(index.filter((a) => !keepIds.has(a.id)), batchSize);
       label = 'Random Review';
       break;
+    case 'story': {
+      const byId = new Map(index.map((a) => [a.id, a]));
+      assets = (request.storyIds ?? [])
+        .map((id) => byId.get(id))
+        .filter((a): a is AssetMeta => a !== undefined);
+      label = request.storyTitle ?? 'Story';
+      break;
+    }
   }
 
   // For all non-random categories: exclude already-kept photos, then take one batch

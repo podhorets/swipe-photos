@@ -14,7 +14,14 @@ export type AnalyzeOptions = {
   maxDimension?: number;
 };
 
+export type AssetLocation = {
+  id: string;
+  latitude: number;
+  longitude: number;
+};
+
 type NativePhotoAnalyzer = {
+  getAssetLocations(assetIds: string[]): Promise<AssetLocation[]>;
   analyzeAssets(
     assetIds: string[],
     options?: AnalyzeOptions,
@@ -72,7 +79,17 @@ function groupSimilarAssets(
   return getNative().groupSimilarAssets(candidateGroups, threshold);
 }
 
+/**
+ * GPS coordinates for many assets in one call, read from photo metadata on
+ * the device (no image files opened, nothing sent anywhere). Only assets that
+ * have a location are returned.
+ */
+function getAssetLocations(assetIds: string[]): Promise<AssetLocation[]> {
+  return getNative().getAssetLocations(assetIds);
+}
+
 export const PhotoAnalyzer = {
   analyzeAssets,
   groupSimilarAssets,
+  getAssetLocations,
 };

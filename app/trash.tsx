@@ -7,7 +7,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as LocalAuthentication from 'expo-local-authentication';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useFeedStore } from '@/stores/feedStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -27,7 +28,7 @@ import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { GradientPillButton } from '@/components/ui/GradientPillButton';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
-import type { AssetMeta } from '@/types';
+import type { AssetMeta, SwipeDecision } from '@/types';
 import { posthog } from '@/lib/posthog';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -126,9 +127,18 @@ export default function TrashScreen() {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryStats, setSummaryStats] = useState({ total: 0, kept: 0, freedBytes: 0 });
 
+  // Opened from the Feed's trash icon: review the feed's disliked photos
+  // instead of a session's (Feed POC)
+  const { source } = useLocalSearchParams<{ source?: string }>();
+  const fromFeed = source === 'feed';
+
   // Get delete decisions from the current session (session-scoped trash).
   // Captured once on mount — session decisions don't change while we're in trash.
-  const [sessionDecisions] = useState(() => useSessionStore.getState().decisions);
+  const [sessionDecisions] = useState<Record<string, SwipeDecision>>(() =>
+    fromFeed
+      ? Object.fromEntries(useFeedStore.getState().trashed.map((id) => [id, 'delete' as const]))
+      : useSessionStore.getState().decisions,
+  );
   const [sessionSizeSnapshot] = useState(() => useSessionStore.getState().sizeSnapshot);
   const deleteIds = useMemo(
     () => Object.entries(sessionDecisions)
@@ -222,6 +232,22 @@ export default function TrashScreen() {
 
     // IDs that were deselected (user changed mind) + all 'keep' decisions from session
     const deselectedIds = deleteIds.filter((id) => !selected.has(id));
+
+    if (fromFeed) {
+      // Feed trash: deleted photos leave it, deselected ones go back to the feed.
+      // Not a review session, so no keeps, streak or plan quota.
+      useFeedStore.getState().removeFromTrash(deleteIds);
+      setIsDeleting(false);
+      const freed = idsToDelete.reduce((sum, id) => {
+        const asset = deleteAssets.find((a) => a.id === id);
+        return sum + (asset ? estimateSizeFromAsset(asset) : 0);
+      }, 0);
+      useStatsStore.getState().addFreedBytes(freed);
+      useStatsStore.getState().addDeletedCount(idsToDelete.length);
+      setSummaryStats({ total: deleteIds.length, kept: deselectedIds.length, freedBytes: freed });
+      setShowSummary(true);
+      return;
+    }
     const sessionKeepIds = Object.entries(sessionDecisions)
       .filter(([, d]) => d === 'keep')
       .map(([id]) => id);

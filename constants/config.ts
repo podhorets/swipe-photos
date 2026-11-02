@@ -11,6 +11,12 @@ export const STORAGE_KEYS = {
   similarGroups: 'similar:groups',
   similarAnalysis: 'similar:analysis',
   similarScanCheckpoint: 'similar:scanCheckpoint',
+  // Feed POC
+  feedLiked: 'feed:liked',
+  feedTrash: 'feed:trash',
+  feedSeenStories: 'feed:seenStories',
+  placeLocations: 'places:locations',
+  placeChecked: 'places:checked',
 };
 
 // Similar-photos detection (ported from cleani)

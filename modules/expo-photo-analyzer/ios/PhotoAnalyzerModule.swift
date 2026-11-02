@@ -1,4 +1,5 @@
 import CoreGraphics
+import CoreLocation
 import ExpoModulesCore
 import Photos
 import Vision
@@ -34,6 +35,16 @@ public class PhotoAnalyzerModule: Module {
     AsyncFunction("groupSimilarAssets") { (candidateGroups: [[String]], threshold: Double, promise: Promise) in
       DispatchQueue.global(qos: .userInitiated).async {
         promise.resolve(PhotoAnalyzer.groupSimilar(candidateGroups: candidateGroups, threshold: Float(threshold)))
+      }
+    }
+
+    // GPS coordinates for many assets in one call. Reads PHAsset.location —
+    // metadata PhotoKit already holds — so no image file is opened and nothing
+    // leaves the device. Returns only assets that have a location:
+    //   [{ id, latitude, longitude }]
+    AsyncFunction("getAssetLocations") { (assetIds: [String], promise: Promise) in
+      DispatchQueue.global(qos: .userInitiated).async {
+        promise.resolve(PhotoAnalyzer.locations(assetIds: assetIds))
       }
     }
   }
@@ -139,6 +150,19 @@ enum PhotoAnalyzer {
     }
 
     return refined
+  }
+
+  static func locations(assetIds: [String]) -> [[String: Any]] {
+    var results: [[String: Any]] = []
+    PHAsset.fetchAssets(withLocalIdentifiers: assetIds, options: nil).enumerateObjects { asset, _, _ in
+      guard let coordinate = asset.location?.coordinate, CLLocationCoordinate2DIsValid(coordinate) else { return }
+      results.append([
+        "id": asset.localIdentifier,
+        "latitude": coordinate.latitude,
+        "longitude": coordinate.longitude,
+      ])
+    }
+    return results
   }
 
   private static func fetchAssets(_ ids: [String]) -> [String: PHAsset] {
