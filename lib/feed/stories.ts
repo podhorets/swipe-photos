@@ -1,13 +1,15 @@
 import type { AssetMeta } from '@/types';
 import type { LocationMap } from '@/stores/placesStore';
 import { nearestPlace } from '@/lib/places/nearestPlace';
+import { shuffle } from '@/lib/feed/shuffle';
 
 export interface FeedStory {
-  /** Stable across launches — used to remember which stories were opened */
   key: string;
   title: string;
-  /** Newest first; a session reviews the first `batchSize` of them */
+  /** Photos still to review, newest first; a session takes the first `batchSize` */
   ids: string[];
+  /** All the group's photos, reviewed or not */
+  total: number;
   coverUri: string;
 }
 
@@ -29,15 +31,30 @@ function shortYear(ms: number): string {
   return `'${String(new Date(ms).getFullYear()).slice(2)}`;
 }
 
-function story(key: string, title: string, assets: AssetMeta[]): FeedStory {
-  const sorted = [...assets].sort((a, b) => b.creationTime - a.creationTime);
-  return { key, title, ids: sorted.map((a) => a.id), coverUri: sorted[0].uri };
+/**
+ * A story from a group's photos, keeping only those not reviewed yet. Null
+ * when fewer than `minSize` are left — a finished story leaves the row.
+ * Groups are formed from all photos first, so reviewing part of a trip never
+ * splits it into two stories.
+ */
+function story(
+  key: string,
+  title: string,
+  assets: AssetMeta[],
+  reviewed: Set<string>,
+  minSize: number,
+): FeedStory | null {
+  const left = assets
+    .filter((a) => !reviewed.has(a.id))
+    .sort((a, b) => b.creationTime - a.creationTime);
+  if (left.length < minSize) return null;
+  return { key, title, ids: left.map((a) => a.id), total: assets.length, coverUri: left[0].uri };
 }
 
 /**
  * Alternates place and time stories (place, time, place, time…) so the row
- * never shows a long run of one kind. Each kind keeps its own order; once one
- * runs out, the rest of the other follows.
+ * never shows a long run of one kind. Once one kind runs out, the rest of the
+ * other follows.
  */
 function interleave(places: FeedStory[], times: FeedStory[]): FeedStory[] {
   const out: FeedStory[] = [];
@@ -49,25 +66,30 @@ function interleave(places: FeedStory[], times: FeedStory[]): FeedStory[] {
 }
 
 /**
- * Story groups for the feed, places and times alternating. Places run newest
- * trip first; times run Yesterday, This week, then months newest first.
- * Groups smaller than `minSize` are left out. A photo can be in more than one
- * story.
+ * Story groups for the feed: places and times alternating, each kind in a
+ * random order (seeded, so it holds until the feed is refreshed). Each story
+ * holds only photos not in `reviewed`; groups with fewer than `minSize` left
+ * are dropped. A photo can be in more than one story.
  */
 export function buildFeedStories(
   index: AssetMeta[],
   locations: LocationMap,
   minSize: number,
+  reviewed: Set<string>,
+  seed: number,
   now = Date.now(),
 ): FeedStory[] {
   const times: FeedStory[] = [];
+  const add = (list: FeedStory[], s: FeedStory | null) => {
+    if (s) list.push(s);
+  };
   const today = startOfDay(now);
 
   // ── Time ──────────────────────────────────────────────────────────────────
   const yesterday = index.filter((a) => a.creationTime >= today - DAY_MS && a.creationTime < today);
-  if (yesterday.length >= minSize) times.push(story(`day:${today - DAY_MS}`, 'Yesterday', yesterday));
+  add(times, story(`day:${today - DAY_MS}`, 'Yesterday', yesterday, reviewed, minSize));
   const week = index.filter((a) => a.creationTime >= today - 6 * DAY_MS);
-  if (week.length >= minSize) times.push(story(`week:${today}`, 'This week', week));
+  add(times, story(`week:${today}`, 'This week', week, reviewed, minSize));
 
   // ── Places ────────────────────────────────────────────────────────────────
   const located = index
@@ -97,7 +119,6 @@ export function buildFeedStories(
   const placeStories: FeedStory[] = [];
   const titlesUsed = new Map<string, number>();
   for (const trip of trips.reverse()) {
-    if (trip.length < minSize) continue;
     const cityCounts = new Map<string, number>();
     for (const p of trip) if (p.place.city) cityCounts.set(p.place.city, (cityCounts.get(p.place.city) ?? 0) + 1);
     const [topCity, topCount] = [...cityCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
@@ -107,7 +128,7 @@ export function buildFeedStories(
     titlesUsed.set(name, seen + 1);
     const start = trip[0].asset.creationTime;
     const title = seen === 0 ? name : `${name} ${shortYear(start)}`;
-    placeStories.push(story(`place:${name}:${start}`, title, trip.map((p) => p.asset)));
+    add(placeStories, story(`place:${name}:${start}`, title, trip.map((p) => p.asset), reviewed, minSize));
   }
 
   // ── Months ────────────────────────────────────────────────────────────────
@@ -119,11 +140,9 @@ export function buildFeedStories(
   }
   const monthKeys = [...months.keys()].sort().reverse();
   for (const key of monthKeys) {
-    const assets = months.get(key)!;
-    if (assets.length < minSize) continue;
     const [y, m] = key.split('-').map(Number);
-    times.push(story(`month:${key}`, `${MONTHS[m - 1]} '${String(y).slice(2)}`, assets));
+    add(times, story(`month:${key}`, `${MONTHS[m - 1]} '${String(y).slice(2)}`, months.get(key)!, reviewed, minSize));
   }
 
-  return interleave(placeStories, times);
+  return interleave(shuffle(placeStories, seed), shuffle(times, seed + 1));
 }

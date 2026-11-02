@@ -14,7 +14,6 @@ export const STORAGE_KEYS = {
   // Feed POC
   feedLiked: 'feed:liked',
   feedTrash: 'feed:trash',
-  feedSeenStories: 'feed:seenStories',
   placeLocations: 'places:locations',
   placeChecked: 'places:checked',
 };

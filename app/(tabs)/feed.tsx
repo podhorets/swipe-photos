@@ -21,9 +21,11 @@ import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
 import { FlyingPhoto, type Rect } from '@/components/feed/FlyingPhoto';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useFeedStore } from '@/stores/feedStore';
+import { useKeepStore } from '@/stores/keepStore';
 import { usePlacesStore } from '@/stores/placesStore';
 import { useSimilarStore } from '@/stores/similarStore';
 import { buildFeedStories, type FeedStory } from '@/lib/feed/stories';
+import { shuffle } from '@/lib/feed/shuffle';
 import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { nearestPlace } from '@/lib/places/nearestPlace';
 import { gateSessionStart } from '@/lib/sessionGate';
@@ -44,59 +46,40 @@ const BAR_HEIGHT = 50;
 const GAP_CLOSE = LinearTransition.duration(380).easing(Easing.out(Easing.cubic));
 const NO_KEEPS: Set<string> = new Set();
 
-/** Seeded shuffle, so the order stays put until pull-to-refresh. */
-function shuffle<T>(items: T[], seed: number): T[] {
-  const out = [...items];
-  let s = seed;
-  const rand = () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
 function StoryCircle({
   story,
-  seen,
   onPress,
   onLongPress,
 }: {
   story: FeedStory;
-  seen: boolean;
   onPress: () => void;
   onLongPress: () => void;
 }) {
+  // Started but not finished (e.g. a 300-photo trip after one session):
+  // still active, with what's left on a small badge
+  const started = story.ids.length < story.total;
   return (
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityRole="button"
-      accessibilityLabel={`${story.title}, ${story.ids.length} photos. Starts a review.`}
+      accessibilityLabel={`${story.title}, ${story.ids.length} photos to review. Starts a review.`}
       className="items-center w-[74px] active:opacity-70"
     >
-      {seen ? (
-        <View className="w-[66px] h-[66px] rounded-full border border-white/30 items-center justify-center">
-          <View className="w-[60px] h-[60px] rounded-full overflow-hidden">
-            <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
-          </View>
+      <LinearGradient
+        colors={GRADIENTS.notify}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 0 }}
+        style={{ width: 66, height: 66, borderRadius: 33, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <View className="w-[62px] h-[62px] rounded-full overflow-hidden border-[2.5px] border-black">
+          <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
         </View>
-      ) : (
-        <LinearGradient
-          colors={GRADIENTS.notify}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={{ width: 66, height: 66, borderRadius: 33, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <View className="w-[62px] h-[62px] rounded-full overflow-hidden border-[2.5px] border-black">
-            <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
-          </View>
-        </LinearGradient>
+      </LinearGradient>
+      {started && (
+        <View className="absolute top-[52px] self-center px-1.5 py-px rounded-full bg-black border border-white/25">
+          <Text className="text-white text-[10px] font-bold">{story.ids.length} left</Text>
+        </View>
       )}
       <Text className="text-white text-[12px] mt-1 w-[70px] text-center" numberOfLines={1}>
         {story.title}
@@ -110,7 +93,7 @@ export default function FeedScreen() {
   const index = useGalleryStore((s) => s.index);
   const liked = useFeedStore((s) => s.liked);
   const trashed = useFeedStore((s) => s.trashed);
-  const seenStories = useFeedStore((s) => s.seenStories);
+  const keepIds = useKeepStore((s) => s.keepIds);
   const favorites = useFeedStore((s) => s.favorites);
   const locations = usePlacesStore((s) => s.locations);
   const scanning = usePlacesStore((s) => s.scanning);
@@ -128,7 +111,12 @@ export default function FeedScreen() {
   }, [index]);
 
   const minSize = STORY_SIZES[sizeIdx];
-  const stories = useMemo(() => buildFeedStories(index, locations, minSize), [index, locations, minSize]);
+  // Reviewed = decided anywhere: kept or deleted in the feed, or kept in a
+  // swipe session (deleted photos are already gone from the index)
+  const stories = useMemo(() => {
+    const reviewed = new Set<string>([...keepIds, ...liked, ...trashed]);
+    return buildFeedStories(index, locations, minSize, reviewed, seed);
+  }, [index, locations, minSize, keepIds, liked, trashed, seed]);
 
   // Disliked photos in flight to the Trash icon. They leave the feed at once
   // (`flying`); the Trash count goes up when each one lands.
@@ -220,7 +208,6 @@ export default function FeedScreen() {
   function openStory(story: FeedStory) {
     if (!gateSessionStart()) return;
     const store = useFeedStore.getState();
-    store.markStorySeen(story.key);
     store.setPendingStory({ title: story.title, ids: story.ids });
     router.push('/review/story');
   }
@@ -266,7 +253,6 @@ export default function FeedScreen() {
           <StoryCircle
             key={s.key}
             story={s}
-            seen={seenStories.has(s.key)}
             onPress={() => openStory(s)}
             onLongPress={chooseStorySize}
           />

@@ -31,8 +31,6 @@ interface FeedState {
   liked: Set<string>;
   /** Photos disliked in the feed, waiting in Trash, oldest first */
   trashed: string[];
-  /** Stories already opened — their ring turns grey */
-  seenStories: Set<string>;
   pendingStory: PendingStory | null;
   /** Favorites in the iOS Photos app (the feed's bookmark), read from PhotoKit */
   favorites: Set<string>;
@@ -44,7 +42,6 @@ interface FeedState {
   trash: (id: string) => void;
   /** Takes photos out of Trash (deleted, or restored to the feed) */
   removeFromTrash: (ids: string[]) => void;
-  markStorySeen: (key: string) => void;
   setPendingStory: (story: PendingStory | null) => void;
 }
 
@@ -52,7 +49,6 @@ export const useFeedStore = create<FeedState>()(
   immer((set, get) => ({
     liked: new Set(loadIds(STORAGE_KEYS.feedLiked)),
     trashed: loadIds(STORAGE_KEYS.feedTrash),
-    seenStories: new Set(loadIds(STORAGE_KEYS.feedSeenStories)),
     pendingStory: null,
     favorites: new Set(),
 
@@ -100,12 +96,6 @@ export const useFeedStore = create<FeedState>()(
         const drop = new Set(ids);
         s.trashed = s.trashed.filter((id) => !drop.has(id));
         saveIds(STORAGE_KEYS.feedTrash, s.trashed);
-      }),
-
-    markStorySeen: (key) =>
-      set((s) => {
-        s.seenStories.add(key);
-        saveIds(STORAGE_KEYS.feedSeenStories, s.seenStories);
       }),
 
     setPendingStory: (story) =>
