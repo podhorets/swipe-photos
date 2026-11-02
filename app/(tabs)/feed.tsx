@@ -5,13 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import Animated, {
+  Easing,
   LinearTransition,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { BlurPanel } from '@/components/glass/BlurPanel';
 import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
@@ -37,6 +40,8 @@ import type { AssetMeta } from '@/types';
 // Smallest group that becomes a story; long-press a story to change it
 const STORY_SIZES = [3, 6, 10] as const;
 const BAR_HEIGHT = 50;
+// Posts below slide up into a removed post's place — slow enough to follow
+const GAP_CLOSE = LinearTransition.duration(380).easing(Easing.out(Easing.cubic));
 const NO_KEEPS: Set<string> = new Set();
 
 /** Seeded shuffle, so the order stays put until pull-to-refresh. */
@@ -127,9 +132,12 @@ export default function FeedScreen() {
 
   // Disliked photos in flight to the Trash icon. They leave the feed at once
   // (`flying`); the Trash count goes up when each one lands.
-  const [flights, setFlights] = useState<{ asset: AssetMeta; from: Rect; to: { x: number; y: number } }[]>([]);
-  const flying = useMemo(() => new Set(flights.map((f) => f.asset.id)), [flights]);
+  const [flights, setFlights] = useState<{ asset: AssetMeta; from: Rect; to: { x: number; y: number }; ready: boolean }[]>([]);
+  // A card leaves only once its flying copy is on screen over it
+  const flying = useMemo(() => new Set(flights.filter((f) => f.ready).map((f) => f.asset.id)), [flights]);
   const trashButtonRef = useRef<View>(null);
+  // Top bar offset: 0 = shown, -BAR_HEIGHT = title row scrolled away
+  const barY = useSharedValue(0);
   const bump = useSharedValue(1);
   const bumpStyle = useAnimatedStyle(() => ({ transform: [{ scale: bump.value }] }));
 
@@ -178,16 +186,26 @@ export default function FeedScreen() {
   );
 
   const onLiked = useCallback((id: string) => useFeedStore.getState().toggleLike(id), []);
-  const onDislike = useCallback((asset: AssetMeta, from: Rect) => {
-    // Measured now (not on layout): the top bar moves with scrolling
-    trashButtonRef.current?.measureInWindow((x, y, w, h) => {
-      setFlights((f) => [...f, { asset, from, to: { x: x + w / 2, y: y + h / 2 } }]);
-    });
+  const onDislike = useCallback(
+    (asset: AssetMeta, from: Rect) => {
+      trashButtonRef.current?.measureInWindow((x, y, w, h) => {
+        // The bar may be scrolled away: bring it back and aim at where the
+        // icon comes to rest, not where it is hidden right now
+        const restY = y + h / 2 - barY.value;
+        barY.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
+        setFlights((f) => [...f, { asset, from, to: { x: x + w / 2, y: restY }, ready: false }]);
+      });
+    },
+    [barY],
+  );
+  const onReady = useCallback((id: string) => {
+    setFlights((f) => f.map((x) => (x.asset.id === id ? { ...x, ready: true } : x)));
   }, []);
   const onArrive = useCallback(
     (id: string) => {
       useFeedStore.getState().trash(id);
       setFlights((f) => f.filter((x) => x.asset.id !== id));
+      Haptics.selectionAsync();
       bump.value = withSequence(withSpring(1.22, SPRING.press), withSpring(1, SPRING.press));
     },
     [bump],
@@ -216,7 +234,6 @@ export default function FeedScreen() {
 
   // Top bar hides while scrolling down and returns on any scroll up
   const barTotal = insets.top + BAR_HEIGHT;
-  const barY = useSharedValue(0);
   const lastY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     const y = e.contentOffset.y;
@@ -271,7 +288,7 @@ export default function FeedScreen() {
         keyExtractor={(p) => p.key}
         renderItem={renderItem}
         ListHeaderComponent={storiesRow}
-        itemLayoutAnimation={LinearTransition.duration(220)}
+        itemLayoutAnimation={GAP_CLOSE}
         onScroll={onScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
@@ -323,7 +340,14 @@ export default function FeedScreen() {
 
       {/* Disliked photos on their way to the Trash icon, above everything */}
       {flights.map((f) => (
-        <FlyingPhoto key={f.asset.id} uri={f.asset.uri} from={f.from} to={f.to} onArrive={() => onArrive(f.asset.id)} />
+        <FlyingPhoto
+          key={f.asset.id}
+          uri={f.asset.uri}
+          from={f.from}
+          to={f.to}
+          onReady={() => onReady(f.asset.id)}
+          onArrive={() => onArrive(f.asset.id)}
+        />
       ))}
     </View>
   );

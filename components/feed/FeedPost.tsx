@@ -14,9 +14,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
+import * as Haptics from 'expo-haptics';
+import { gatedHaptic } from '@/lib/haptics';
 import { COLORS, GRADIENTS, SCREEN, SPRING } from '@/constants/theme';
-import { estimateSizeFromAsset } from '@/lib/sizeUtils';
-import { formatBytes } from '@/lib/dateUtils';
 import type { Place } from '@/lib/places/nearestPlace';
 import type { AssetMeta } from '@/types';
 import type { Rect } from '@/components/feed/FlyingPhoto';
@@ -42,17 +42,6 @@ interface FeedPostProps {
   onLiked: (id: string) => void;
   onDislike: (asset: AssetMeta, frame: Rect) => void;
   onToggleFavorite: (id: string) => void;
-}
-
-function relativeDate(ms: number): string {
-  const days = Math.floor((Date.now() - ms) / 86400000);
-  if (days < 1) return 'Today';
-  if (days < 2) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
-  if (days < 30) return `${Math.floor(days / 7)} week${days < 14 ? '' : 's'} ago`;
-  if (days < 365) return `${Math.floor(days / 30)} month${days < 60 ? '' : 's'} ago`;
-  const years = Math.floor(days / 365);
-  return `${years} year${years === 1 ? '' : 's'} ago`;
 }
 
 function monthYear(ms: number): string {
@@ -84,34 +73,40 @@ export const FeedPost = memo(function FeedPost({
   const photoRef = useRef<View>(null);
   const leaving = useRef(new Set<string>());
   const burst = useSharedValue(0);
+  const pop = useSharedValue(1);
+  const [likedNow, setLikedNow] = useState(false);
   const lift = useSharedValue(0);
-  const hidden = useSharedValue(0);
 
   function like(asset: AssetMeta) {
     if (leaving.current.has(asset.id)) return;
     leaving.current.add(asset.id);
+    gatedHaptic(Haptics.ImpactFeedbackStyle.Light);
+    setLikedNow(true);
+    // The button's heart fills red and pops — visible wherever the post is
+    // scrolled, unlike the big heart on the photo
+    pop.value = withSequence(withSpring(1.3, SPRING.press), withSpring(1, SPRING.press));
     burst.value = withSequence(withSpring(1, SPRING.snappy), withDelay(250, withTiming(0, { duration: 200 })));
     if (multi) {
       // The photo leaves the carousel; the post stays for the rest
-      setTimeout(() => onLiked(asset.id), 520);
+      setTimeout(() => {
+        setLikedNow(false);
+        onLiked(asset.id);
+      }, 520);
       return;
     }
-    // Last photo: the whole post floats up and fades — "saved"
-    lift.value = withDelay(
-      380,
-      withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) }, (done) => {
-        if (done) scheduleOnRN(onLiked, asset.id);
-      }),
-    );
+    // Last photo: the whole post floats up and fades — "saved". It's removed
+    // just before the fade ends (it's ~6% opaque by then), so the posts below
+    // start closing the gap without a frame of empty black.
+    lift.value = withDelay(320, withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) }));
+    setTimeout(() => onLiked(asset.id), 320 + 180);
   }
 
   function dislike(asset: AssetMeta) {
     if (leaving.current.has(asset.id)) return;
     leaving.current.add(asset.id);
-    photoRef.current?.measureInWindow((x, y, width, h) => {
-      if (!multi) hidden.value = 1;
-      onDislike(asset, { x, y, width, height: h });
-    });
+    // The feed removes the photo in the same render that mounts its flying
+    // copy, so there's never a frame without either (no black flash)
+    photoRef.current?.measureInWindow((x, y, width, h) => onDislike(asset, { x, y, width, height: h }));
   }
 
   function openMenu() {
@@ -144,9 +139,10 @@ export const FeedPost = memo(function FeedPost({
   }
 
   const cardStyle = useAnimatedStyle(() => ({
-    opacity: hidden.value ? 0 : 1 - lift.value,
+    opacity: 1 - lift.value,
     transform: [{ translateY: -24 * lift.value }, { scale: 1 + 0.03 * lift.value }],
   }));
+  const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
   const burstStyle = useAnimatedStyle(() => ({
     opacity: burst.value,
     transform: [{ scale: 0.5 + burst.value * 0.7 }],
@@ -229,7 +225,13 @@ export const FeedPost = memo(function FeedPost({
       {/* Icon row: like · dislike … page dots … bookmark */}
       <View className="flex-row items-center px-1.5 h-[46px]">
         <Pressable onPress={() => like(current)} accessibilityRole="button" accessibilityLabel="Like — keeps the photo" className="w-11 h-11 items-center justify-center active:opacity-60">
-          <Ionicons name="heart-outline" size={26} color="white" />
+          <Animated.View style={popStyle}>
+            <Ionicons
+              name={likedNow ? 'heart' : 'heart-outline'}
+              size={26}
+              color={likedNow ? COLORS.destructive : 'white'}
+            />
+          </Animated.View>
         </Pressable>
         <Pressable onPress={() => dislike(current)} accessibilityRole="button" accessibilityLabel="Dislike — move to Trash" className="w-11 h-11 items-center justify-center active:opacity-60">
           <Ionicons name="thumbs-down-outline" size={24} color="white" />
@@ -252,17 +254,6 @@ export const FeedPost = memo(function FeedPost({
         >
           <Ionicons name={isFav ? 'bookmark' : 'bookmark-outline'} size={24} color="white" />
         </Pressable>
-      </View>
-
-      {/* Caption */}
-      <View className="px-3.5">
-        <Text className="text-white text-[14px]" numberOfLines={1}>
-          <Text className="font-semibold">{name}</Text>
-          {'  '}
-          {formatBytes(estimateSizeFromAsset(current))}
-          {isFav ? ' · Favorite' : ''}
-        </Text>
-        <Text className="text-white/50 text-[12px] mt-1">{relativeDate(current.creationTime)}</Text>
       </View>
     </Animated.View>
   );
