@@ -1,33 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, type ListRenderItemInfo } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, ScrollView, Alert, RefreshControl, type ListRenderItemInfo } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { LinearTransition } from 'react-native-reanimated';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import Animated, {
+  LinearTransition,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 import { BlurPanel } from '@/components/glass/BlurPanel';
-import { FeedCard } from '@/components/feed/FeedCard';
+import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
+import { FlyingPhoto, type Rect } from '@/components/feed/FlyingPhoto';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { usePlacesStore } from '@/stores/placesStore';
+import { useSimilarStore } from '@/stores/similarStore';
 import { buildFeedStories, type FeedStory } from '@/lib/feed/stories';
+import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { nearestPlace } from '@/lib/places/nearestPlace';
 import { gateSessionStart } from '@/lib/sessionGate';
-import { GRADIENTS } from '@/constants/theme';
+import { GRADIENTS, SPRING } from '@/constants/theme';
 import type { AssetMeta } from '@/types';
 
 /**
- * PROOF OF CONCEPT — Instagram-style feed. Stories on top start a swipe
- * session; below, the whole library shuffled, with like and dislike.
+ * PROOF OF CONCEPT — social-style feed (exempt from the glass rule, see
+ * CLAUDE.md). Stories on top start a swipe session; below, the library
+ * shuffled, Similar groups as carousels, with like / dislike / bookmark.
  * Disliked photos wait in Trash (top-right) until deleted.
  */
 
-// Smallest group that becomes a story; tap the chip to cycle
+// Smallest group that becomes a story; long-press a story to change it
 const STORY_SIZES = [3, 6, 10] as const;
+const BAR_HEIGHT = 50;
+const NO_KEEPS: Set<string> = new Set();
 
-/** Seeded shuffle, so the order stays put while the screen is open. */
+/** Seeded shuffle, so the order stays put until pull-to-refresh. */
 function shuffle<T>(items: T[], seed: number): T[] {
   const out = [...items];
   let s = seed;
@@ -44,25 +56,44 @@ function shuffle<T>(items: T[], seed: number): T[] {
   return out;
 }
 
-function StoryCircle({ story, seen, onPress }: { story: FeedStory; seen: boolean; onPress: () => void }) {
+function StoryCircle({
+  story,
+  seen,
+  onPress,
+  onLongPress,
+}: {
+  story: FeedStory;
+  seen: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={`${story.title}, ${story.ids.length} photos. Starts a review.`}
-      className="items-center w-[78px] active:opacity-70"
+      className="items-center w-[74px] active:opacity-70"
     >
-      <LinearGradient
-        colors={seen ? ['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.25)'] : GRADIENTS.notify}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 1, y: 0 }}
-        style={{ width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <View className="w-[64px] h-[64px] rounded-full overflow-hidden border-[3px] border-bg-dark">
-          <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
+      {seen ? (
+        <View className="w-[66px] h-[66px] rounded-full border border-white/30 items-center justify-center">
+          <View className="w-[60px] h-[60px] rounded-full overflow-hidden">
+            <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
+          </View>
         </View>
-      </LinearGradient>
-      <Text className="text-white text-[12px] mt-1.5" numberOfLines={1}>
+      ) : (
+        <LinearGradient
+          colors={GRADIENTS.notify}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 0 }}
+          style={{ width: 66, height: 66, borderRadius: 33, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View className="w-[62px] h-[62px] rounded-full overflow-hidden border-[2.5px] border-black">
+            <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
+          </View>
+        </LinearGradient>
+      )}
+      <Text className="text-white text-[12px] mt-1 w-[70px] text-center" numberOfLines={1}>
         {story.title}
       </Text>
     </Pressable>
@@ -75,37 +106,98 @@ export default function FeedScreen() {
   const liked = useFeedStore((s) => s.liked);
   const trashed = useFeedStore((s) => s.trashed);
   const seenStories = useFeedStore((s) => s.seenStories);
+  const favorites = useFeedStore((s) => s.favorites);
   const locations = usePlacesStore((s) => s.locations);
   const scanning = usePlacesStore((s) => s.scanning);
-  const [sizeIdx, setSizeIdx] = useState(1);
-  const [seed] = useState(() => Math.floor(Math.random() * 1e9));
+  const similarGroups = useSimilarStore((s) => s.groups);
+  const bestIds = useSimilarStore((s) => s.bestIds);
+  const [sizeIdx, setSizeIdx] = useState(0);
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
 
-  // Read GPS for photos not checked yet — one native call per 2,000 photos
+  // Read GPS and Favorites for photos — on the device, in bulk
   useEffect(() => {
-    if (index.length > 0) usePlacesStore.getState().scan(index.map((a) => a.id));
+    if (index.length === 0) return;
+    const ids = index.map((a) => a.id);
+    usePlacesStore.getState().scan(ids);
+    useFeedStore.getState().loadFavorites(ids).catch(() => {});
   }, [index]);
 
   const minSize = STORY_SIZES[sizeIdx];
   const stories = useMemo(() => buildFeedStories(index, locations, minSize), [index, locations, minSize]);
 
-  const shuffled = useMemo(() => shuffle(index, seed), [index, seed]);
-  const feed = useMemo(() => {
+  // Disliked photos in flight to the Trash icon. They leave the feed at once
+  // (`flying`); the Trash count goes up when each one lands.
+  const [flights, setFlights] = useState<{ asset: AssetMeta; from: Rect; to: { x: number; y: number } }[]>([]);
+  const flying = useMemo(() => new Set(flights.map((f) => f.asset.id)), [flights]);
+  const trashButtonRef = useRef<View>(null);
+  const bump = useSharedValue(1);
+  const bumpStyle = useAnimatedStyle(() => ({ transform: [{ scale: bump.value }] }));
+
+  // Posts: every photo, shuffled; a Similar group becomes one carousel post
+  // (best shot first) at the position of its first member.
+  const allPosts = useMemo<FeedPostData[]>(() => {
+    const byId = new Map(index.map((a) => [a.id, a]));
+    const groups = filterGroupsForReview(similarGroups, NO_KEEPS, new Set(byId.keys()));
+    const groupOf = new Map<string, number>();
+    groups.forEach((g, i) => g.forEach((id) => groupOf.set(id, i)));
+    const emitted = new Set<number>();
+    const posts: FeedPostData[] = [];
+    for (const asset of shuffle(index, seed)) {
+      const g = groupOf.get(asset.id);
+      if (g === undefined) {
+        posts.push({ key: asset.id, assets: [asset], groupSize: 1 });
+        continue;
+      }
+      if (emitted.has(g)) continue;
+      emitted.add(g);
+      const members = [...groups[g]]
+        .sort((a, b) => Number(bestIds.has(b)) - Number(bestIds.has(a)))
+        .map((id) => byId.get(id)!)
+        .filter(Boolean);
+      posts.push({ key: `g:${groups[g][0]}`, assets: members, groupSize: members.length });
+    }
+    return posts;
+  }, [index, similarGroups, bestIds, seed]);
+
+  const posts = useMemo(() => {
     const gone = new Set(trashed);
-    return shuffled.filter((a) => !gone.has(a.id));
-  }, [shuffled, trashed]);
+    const out: FeedPostData[] = [];
+    for (const p of allPosts) {
+      const assets = p.assets.filter((a) => !gone.has(a.id) && !liked.has(a.id) && !flying.has(a.id));
+      if (assets.length > 0) out.push(assets.length === p.assets.length ? p : { ...p, assets });
+    }
+    return out;
+  }, [allPosts, trashed, liked, flying]);
 
   const placeFor = useCallback(
     (id: string) => {
       const loc = locations[id];
-      if (!loc) return null;
-      const p = nearestPlace(loc[0], loc[1]);
-      return p ? (p.city ? `${p.city}, ${p.country}` : p.country) : null;
+      return loc ? nearestPlace(loc[0], loc[1]) : null;
     },
     [locations],
   );
 
-  const onLike = useCallback((id: string) => useFeedStore.getState().toggleLike(id), []);
-  const onDislike = useCallback((id: string) => useFeedStore.getState().trash(id), []);
+  const onLiked = useCallback((id: string) => useFeedStore.getState().toggleLike(id), []);
+  const onDislike = useCallback((asset: AssetMeta, from: Rect) => {
+    // Measured now (not on layout): the top bar moves with scrolling
+    trashButtonRef.current?.measureInWindow((x, y, w, h) => {
+      setFlights((f) => [...f, { asset, from, to: { x: x + w / 2, y: y + h / 2 } }]);
+    });
+  }, []);
+  const onArrive = useCallback(
+    (id: string) => {
+      useFeedStore.getState().trash(id);
+      setFlights((f) => f.filter((x) => x.asset.id !== id));
+      bump.value = withSequence(withSpring(1.22, SPRING.press), withSpring(1, SPRING.press));
+    },
+    [bump],
+  );
+  const onToggleFavorite = useCallback((id: string) => {
+    useFeedStore
+      .getState()
+      .toggleFavorite(id)
+      .catch(() => Alert.alert('Couldn’t Update Favorites', 'Photos didn’t allow the change. Please try again.'));
+  }, []);
 
   function openStory(story: FeedStory) {
     if (!gateSessionStart()) return;
@@ -115,82 +207,124 @@ export default function FeedScreen() {
     router.push('/review/story');
   }
 
+  function chooseStorySize() {
+    Alert.alert('Story size', 'Show groups with at least…', [
+      ...STORY_SIZES.map((n, i) => ({ text: `${n} photos`, onPress: () => setSizeIdx(i) })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  }
+
+  // Top bar hides while scrolling down and returns on any scroll up
+  const barTotal = insets.top + BAR_HEIGHT;
+  const barY = useSharedValue(0);
+  const lastY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    const y = e.contentOffset.y;
+    const dy = y - lastY.value;
+    lastY.value = y;
+    // Only the title row slides away; a strip stays behind the status bar
+    barY.value = y <= 0 ? 0 : Math.min(0, Math.max(-BAR_HEIGHT, barY.value - dy));
+  });
+  const barStyle = useAnimatedStyle(() => ({ transform: [{ translateY: barY.value }] }));
+  const barContentStyle = useAnimatedStyle(() => ({ opacity: 1 + barY.value / BAR_HEIGHT }));
+
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<AssetMeta>) => (
-      <FeedCard
-        asset={item}
-        place={placeFor(item.id)}
-        liked={liked.has(item.id)}
-        onLike={onLike}
+    ({ item }: ListRenderItemInfo<FeedPostData>) => (
+      <FeedPost
+        post={item}
+        place={placeFor(item.assets[0].id)}
+        favorites={favorites}
+        onLiked={onLiked}
         onDislike={onDislike}
+        onToggleFavorite={onToggleFavorite}
       />
     ),
-    [placeFor, liked, onLike, onDislike],
+    [placeFor, favorites, onLiked, onDislike, onToggleFavorite],
   );
 
-  const header = (
-    <View className="mb-4">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-3 gap-1">
+  const storiesRow = (
+    <View className="pb-2.5 mb-1 border-b border-white/[0.12]">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-2.5 gap-1.5">
         {stories.map((s) => (
-          <StoryCircle key={s.key} story={s} seen={seenStories.has(s.key)} onPress={() => openStory(s)} />
+          <StoryCircle
+            key={s.key}
+            story={s}
+            seen={seenStories.has(s.key)}
+            onPress={() => openStory(s)}
+            onLongPress={chooseStorySize}
+          />
         ))}
         {stories.length === 0 && (
-          <Text className="text-white/45 text-[13px] px-2 py-6">No groups of {minSize}+ photos yet</Text>
+          <Pressable onPress={chooseStorySize} className="py-6 px-2">
+            <Text className="text-white/45 text-[13px]">No groups of {minSize}+ photos yet · Change</Text>
+          </Pressable>
         )}
       </ScrollView>
-      <View className="flex-row items-center justify-between px-4 mt-2">
-        <Pressable
-          onPress={() => setSizeIdx((i) => (i + 1) % STORY_SIZES.length)}
-          accessibilityRole="button"
-          accessibilityLabel={`Stories need ${minSize} or more photos. Tap to change.`}
-          className="flex-row items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 active:opacity-70"
-        >
-          <Ionicons name="options-outline" size={13} color="white" />
-          <Text className="text-white text-[12px] font-semibold">Stories of {minSize}+ photos</Text>
-        </Pressable>
-        {scanning && <Text className="text-white/45 text-[12px]">Finding places…</Text>}
-      </View>
+      {scanning && <Text className="text-white/45 text-[11px] px-3.5 mt-1.5">Finding places…</Text>}
     </View>
   );
 
   return (
-    <View className="flex-1 bg-bg-dark">
-      <AuroraBackground variant="by-month" />
-
-      {/* Fixed header: title and the Trash counter */}
-      <View className="flex-row items-center justify-between px-5 pb-3" style={{ paddingTop: insets.top + 8 }}>
-        <Text className="text-white text-[30px] font-extrabold" style={{ letterSpacing: -0.6 }}>
-          Feed
-        </Text>
-        <Pressable
-          onPress={() => router.push({ pathname: '/trash', params: { source: 'feed' } })}
-          accessibilityRole="button"
-          accessibilityLabel={`Trash, ${trashed.length} photos`}
-          hitSlop={6}
-          className="w-11 h-11 rounded-full overflow-hidden items-center justify-center border border-white/[0.16]"
-        >
-          <BlurPanel intensity={40} />
-          <Ionicons name="trash-outline" size={20} color="white" />
-          {trashed.length > 0 && (
-            <View className="absolute -top-0.5 -right-0.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#FF453A] items-center justify-center">
-              <Text className="text-white text-[11px] font-bold">{trashed.length}</Text>
-            </View>
-          )}
-        </Pressable>
-      </View>
-
+    <View className="flex-1 bg-black">
       <Animated.FlatList
-        data={feed}
-        keyExtractor={(a) => a.id}
+        data={posts}
+        keyExtractor={(p) => p.key}
         renderItem={renderItem}
-        ListHeaderComponent={header}
+        ListHeaderComponent={storiesRow}
         itemLayoutAnimation={LinearTransition.duration(220)}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         initialNumToRender={3}
         maxToRenderPerBatch={3}
         windowSize={5}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+        contentContainerStyle={{ paddingTop: barTotal + 6, paddingBottom: insets.bottom + 110 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={() => setSeed(Math.floor(Math.random() * 1e9))}
+            tintColor="white"
+            progressViewOffset={barTotal}
+          />
+        }
       />
+
+      {/* Top bar: glass, hides on scroll down */}
+      <Animated.View className="absolute top-0 left-0 right-0" style={[{ height: barTotal }, barStyle]}>
+        <BlurPanel intensity={70} />
+        <Animated.View
+          className="flex-1 flex-row items-end justify-between px-4 pb-2"
+          style={[{ paddingTop: insets.top }, barContentStyle]}
+        >
+          <Text className="text-white text-[25px] font-extrabold" style={{ letterSpacing: -0.6 }}>
+            Swipe Photos
+          </Text>
+          <Animated.View ref={trashButtonRef} style={bumpStyle} collapsable={false}>
+            <Pressable
+              onPress={() => router.push({ pathname: '/trash', params: { source: 'feed' } })}
+              accessibilityRole="button"
+              accessibilityLabel={`Trash, ${trashed.length} photos`}
+              hitSlop={8}
+              className="w-10 h-10 items-center justify-center"
+            >
+              <Ionicons name="trash-outline" size={25} color="white" />
+            </Pressable>
+            {trashed.length > 0 && (
+              <View
+                className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF3040] items-center justify-center border-2 border-black"
+                pointerEvents="none"
+              >
+                <Text className="text-white text-[10px] font-bold">{trashed.length}</Text>
+              </View>
+            )}
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
+
+      {/* Disliked photos on their way to the Trash icon, above everything */}
+      {flights.map((f) => (
+        <FlyingPhoto key={f.asset.id} uri={f.asset.uri} from={f.from} to={f.to} onArrive={() => onArrive(f.asset.id)} />
+      ))}
     </View>
   );
 }

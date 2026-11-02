@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { createMMKV } from 'react-native-mmkv';
+import { isPhotoAnalyzerAvailable, PhotoAnalyzer } from 'expo-photo-analyzer';
 import { STORAGE_KEYS } from '@/constants/config';
 
 const storage = createMMKV();
@@ -33,8 +34,13 @@ interface FeedState {
   /** Stories already opened — their ring turns grey */
   seenStories: Set<string>;
   pendingStory: PendingStory | null;
+  /** Favorites in the iOS Photos app (the feed's bookmark), read from PhotoKit */
+  favorites: Set<string>;
 
   toggleLike: (id: string) => void;
+  loadFavorites: (ids: string[]) => Promise<void>;
+  /** Writes to iOS Favorites; rolls back and rethrows if Photos refuses */
+  toggleFavorite: (id: string) => Promise<void>;
   trash: (id: string) => void;
   /** Takes photos out of Trash (deleted, or restored to the feed) */
   removeFromTrash: (ids: string[]) => void;
@@ -43,11 +49,37 @@ interface FeedState {
 }
 
 export const useFeedStore = create<FeedState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     liked: new Set(loadIds(STORAGE_KEYS.feedLiked)),
     trashed: loadIds(STORAGE_KEYS.feedTrash),
     seenStories: new Set(loadIds(STORAGE_KEYS.feedSeenStories)),
     pendingStory: null,
+    favorites: new Set(),
+
+    loadFavorites: async (ids) => {
+      if (!isPhotoAnalyzerAvailable() || ids.length === 0) return;
+      const favs = await PhotoAnalyzer.getFavoriteIds(ids);
+      set((s) => {
+        s.favorites = new Set(favs);
+      });
+    },
+
+    toggleFavorite: async (id) => {
+      if (!isPhotoAnalyzerAvailable()) return;
+      const next = !get().favorites.has(id);
+      const apply = (on: boolean) =>
+        set((s) => {
+          if (on) s.favorites.add(id);
+          else s.favorites.delete(id);
+        });
+      apply(next); // optimistic — the icon fills at once
+      try {
+        await PhotoAnalyzer.setFavorite([id], next);
+      } catch (e) {
+        apply(!next);
+        throw e;
+      }
+    },
 
     toggleLike: (id) =>
       set((s) => {

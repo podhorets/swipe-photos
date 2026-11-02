@@ -47,6 +47,35 @@ public class PhotoAnalyzerModule: Module {
         promise.resolve(PhotoAnalyzer.locations(assetIds: assetIds))
       }
     }
+
+    // Ids among the given assets that are Favorites in the Photos app.
+    AsyncFunction("getFavoriteIds") { (assetIds: [String], promise: Promise) in
+      DispatchQueue.global(qos: .userInitiated).async {
+        var ids: [String] = []
+        PHAsset.fetchAssets(withLocalIdentifiers: assetIds, options: nil).enumerateObjects { asset, _, _ in
+          if asset.isFavorite { ids.append(asset.localIdentifier) }
+        }
+        promise.resolve(ids)
+      }
+    }
+
+    // Adds or removes assets from Favorites in the Photos app. Uses the
+    // read-write photo access the app already has (needed for deleting);
+    // iOS shows no prompt for this change.
+    AsyncFunction("setFavorite") { (assetIds: [String], favorite: Bool, promise: Promise) in
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: assetIds, options: nil)
+      PHPhotoLibrary.shared().performChanges({
+        assets.enumerateObjects { asset, _, _ in
+          PHAssetChangeRequest(for: asset).isFavorite = favorite
+        }
+      }, completionHandler: { success, error in
+        if success {
+          promise.resolve(true)
+        } else {
+          promise.reject("ERR_FAVORITE", error?.localizedDescription ?? "Couldn't update Favorites")
+        }
+      })
+    }
   }
 }
 

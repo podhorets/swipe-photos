@@ -35,9 +35,24 @@ function story(key: string, title: string, assets: AssetMeta[]): FeedStory {
 }
 
 /**
- * Story groups for the feed, in display order: Yesterday, This week, then
- * places (newest trip first), then months (newest first). Groups smaller than
- * `minSize` are left out. A photo can be in more than one story.
+ * Alternates place and time stories (place, time, place, time…) so the row
+ * never shows a long run of one kind. Each kind keeps its own order; once one
+ * runs out, the rest of the other follows.
+ */
+function interleave(places: FeedStory[], times: FeedStory[]): FeedStory[] {
+  const out: FeedStory[] = [];
+  for (let i = 0; i < Math.max(places.length, times.length); i++) {
+    if (places[i]) out.push(places[i]);
+    if (times[i]) out.push(times[i]);
+  }
+  return out;
+}
+
+/**
+ * Story groups for the feed, places and times alternating. Places run newest
+ * trip first; times run Yesterday, This week, then months newest first.
+ * Groups smaller than `minSize` are left out. A photo can be in more than one
+ * story.
  */
 export function buildFeedStories(
   index: AssetMeta[],
@@ -45,14 +60,14 @@ export function buildFeedStories(
   minSize: number,
   now = Date.now(),
 ): FeedStory[] {
-  const out: FeedStory[] = [];
+  const times: FeedStory[] = [];
   const today = startOfDay(now);
 
   // ── Time ──────────────────────────────────────────────────────────────────
   const yesterday = index.filter((a) => a.creationTime >= today - DAY_MS && a.creationTime < today);
-  if (yesterday.length >= minSize) out.push(story(`day:${today - DAY_MS}`, 'Yesterday', yesterday));
+  if (yesterday.length >= minSize) times.push(story(`day:${today - DAY_MS}`, 'Yesterday', yesterday));
   const week = index.filter((a) => a.creationTime >= today - 6 * DAY_MS);
-  if (week.length >= minSize) out.push(story(`week:${today}`, 'This week', week));
+  if (week.length >= minSize) times.push(story(`week:${today}`, 'This week', week));
 
   // ── Places ────────────────────────────────────────────────────────────────
   const located = index
@@ -94,7 +109,6 @@ export function buildFeedStories(
     const title = seen === 0 ? name : `${name} ${shortYear(start)}`;
     placeStories.push(story(`place:${name}:${start}`, title, trip.map((p) => p.asset)));
   }
-  out.push(...placeStories);
 
   // ── Months ────────────────────────────────────────────────────────────────
   const months = new Map<string, AssetMeta[]>();
@@ -108,8 +122,8 @@ export function buildFeedStories(
     const assets = months.get(key)!;
     if (assets.length < minSize) continue;
     const [y, m] = key.split('-').map(Number);
-    out.push(story(`month:${key}`, `${MONTHS[m - 1]} '${String(y).slice(2)}`, assets));
+    times.push(story(`month:${key}`, `${MONTHS[m - 1]} '${String(y).slice(2)}`, assets));
   }
 
-  return out;
+  return interleave(placeStories, times);
 }

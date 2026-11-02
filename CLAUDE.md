@@ -36,6 +36,7 @@ When Expo can't do something well (or fast enough), add native code to the proje
 
 ### Glass UI is mandatory, not optional
 Every screen uses `GlassCard`, `BlurPanel`, or `GlassSheet` from `components/glass/`. No plain white/gray surfaces.
+**Exception — Feed tab (`app/(tabs)/feed.tsx`):** Instagram-style, plain black background with edge-to-edge photos; only its top bar uses `BlurPanel`. Feel like Instagram without copying it: no Instagram logo, wordmark, exact gradient, or Instagram-only icons (Guidelines 4.1 / 5.2.1).
 
 ### Commit discipline
 Every commit leaves the app in a runnable state. Convention: `feat:` / `fix:` / `chore:` / `refactor:` / `docs:`

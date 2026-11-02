@@ -22,6 +22,8 @@ export type AssetLocation = {
 
 type NativePhotoAnalyzer = {
   getAssetLocations(assetIds: string[]): Promise<AssetLocation[]>;
+  getFavoriteIds(assetIds: string[]): Promise<string[]>;
+  setFavorite(assetIds: string[], favorite: boolean): Promise<boolean>;
   analyzeAssets(
     assetIds: string[],
     options?: AnalyzeOptions,
@@ -88,8 +90,20 @@ function getAssetLocations(assetIds: string[]): Promise<AssetLocation[]> {
   return getNative().getAssetLocations(assetIds);
 }
 
+/** Ids among the given assets that are Favorites in the Photos app. */
+function getFavoriteIds(assetIds: string[]): Promise<string[]> {
+  return getNative().getFavoriteIds(assetIds);
+}
+
+/** Adds assets to (or removes them from) Favorites in the Photos app. */
+function setFavorite(assetIds: string[], favorite: boolean): Promise<boolean> {
+  return getNative().setFavorite(assetIds, favorite);
+}
+
 export const PhotoAnalyzer = {
   analyzeAssets,
   groupSimilarAssets,
   getAssetLocations,
+  getFavoriteIds,
+  setFavorite,
 };
