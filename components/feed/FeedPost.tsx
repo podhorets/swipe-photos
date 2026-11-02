@@ -216,43 +216,61 @@ export const FeedPost = memo(function FeedPost({
               <Ionicons name="play" size={15} color="white" />
             </View>
           )}
+          {multi && (
+            <View
+              className="absolute bottom-2.5 self-center flex-row gap-1 px-2 py-1.5 rounded-full bg-black/45"
+              pointerEvents="none"
+            >
+              {assets.map((a, i) => (
+                <View
+                  key={a.id}
+                  className={`w-1.5 h-1.5 rounded-full ${i === Math.min(page, assets.length - 1) ? 'bg-white' : 'bg-white/45'}`}
+                />
+              ))}
+            </View>
+          )}
           <Animated.View className="absolute inset-0 items-center justify-center" pointerEvents="none" style={burstStyle}>
             <Ionicons name="heart" size={96} color={COLORS.destructive} />
           </Animated.View>
         </View>
       </GestureDetector>
 
-      {/* Icon row: like · dislike … page dots … bookmark */}
-      <View className="flex-row items-center px-1.5 h-[46px]">
-        <Pressable onPress={() => like(current)} accessibilityRole="button" accessibilityLabel="Like — keeps the photo" className="w-11 h-11 items-center justify-center active:opacity-60">
+      {/* Action row, labeled: Keep · Delete … bookmark */}
+      <View className="flex-row items-center px-2 h-[48px] gap-3.5">
+        <Pressable
+          onPress={() => like(current)}
+          accessibilityRole="button"
+          accessibilityLabel="Keep"
+          hitSlop={6}
+          className="flex-row items-center gap-1.5 h-11 px-1 active:opacity-60"
+        >
           <Animated.View style={popStyle}>
             <Ionicons
               name={likedNow ? 'heart' : 'heart-outline'}
-              size={26}
+              size={23}
               color={likedNow ? COLORS.destructive : 'white'}
             />
           </Animated.View>
+          <Text className={`text-[15px] font-medium ${likedNow ? 'text-[#FF453A]' : 'text-white/85'}`}>Keep</Text>
         </Pressable>
-        <Pressable onPress={() => dislike(current)} accessibilityRole="button" accessibilityLabel="Dislike — move to Trash" className="w-11 h-11 items-center justify-center active:opacity-60">
-          <Ionicons name="thumbs-down-outline" size={24} color="white" />
+        <Pressable
+          onPress={() => dislike(current)}
+          accessibilityRole="button"
+          accessibilityLabel="Delete — move to Trash"
+          hitSlop={6}
+          className="flex-row items-center gap-1.5 h-11 px-1 active:opacity-60"
+        >
+          <Ionicons name="thumbs-down-outline" size={22} color="white" />
+          <Text className="text-white/85 text-[15px] font-medium">Delete</Text>
         </Pressable>
-        <View className="flex-1 flex-row justify-center gap-1">
-          {multi &&
-            assets.map((a, i) => (
-              <View
-                key={a.id}
-                className={`w-1.5 h-1.5 rounded-full ${i === Math.min(page, assets.length - 1) ? 'bg-[#0A84FF]' : 'bg-white/35'}`}
-              />
-            ))}
-        </View>
-        <View className="w-11" />
+        <View className="flex-1" />
         <Pressable
           onPress={() => onToggleFavorite(current.id)}
           accessibilityRole="button"
           accessibilityLabel={isFav ? 'Remove from Favorites in Photos' : 'Add to Favorites in Photos'}
           className="w-11 h-11 items-center justify-center active:opacity-60"
         >
-          <Ionicons name={isFav ? 'bookmark' : 'bookmark-outline'} size={24} color="white" />
+          <Ionicons name={isFav ? 'bookmark' : 'bookmark-outline'} size={23} color="white" />
         </Pressable>
       </View>
     </Animated.View>
