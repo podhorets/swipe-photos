@@ -30,10 +30,9 @@ const styles = StyleSheet.create({ container: { flex: 1 } });
 
 Mix both when needed: `className` for static, `style` for animated/dynamic.
 
-### No custom native modules
-All functionality via Expo SDK or explicitly approved third-party native modules. Never write native code yourself — if a gap exists, adjust the UX.
-Approved third-party native modules: `react-native-purchases` (RevenueCat, subscriptions), `react-native-mmkv`, `@shopify/react-native-skia`, `lottie-react-native`, `@sentry/react-native`.
-Approved local native module: `modules/expo-photo-analyzer` — a **verbatim copy** of cleani's module (Apple Vision feature prints, blur, face count). Never edit the Swift here; if the algorithm needs changing, change it in cleani and re-copy. Every call site must check `isPhotoAnalyzerAvailable()` and degrade gracefully (iOS-only module).
+### Native code
+Prefer the Expo SDK and the third-party native modules already in use: `react-native-purchases` (RevenueCat, subscriptions), `react-native-mmkv`, `@shopify/react-native-skia`, `lottie-react-native`, `@sentry/react-native`.
+When Expo can't do something well (or fast enough), add native code to the project's own module `modules/expo-photo-analyzer` (Swift: Apple Vision feature prints, blur, face count, bulk photo locations). This module is owned and edited here — it started as a copy of cleani's module but no longer has to match it. After changing Swift, rebuild the native app (Fast Refresh doesn't pick it up). Every call site must check `isPhotoAnalyzerAvailable()` and degrade gracefully (iOS-only module).
 
 ### Glass UI is mandatory, not optional
 Every screen uses `GlassCard`, `BlurPanel`, or `GlassSheet` from `components/glass/`. No plain white/gray surfaces.
