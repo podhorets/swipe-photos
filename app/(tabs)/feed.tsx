@@ -3,8 +3,6 @@ import { View, Text, Pressable, ScrollView, Alert, RefreshControl, type ListRend
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   Easing,
@@ -16,9 +14,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { BlurPanel } from '@/components/glass/BlurPanel';
 import { FeedPost, type FeedPostData } from '@/components/feed/FeedPost';
 import { FlyingPhoto, type Rect } from '@/components/feed/FlyingPhoto';
+import { Icon } from '@/components/ui/Icon';
+import { THEMES } from '@/constants/colors';
+import { ThemeScope, useTheme } from '@/lib/theme/ThemeProvider';
+import { useStatusBarStyle } from '@/lib/theme/statusBar';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useKeepStore } from '@/stores/keepStore';
@@ -29,14 +30,14 @@ import { shuffle } from '@/lib/feed/shuffle';
 import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { nearestPlace } from '@/lib/places/nearestPlace';
 import { gateSessionStart } from '@/lib/sessionGate';
-import { GRADIENTS, SPRING } from '@/constants/theme';
+import { SPRING } from '@/constants/theme';
 import type { AssetMeta } from '@/types';
 
 /**
- * PROOF OF CONCEPT — social-style feed (exempt from the glass rule, see
+ * PROOF OF CONCEPT — social-style feed, always dark on pure black (see
  * CLAUDE.md). Stories on top start a swipe session; below, the library
- * shuffled, Similar groups as carousels, with like / dislike / bookmark.
- * Disliked photos wait in Trash (top-right) until deleted.
+ * shuffled, Similar groups as carousels, with keep / delete / bookmark.
+ * Deleted photos wait in Trash (top-right) until deleted for real.
  */
 
 // Smallest group that becomes a story; long-press a story to change it
@@ -58,6 +59,7 @@ function StoryCircle({
   // Started but not finished (e.g. a 300-photo trip after one session):
   // still active, with what's left on a small badge
   const started = story.ids.length < story.total;
+  const t = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -66,22 +68,21 @@ function StoryCircle({
       accessibilityLabel={`${story.title}, ${story.ids.length} photos to review. Starts a review.`}
       className="items-center w-[74px] active:opacity-70"
     >
-      <LinearGradient
-        colors={GRADIENTS.notify}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 1, y: 0 }}
-        style={{ width: 66, height: 66, borderRadius: 33, alignItems: 'center', justifyContent: 'center' }}
+      {/* New stories wear an accent ring; started ones a quiet track ring */}
+      <View
+        className="w-16 h-16 rounded-full items-center justify-center border-[2.5px]"
+        style={{ borderColor: started ? t.track : t.accent.primary }}
       >
-        <View className="w-[62px] h-[62px] rounded-full overflow-hidden border-[2.5px] border-black">
+        <View className="w-[55px] h-[55px] rounded-full overflow-hidden bg-track">
           <Image source={{ uri: story.coverUri }} style={{ flex: 1 }} contentFit="cover" />
         </View>
-      </LinearGradient>
+      </View>
       {started && (
-        <View className="absolute top-[52px] self-center px-1.5 py-px rounded-full bg-black border border-white/25">
-          <Text className="text-white text-[10px] font-bold">{story.ids.length} left</Text>
+        <View className="absolute top-[50px] self-center px-1.5 py-px rounded-full bg-tint">
+          <Text className="text-on-tint text-[10px] font-bold">{story.ids.length} left</Text>
         </View>
       )}
-      <Text className="text-white text-[12px] mt-1 w-[70px] text-center" numberOfLines={1}>
+      <Text className="text-fg text-[12px] mt-1 w-[70px] text-center" numberOfLines={1}>
         {story.title}
       </Text>
     </Pressable>
@@ -90,6 +91,8 @@ function StoryCircle({
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
+  // Always dark, so the status bar stays light while Feed is focused
+  useStatusBarStyle('light');
   const index = useGalleryStore((s) => s.index);
   const liked = useFeedStore((s) => s.liked);
   const trashed = useFeedStore((s) => s.trashed);
@@ -247,7 +250,7 @@ export default function FeedScreen() {
   );
 
   const storiesRow = (
-    <View className="pb-2.5 mb-1 border-b border-white/[0.12]">
+    <View className="pb-2.5 mb-1 border-b border-divider">
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-2.5 gap-1.5">
         {stories.map((s) => (
           <StoryCircle
@@ -259,16 +262,16 @@ export default function FeedScreen() {
         ))}
         {stories.length === 0 && (
           <Pressable onPress={chooseStorySize} className="py-6 px-2">
-            <Text className="text-white/45 text-[13px]">No groups of {minSize}+ photos yet · Change</Text>
+            <Text className="text-fg-2 text-[13px]">No groups of {minSize}+ photos yet · Change</Text>
           </Pressable>
         )}
       </ScrollView>
-      {scanning && <Text className="text-white/45 text-[11px] px-3.5 mt-1.5">Finding places…</Text>}
+      {scanning && <Text className="text-fg-2 text-[11px] px-3.5 mt-1.5">Finding places…</Text>}
     </View>
   );
 
   return (
-    <View className="flex-1 bg-black">
+    <ThemeScope mode="dark" className="flex-1 bg-feed">
       <Animated.FlatList
         data={posts}
         keyExtractor={(p) => p.key}
@@ -286,22 +289,19 @@ export default function FeedScreen() {
           <RefreshControl
             refreshing={false}
             onRefresh={() => setSeed(Math.floor(Math.random() * 1e9))}
-            tintColor="white"
+            tintColor={THEMES.dark.text.primary}
             progressViewOffset={barTotal}
           />
         }
       />
 
-      {/* Top bar: glass, hides on scroll down */}
-      <Animated.View className="absolute top-0 left-0 right-0" style={[{ height: barTotal }, barStyle]}>
-        <BlurPanel intensity={70} />
+      {/* Top bar: solid black, hides on scroll down */}
+      <Animated.View className="absolute top-0 left-0 right-0 bg-feed" style={[{ height: barTotal }, barStyle]}>
         <Animated.View
           className="flex-1 flex-row items-end justify-between px-4 pb-2"
           style={[{ paddingTop: insets.top }, barContentStyle]}
         >
-          <Text className="text-white text-[25px] font-extrabold" style={{ letterSpacing: -0.6 }}>
-            Swipe Photos
-          </Text>
+          <Text className="font-display text-fg text-[27px]">Swipe Photos</Text>
           <Animated.View ref={trashButtonRef} style={bumpStyle} collapsable={false}>
             <Pressable
               onPress={() => router.push({ pathname: '/trash', params: { source: 'feed' } })}
@@ -310,14 +310,14 @@ export default function FeedScreen() {
               hitSlop={8}
               className="w-10 h-10 items-center justify-center"
             >
-              <Ionicons name="trash-outline" size={25} color="white" />
+              <Icon name="trash" size={25} color={THEMES.dark.text.primary} strokeWidth={1.8} />
             </Pressable>
             {trashed.length > 0 && (
               <View
-                className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF3040] items-center justify-center border-2 border-black"
+                className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 rounded-full bg-del-fill items-center justify-center border-2 border-feed"
                 pointerEvents="none"
               >
-                <Text className="text-white text-[10px] font-bold">{trashed.length}</Text>
+                <Text className="text-on-button text-[11px] font-extrabold">{trashed.length}</Text>
               </View>
             )}
           </Animated.View>
@@ -335,6 +335,6 @@ export default function FeedScreen() {
           onArrive={() => onArrive(f.asset.id)}
         />
       ))}
-    </View>
+    </ThemeScope>
   );
 }

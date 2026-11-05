@@ -1,8 +1,6 @@
 import React, { memo, useRef, useState } from 'react';
 import { View, Text, Pressable, FlatList, ActionSheetIOS, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -16,7 +14,11 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { gatedHaptic } from '@/lib/haptics';
-import { COLORS, GRADIENTS, SCREEN, SPRING } from '@/constants/theme';
+import { Icon } from '@/components/ui/Icon';
+import { IconWell } from '@/components/ui/IconWell';
+import { ON_PHOTO } from '@/constants/colors';
+import { SCREEN, SPRING } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import type { Place } from '@/lib/places/nearestPlace';
 import type { AssetMeta } from '@/types';
 import type { Rect } from '@/components/feed/FlyingPhoto';
@@ -62,6 +64,7 @@ export const FeedPost = memo(function FeedPost({
   onDislike,
   onToggleFavorite,
 }: FeedPostProps) {
+  const t = useTheme();
   const { assets } = post;
   const [page, setPage] = useState(0);
   const current = assets[Math.min(page, assets.length - 1)];
@@ -161,34 +164,25 @@ export const FeedPost = memo(function FeedPost({
     <Animated.View style={cardStyle} className="mb-4">
       {/* Header: avatar, name, second line, menu */}
       <View className="flex-row items-center px-3 h-[54px] gap-2.5">
-        <LinearGradient
-          colors={GRADIENTS.notify}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 0 }}
-          style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <View className="w-[30px] h-[30px] rounded-full bg-black items-center justify-center">
-            <Ionicons name={place ? 'location' : 'calendar'} size={14} color="white" />
-          </View>
-        </LinearGradient>
+        <IconWell icon={place ? 'pin' : 'calendar'} color={place ? 'sky' : 'blue'} size={34} />
         <View className="flex-1">
-          <Text className="text-white text-[14px] font-semibold" numberOfLines={1}>
+          <Text className="text-fg text-[16px] font-bold" numberOfLines={1}>
             {name}
           </Text>
           {subtitle && (
-            <Text className="text-white/70 text-[12px]" numberOfLines={1}>
+            <Text className="text-fg-2 text-[12px]" numberOfLines={1}>
               {subtitle}
             </Text>
           )}
         </View>
         <Pressable onPress={openMenu} accessibilityRole="button" accessibilityLabel="More" hitSlop={8} className="w-9 h-9 items-center justify-center">
-          <Ionicons name="ellipsis-horizontal" size={20} color="white" />
+          <Icon name="ellipsis" size={20} color={t.text.primary} />
         </Pressable>
       </View>
 
       {/* Photo — edge to edge; a paged carousel for Similar groups */}
       <GestureDetector gesture={doubleTap}>
-        <View ref={photoRef} collapsable={false} style={{ width: W, height }} className="bg-[#111]">
+        <View ref={photoRef} collapsable={false} style={{ width: W, height }} className="bg-track">
           {multi ? (
             <FlatList
               data={assets}
@@ -205,32 +199,33 @@ export const FeedPost = memo(function FeedPost({
             <Image source={{ uri: lead.uri }} style={{ flex: 1 }} contentFit="cover" transition={150} recyclingKey={lead.id} />
           )}
           {multi && (
-            <View className="absolute top-3 right-3 px-2 py-1 rounded-full bg-black/60" pointerEvents="none">
-              <Text className="text-white text-[12px] font-semibold">
+            <View className="absolute top-3 right-3 px-2 py-1 rounded-full bg-chip" pointerEvents="none">
+              <Text className="text-chip-fg text-[12px] font-bold">
                 {Math.min(page, assets.length - 1) + 1}/{assets.length}
               </Text>
             </View>
           )}
           {current.mediaType === 'video' && (
-            <View className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/55 items-center justify-center" pointerEvents="none">
-              <Ionicons name="play" size={15} color="white" />
+            <View className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-chip items-center justify-center" pointerEvents="none">
+              <Icon name="play" size={15} color={t.photoChip.text} />
             </View>
           )}
           {multi && (
             <View
-              className="absolute bottom-2.5 self-center flex-row gap-1 px-2 py-1.5 rounded-full bg-black/45"
+              className="absolute bottom-2.5 self-center flex-row gap-1 px-2 py-1.5 rounded-full bg-chip"
               pointerEvents="none"
             >
               {assets.map((a, i) => (
                 <View
                   key={a.id}
-                  className={`w-1.5 h-1.5 rounded-full ${i === Math.min(page, assets.length - 1) ? 'bg-white' : 'bg-white/45'}`}
+                  className="w-1.5 h-1.5 rounded-full bg-chip-fg"
+                  style={{ opacity: i === Math.min(page, assets.length - 1) ? 1 : 0.4 }}
                 />
               ))}
             </View>
           )}
           <Animated.View className="absolute inset-0 items-center justify-center" pointerEvents="none" style={burstStyle}>
-            <Ionicons name="heart" size={96} color={COLORS.destructive} />
+            <Icon name="heart" size={96} color={t.keep.icon} fill={t.keep.icon} />
           </Animated.View>
         </View>
       </GestureDetector>
@@ -245,13 +240,9 @@ export const FeedPost = memo(function FeedPost({
           className="flex-row items-center gap-1.5 h-11 px-1 active:opacity-60"
         >
           <Animated.View style={popStyle}>
-            <Ionicons
-              name={likedNow ? 'heart' : 'heart-outline'}
-              size={23}
-              color={likedNow ? COLORS.destructive : 'white'}
-            />
+            <Icon name="heart" size={23} color={t.keep.icon} fill={likedNow ? t.keep.icon : undefined} />
           </Animated.View>
-          <Text className={`text-[15px] font-medium ${likedNow ? 'text-[#FF453A]' : 'text-white/85'}`}>Keep</Text>
+          <Text className={`text-[15px] font-semibold ${likedNow ? 'text-keep-text' : 'text-fg'}`}>Keep</Text>
         </Pressable>
         <Pressable
           onPress={() => dislike(current)}
@@ -260,8 +251,8 @@ export const FeedPost = memo(function FeedPost({
           hitSlop={6}
           className="flex-row items-center gap-1.5 h-11 px-1 active:opacity-60"
         >
-          <Ionicons name="thumbs-down-outline" size={22} color="white" />
-          <Text className="text-white/85 text-[15px] font-medium">Delete</Text>
+          <Icon name="trash" size={22} color={t.remove.icon} />
+          <Text className="text-fg text-[15px] font-semibold">Delete</Text>
         </Pressable>
         <View className="flex-1" />
         <Pressable
@@ -270,7 +261,7 @@ export const FeedPost = memo(function FeedPost({
           accessibilityLabel={isFav ? 'Remove from Favorites in Photos' : 'Add to Favorites in Photos'}
           className="w-11 h-11 items-center justify-center active:opacity-60"
         >
-          <Ionicons name={isFav ? 'bookmark' : 'bookmark-outline'} size={23} color="white" />
+          <Icon name="bookmark" size={23} color={ON_PHOTO.text} fill={isFav ? ON_PHOTO.text : undefined} />
         </Pressable>
       </View>
     </Animated.View>
