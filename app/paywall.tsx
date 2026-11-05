@@ -94,7 +94,7 @@ function Benefits() {
         <Text className="text-white text-[15px] font-bold">{SUBSCRIPTION_NAME} includes</Text>
         {BENEFITS.map((b) => (
           <View key={b.text} className="flex-row items-center gap-3">
-            <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center">
+            <View className="w-8 h-8 rounded-full bg-tint items-center justify-center">
               <Ionicons name={b.icon} size={16} color="#0A84FF" />
             </View>
             <Text className="flex-1 text-white/80 text-[14px]">{b.text}</Text>
@@ -124,7 +124,7 @@ function TrialTimeline({ days, renewalPrice }: { days: number | null; renewalPri
       {steps.map((s, i) => (
         <View key={s.title} className="flex-row gap-3">
           <View className="items-center">
-            <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center">
+            <View className="w-8 h-8 rounded-full bg-tint items-center justify-center">
               <Ionicons name={s.icon} size={15} color="#0A84FF" />
             </View>
             {i < steps.length - 1 && <View className="w-0.5 flex-1 bg-white/10 my-1" />}
@@ -160,7 +160,7 @@ function PlanCard({ selected, onPress, title, price, priceSuffix, sub, badge }: 
       <View
         className={
           selected
-            ? 'rounded-3xl border-2 border-accent bg-accent/10 px-4 py-3.5 min-h-[64px] justify-center'
+            ? 'rounded-3xl border-2 border-accent bg-tint px-4 py-3.5 min-h-[64px] justify-center'
             : 'rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3.5 min-h-[64px] justify-center'
         }
       >

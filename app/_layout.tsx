@@ -7,11 +7,13 @@ import { AppState, AppStateStatus, LogBox } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
 import { enableMapSet } from 'immer';
+import { useFonts, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { scheduleOnThisDayNotification } from '@/lib/notifications';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ThemeProvider, useSceneStyle } from '@/lib/theme/ThemeProvider';
 import { posthog } from '@/lib/posthog';
 import { initPurchases, refreshCustomerInfo } from '@/lib/purchases';
 import * as Sentry from '@sentry/react-native';
@@ -107,12 +109,33 @@ function NotificationBootstrap() {
   return null;
 }
 
+function RootStack() {
+  const contentStyle = useSceneStyle();
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="review/[sessionId]" options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="review/preview/[assetId]" options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="on-this-day" />
+      <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
+    </Stack>
+  );
+}
+
 function RootLayout() {
   const analyticsOptIn = useSettingsStore((s) => s.analyticsOptIn);
+  // Display face (titles, big numbers). On a load error the system font is
+  // used, so the splash still hides.
+  const [fontsLoaded, fontError] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold });
+  const fontsReady = fontsLoaded || fontError != null;
 
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (fontsReady) SplashScreen.hideAsync();
+  }, [fontsReady]);
 
   // RevenueCat: configure once, re-check entitlements on foreground (expiry/renewal)
   useEffect(() => {
@@ -132,28 +155,22 @@ function RootLayout() {
     }
   }, [analyticsOptIn]);
 
-return (
+  if (!fontsReady) return null;
+
+  return (
     <GestureHandlerRootView className="flex-1">
       <PostHogProvider
         client={posthog}
         autocapture={false}
       >
-        <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <NotificationBootstrap />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="review/[sessionId]" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="review/preview/[assetId]" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="settings" />
-            <Stack.Screen name="on-this-day" />
-            <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
-          </Stack>
-        </QueryClientProvider>
-        </ErrorBoundary>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+              <NotificationBootstrap />
+              <RootStack />
+            </QueryClientProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </PostHogProvider>
     </GestureHandlerRootView>
   );

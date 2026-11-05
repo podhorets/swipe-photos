@@ -34,9 +34,17 @@ Mix both when needed: `className` for static, `style` for animated/dynamic.
 Prefer the Expo SDK and the third-party native modules already in use: `react-native-purchases` (RevenueCat, subscriptions), `react-native-mmkv`, `@shopify/react-native-skia`, `lottie-react-native`, `@sentry/react-native`.
 When Expo can't do something well (or fast enough), add native code to the project's own module `modules/expo-photo-analyzer` (Swift: Apple Vision feature prints, blur, face count, bulk photo locations). This module is owned and edited here — it started as a copy of cleani's module but no longer has to match it. After changing Swift, rebuild the native app (Fast Refresh doesn't pick it up). Every call site must check `isPhotoAnalyzerAvailable()` and degrade gracefully (iOS-only module).
 
-### Glass UI is mandatory, not optional
-Every screen uses `GlassCard`, `BlurPanel`, or `GlassSheet` from `components/glass/`. No plain white/gray surfaces.
-**Exception — Feed tab (`app/(tabs)/feed.tsx`):** Instagram-style, plain black background with edge-to-edge photos; only its top bar uses `BlurPanel`. Feel like Instagram without copying it: no Instagram logo, wordmark, exact gradient, or Instagram-only icons (Guidelines 4.1 / 5.2.1).
+### Theme: Light ("Mist") and Dark ("Night Sky") — follow the design, not glass
+The design lives on the Claude Design canvas (rows "Light primary" / "Dark primary") and in `docs/design/handoff/DESIGN_HANDOFF.md`. Solid cards, no frosted glass, no glows, no blue→violet gradients.
+- **Colours only through tokens.** Values live in `constants/colors.ts` (`light` / `dark`); classes like `bg-card`, `text-fg-2`, `border-hairline`, `bg-tile-blue` resolve to CSS variables, so a `className` is the same in both themes. Props that can't take a class (icon `color`, gradients, `boxShadow`, Switch) use `useTheme()` from `lib/theme/ThemeProvider`.
+- **Never** `text-white`, `bg-black`, `bg-white/10`, hex/rgba literals or `dark:` variants in screens. No alpha modifiers on tokens (`bg-fg/10`) — the variables hold full colours. On photos use `text-on-photo` / `text-on-photo-2`, `bg-chip` and `ON_PHOTO` (same in both themes).
+- **New tokens** go in `constants/colors.ts` (`Theme` + `TOKENS`) *and* the `THEME_TOKENS` list in `tailwind.config.js`.
+- **Green and red only mean keep and delete.** Toggles and selected states use accent.
+- **Feed and the photo preview are always dark** on pure black: wrap them in `<ThemeScope mode="dark">` and call `useStatusBarStyle('light')`. Feel like Instagram without copying it: no Instagram logo, wordmark, exact gradient, or Instagram-only icons (Guidelines 4.1 / 5.2.1).
+- **Display face:** `font-display` (Nunito ExtraBold) for titles and big numbers; never add `font-bold` etc. to it (iOS falls back to the system font). Everything else is the system font.
+- **Icons:** `<Icon name=… color=…/>` from `components/ui/Icon.tsx` (outline, 24 grid). Not Ionicons. Draw a missing icon there in the same style.
+- **Theme context** (`useTheme`, `ThemeScope`) is the one allowed React Context: it is scoped per subtree, which a global store can't express.
+- Settings › Appearance (System / Light / Dark) is `settingsStore.appearance`; `ThemeProvider` applies it with `Appearance.setColorScheme`, so native Alerts and the delete dialog follow it.
 
 ### Commit discipline
 Every commit leaves the app in a runnable state. Convention: `feat:` / `fix:` / `chore:` / `refactor:` / `docs:`
@@ -101,7 +109,9 @@ Never hardcode spring configs or swipe thresholds. Always use `SPRING.*` and `SW
 | Storage | `react-native-mmkv` (`createMMKV`) | `AsyncStorage` |
 | Navigation | `expo-router` | `@react-navigation/*` directly |
 | Animations | `react-native-reanimated` worklets | JS-thread animations |
-| Global state | `zustand` | Context, Redux |
+| Global state | `zustand` | Context (except the theme scope), Redux |
+| Icons | `Icon` (`components/ui/Icon.tsx`) | `@expo/vector-icons` |
+| Colours | theme tokens / `useTheme()` | hex, `white`/`black` classes, `expo-blur` glass |
 | In-app purchases | `react-native-purchases` (RevenueCat) | StoreKit directly, `expo-in-app-purchases` (deprecated) |
 | Async gallery queries | `@tanstack/react-query` (`useQuery` only) | `useEffect` + `useState` for async fetching |
 

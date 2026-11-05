@@ -6,7 +6,11 @@ const storage = createMMKV();
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
+export type Appearance = 'system' | 'light' | 'dark';
+
 interface Settings {
+  // Settings › Appearance: follow the iPhone, or force light / dark
+  appearance: Appearance;
   faceIdEnabled: boolean;
   batchSize: number;
   notificationsEnabled: boolean;
@@ -17,6 +21,7 @@ interface Settings {
 }
 
 const DEFAULTS: Settings = {
+  appearance: 'system',
   faceIdEnabled: false,
   batchSize: GALLERY.defaultBatchSize,
   notificationsEnabled: false,
@@ -41,6 +46,7 @@ function saveSettings(s: Settings) {
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 interface SettingsState extends Settings {
+  setAppearance: (value: Appearance) => void;
   setFaceIdEnabled: (value: boolean) => void;
   setBatchSize: (value: number) => void;
   setNotificationsEnabled: (value: boolean) => void;
@@ -50,6 +56,11 @@ interface SettingsState extends Settings {
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
   ...loadSettings(),
+
+  setAppearance: (value) => {
+    set({ appearance: value });
+    saveSettings({ ...get() });
+  },
 
   setFaceIdEnabled: (value) => {
     set({ faceIdEnabled: value });

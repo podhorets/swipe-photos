@@ -163,12 +163,12 @@ function YearReviewButton({
         hitSlop={10}
         accessibilityRole="button"
         accessibilityLabel={`${label} ${year} — ${left} photo${left === 1 ? '' : 's'} left`}
-        className="flex-row items-center gap-1 rounded-full bg-accent/20 border border-accent/30 pl-3 pr-2 py-1.5 active:opacity-80"
+        className="flex-row items-center gap-1 rounded-full bg-tint border border-tint pl-3 pr-2 py-1.5 active:opacity-80"
       >
         <Text className="text-accent text-[13px] font-bold" style={{ letterSpacing: -0.1 }}>
           {label}
         </Text>
-        <Text className="text-accent/60 text-[13px] font-bold">{left}</Text>
+        <Text className="text-fg-3 text-[13px] font-bold">{left}</Text>
         <Ionicons name="chevron-forward" size={12} color="#0A84FF" />
       </Pressable>
     </Animated.View>
