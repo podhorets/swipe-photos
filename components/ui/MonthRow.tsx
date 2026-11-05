@@ -14,10 +14,12 @@ interface MonthRowProps {
   progress: number;    // 0–1, ratio of kept to total
   isComplete: boolean;
   coverUri?: string;
+  /** Replaces the "N items" line (place rows show photos left and the date) */
+  subtitle?: string;
   onPress: () => void;
 }
 
-export function MonthRow({ label, count, progress, isComplete, coverUri, onPress }: MonthRowProps) {
+export function MonthRow({ label, count, progress, isComplete, coverUri, subtitle, onPress }: MonthRowProps) {
   const { animatedStyle, onPressIn, onPressOut } = useSpringPress();
 
   function handlePress() {
@@ -51,7 +53,7 @@ export function MonthRow({ label, count, progress, isComplete, coverUri, onPress
                 {label}
               </Text>
               <Text className="text-white/45 text-[13px] mt-0.5">
-                {count.toLocaleString()} items
+                {subtitle ?? `${count.toLocaleString()} items`}
               </Text>
             </View>
 

@@ -91,7 +91,35 @@ export function buildFeedStories(
   const week = index.filter((a) => a.creationTime >= today - 6 * DAY_MS);
   add(times, story(`week:${today}`, 'This week', week, reviewed, minSize));
 
-  // ── Places ────────────────────────────────────────────────────────────────
+  const placeStories = buildPlaceStories(index, locations, minSize, reviewed);
+
+  // ── Months ────────────────────────────────────────────────────────────────
+  const months = new Map<string, AssetMeta[]>();
+  for (const a of index) {
+    const d = new Date(a.creationTime);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    months.set(key, [...(months.get(key) ?? []), a]);
+  }
+  const monthKeys = [...months.keys()].sort().reverse();
+  for (const key of monthKeys) {
+    const [y, m] = key.split('-').map(Number);
+    add(times, story(`month:${key}`, `${MONTHS[m - 1]} '${String(y).slice(2)}`, months.get(key)!, reviewed, minSize));
+  }
+
+  return interleave(shuffle(placeStories, seed), shuffle(times, seed + 1));
+}
+
+/**
+ * Place stories, newest trip first: GPS photos in a row with gaps of at most
+ * 12 hours in one country, named after the main city or the country. Same
+ * reviewed / minSize rules as buildFeedStories.
+ */
+export function buildPlaceStories(
+  index: AssetMeta[],
+  locations: LocationMap,
+  minSize: number,
+  reviewed: Set<string>,
+): FeedStory[] {
   const located = index
     .filter((a) => locations[a.id])
     .sort((a, b) => a.creationTime - b.creationTime)
@@ -117,6 +145,9 @@ export function buildFeedStories(
   }
 
   const placeStories: FeedStory[] = [];
+  const add = (s: FeedStory | null) => {
+    if (s) placeStories.push(s);
+  };
   const titlesUsed = new Map<string, number>();
   for (const trip of trips.reverse()) {
     const cityCounts = new Map<string, number>();
@@ -128,21 +159,7 @@ export function buildFeedStories(
     titlesUsed.set(name, seen + 1);
     const start = trip[0].asset.creationTime;
     const title = seen === 0 ? name : `${name} ${shortYear(start)}`;
-    add(placeStories, story(`place:${name}:${start}`, title, trip.map((p) => p.asset), reviewed, minSize));
+    add(story(`place:${name}:${start}`, title, trip.map((p) => p.asset), reviewed, minSize));
   }
-
-  // ── Months ────────────────────────────────────────────────────────────────
-  const months = new Map<string, AssetMeta[]>();
-  for (const a of index) {
-    const d = new Date(a.creationTime);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    months.set(key, [...(months.get(key) ?? []), a]);
-  }
-  const monthKeys = [...months.keys()].sort().reverse();
-  for (const key of monthKeys) {
-    const [y, m] = key.split('-').map(Number);
-    add(times, story(`month:${key}`, `${MONTHS[m - 1]} '${String(y).slice(2)}`, months.get(key)!, reviewed, minSize));
-  }
-
-  return interleave(shuffle(placeStories, seed), shuffle(times, seed + 1));
+  return placeStories;
 }

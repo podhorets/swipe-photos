@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { View, Text, SectionList } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, SectionList, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,6 +8,8 @@ import { useKeepStore } from '@/stores/keepStore';
 import { getByMonth } from '@/lib/gallery/grouper';
 import { monthLabel } from '@/lib/dateUtils';
 import { MonthRow } from '@/components/ui/MonthRow';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { LibraryTypes } from '@/components/library/LibraryTypes';
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { posthog } from '@/lib/posthog';
@@ -44,8 +46,13 @@ function EmptyState() {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function ByMonthScreen() {
+const VIEWS = ['Months', 'Types'] as const;
+type LibraryView = (typeof VIEWS)[number];
+
+/** Library tab: months (the old Months tab) or every stack type plus places. */
+export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
+  const [view, setView] = useState<LibraryView>('Months');
   const index = useGalleryStore((s) => s.index);
   const keepIds = useKeepStore((s) => s.keepIds);
 
@@ -93,8 +100,17 @@ export default function ByMonthScreen() {
           ? `${monthCount} month${monthCount === 1 ? '' : 's'} · ${itemCount.toLocaleString()} items`
           : 'Browse your photos by month'}
       </Text>
+      <View className="mt-4">
+        <SegmentedControl options={VIEWS} value={view} onChange={setView} />
+      </View>
     </View>
   );
+
+  const contentStyle = {
+    paddingTop: insets.top + 16,
+    paddingBottom: insets.bottom + 110,
+    paddingHorizontal: 20,
+  };
 
   if (sections.length === 0) {
     return (
@@ -104,6 +120,19 @@ export default function ByMonthScreen() {
           {header}
         </View>
         <EmptyState />
+      </View>
+    );
+  }
+
+  if (view === 'Types') {
+    return (
+      <View className="flex-1 bg-bg-dark">
+        <AuroraBackground variant="by-month" />
+        <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator={false}>
+          {header}
+          <LibraryTypes />
+        </ScrollView>
+        <StatusBarScrim />
       </View>
     );
   }
@@ -135,11 +164,7 @@ export default function ByMonthScreen() {
         )}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 110,
-          paddingHorizontal: 20,
-        }}
+        contentContainerStyle={contentStyle}
         ListHeaderComponent={header}
       />
       <StatusBarScrim />

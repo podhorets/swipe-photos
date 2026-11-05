@@ -12,8 +12,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { formatBytes } from '@/lib/dateUtils';
 import { getOnThisDay, getScreenshots, getVideos } from '@/lib/gallery/grouper';
 import { effectiveBatchSize } from '@/lib/planUtils';
-import { posthog } from '@/lib/posthog';
-import { gateSessionStart } from '@/lib/sessionGate';
+import { startCategoryReview } from '@/lib/session/startCategoryReview';
 import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { useGalleryStore } from '@/stores/galleryStore';
@@ -26,7 +25,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
@@ -100,22 +99,12 @@ export default function HomeScreen() {
   }
 
   function handleCategoryPress(category: Category) {
-    const count = countFor(category);
-    if (!isIndexing && count === 0) {
-      const tile = tiles.find((t) => t.id === category);
-      Alert.alert('Nothing Here', `No photos in "${tile?.label ?? category}" yet.`);
-      return;
-    }
-    const progress = categoryProgress[category];
-    if (progress !== undefined && progress >= 1) {
-      Alert.alert('All Photos Reviewed', 'You\'ve reviewed all photos in this category.', [
-        { text: 'OK' },
-      ]);
-      return;
-    }
-    if (!gateSessionStart()) return;
-    posthog.capture('review_session_started', { category, photo_count: countFor(category) });
-    router.push(`/review/${category}`);
+    startCategoryReview(category, {
+      label: tiles.find((t) => t.id === category)?.label ?? category,
+      count: countFor(category),
+      progress: categoryProgress[category],
+      indexing: isIndexing,
+    });
   }
 
   const monthDay = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
