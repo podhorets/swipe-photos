@@ -6,12 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "swipephotos",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#EEF3F9"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -96,6 +96,15 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#EEF3F9",
+          "dark": { "image": "./assets/images/splash-icon.png", "backgroundColor": "#0D1729" }
+        }
+      ],
       [
         "expo-media-library",
         {

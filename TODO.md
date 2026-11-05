@@ -4,7 +4,7 @@ Accounts, hosting, store setup and other steps that can't be done from the code.
 Claude adds to this list whenever something new needs your action. Tick items off
 as you go. Details and ready-to-paste text: [docs/APP_STORE_SUBMISSION.md](docs/APP_STORE_SUBMISSION.md).
 
-_Last updated: 2026-11-01_
+_Last updated: 2026-11-05_
 
 ## Before submitting to App Review
 
@@ -43,9 +43,17 @@ _Last updated: 2026-11-01_
   - [ ] Record a 30–60 second screen recording of the Similar flow and the Trash review, and attach it
         to the review notes. Keep it for a reply if Apple rejects under 4.3 (spam).
 
+- [ ] **5b. Re-shoot the App Store screenshots in the new design.**
+      The app was redesigned (light "Mist" and dark "Night Sky"). Screenshots made before
+      2026-11-05 show the old dark glass look. Take the 6 in light mode (or one consistent mode),
+      same order as Part 2 of the submission guide.
+
 - [ ] **6. After uploading the build.**
   - [ ] Check your email for ITMS-91053 / 91061 (privacy manifest) warnings, and send them to Claude to fix.
   - [ ] Install it from TestFlight on an iPad once; reviewers often test on one.
+  - [ ] On your own iPhone, check both appearances: switch iPhone Settings › Display between Light
+        and Dark with the app set to Settings › Appearance › System, and look at Home, a review,
+        Trash and the paywall in each.
 
 ## If App Review rejects
 
