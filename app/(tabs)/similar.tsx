@@ -2,11 +2,14 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, type ListRenderItemInfo } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
-import { GradientPillButton } from '@/components/ui/GradientPillButton';
+import { LinearGradient } from 'expo-linear-gradient';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PhotoChip } from '@/components/ui/PhotoChip';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
+import { StatusBarScrim } from '@/components/ui/StatusBarScrim';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useSimilarStore } from '@/stores/similarStore';
@@ -18,7 +21,7 @@ import { gateSessionStart } from '@/lib/sessionGate';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
 import { SIMILAR } from '@/constants/config';
-import { GRADIENTS, SCREEN } from '@/constants/theme';
+import { SCREEN } from '@/constants/theme';
 import { ProgressivePhoto } from '@/components/similar/ProgressivePhoto';
 import { posthog } from '@/lib/posthog';
 import type { AssetMeta } from '@/types';
@@ -38,8 +41,11 @@ const PAGE_SIZE = 20;
 // Share of the scan dial owned by the compare pass; the rest is best-shot analysis
 const COMPARE_SHARE = 0.85;
 
-// Two square collage tiles per row (px-5 screen padding, 12 gap)
-const TILE_SIZE = (SCREEN.width - 40 - 12) / 2;
+// Two collage tiles per row (18pt screen padding, 14pt column gap), 170pt high
+const SCREEN_X = 18;
+const COLUMN_GAP = 14;
+const TILE_SIZE = (SCREEN.width - SCREEN_X * 2 - COLUMN_GAP) / 2;
+const TILE_HEIGHT = 170;
 const CELL_GAP = 2;
 
 /**
@@ -48,31 +54,33 @@ const CELL_GAP = 2;
  * the last cell. The best photo is always first and carries a star badge.
  */
 function GroupCollage({ uris, memberCount }: { uris: string[]; memberCount: number }) {
+  const t = useTheme();
   const half = (TILE_SIZE - CELL_GAP) / 2;
+  const halfH = (TILE_HEIGHT - CELL_GAP) / 2;
   const cells: { uri: string; left: number; top: number; w: number; h: number }[] = [];
 
   if (uris.length <= 1) {
-    if (uris[0]) cells.push({ uri: uris[0], left: 0, top: 0, w: TILE_SIZE, h: TILE_SIZE });
+    if (uris[0]) cells.push({ uri: uris[0], left: 0, top: 0, w: TILE_SIZE, h: TILE_HEIGHT });
   } else if (uris.length === 2) {
-    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: TILE_SIZE });
-    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: TILE_SIZE });
+    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: TILE_HEIGHT });
+    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: TILE_HEIGHT });
   } else if (uris.length === 3) {
-    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: TILE_SIZE });
-    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: half });
-    cells.push({ uri: uris[2], left: half + CELL_GAP, top: half + CELL_GAP, w: half, h: half });
+    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: TILE_HEIGHT });
+    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: halfH });
+    cells.push({ uri: uris[2], left: half + CELL_GAP, top: halfH + CELL_GAP, w: half, h: halfH });
   } else {
-    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: half });
-    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: half });
-    cells.push({ uri: uris[2], left: 0, top: half + CELL_GAP, w: half, h: half });
-    cells.push({ uri: uris[3], left: half + CELL_GAP, top: half + CELL_GAP, w: half, h: half });
+    cells.push({ uri: uris[0], left: 0, top: 0, w: half, h: halfH });
+    cells.push({ uri: uris[1], left: half + CELL_GAP, top: 0, w: half, h: halfH });
+    cells.push({ uri: uris[2], left: 0, top: halfH + CELL_GAP, w: half, h: halfH });
+    cells.push({ uri: uris[3], left: half + CELL_GAP, top: halfH + CELL_GAP, w: half, h: halfH });
   }
 
   const overflow = memberCount - cells.length;
 
   return (
     <View
-      className="rounded-2xl overflow-hidden bg-white/[0.06]"
-      style={{ width: TILE_SIZE, height: TILE_SIZE }}
+      className="rounded-[20px] overflow-hidden bg-track"
+      style={{ width: TILE_SIZE, height: TILE_HEIGHT, boxShadow: t.shadow.card }}
     >
       {cells.map((cell, i) => (
         <View
@@ -82,16 +90,15 @@ function GroupCollage({ uris, memberCount }: { uris: string[]; memberCount: numb
           <ProgressivePhoto uri={cell.uri} width={cell.w} height={cell.h} />
           {/* "+N" overlay on the last cell when the group is bigger than the tile */}
           {i === cells.length - 1 && overflow > 0 && (
-            <View className="absolute inset-0 bg-black/60 items-center justify-center">
-              <Text className="text-white text-[20px] font-extrabold">+{overflow}</Text>
+            <View className="absolute inset-0 bg-chip items-center justify-center">
+              <Text className="font-display text-chip-fg text-[20px]">+{overflow}</Text>
             </View>
           )}
         </View>
       ))}
       {/* Best badge on the first (best) cell */}
-      <View className="absolute top-1.5 left-1.5 flex-row items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60">
-        <Ionicons name="star" size={9} color="#FFD60A" />
-        <Text className="text-white text-[10px] font-bold">Best</Text>
+      <View className="absolute top-2 left-2">
+        <PhotoChip label="Best" star small />
       </View>
     </View>
   );
@@ -112,17 +119,16 @@ const GroupTile = memo(function GroupTile({
       className="mb-3 active:opacity-80"
     >
       <GroupCollage uris={group.previewUris} memberCount={group.memberIds.length} />
-      <View className="flex-row items-center justify-between mt-1.5 px-0.5">
-        <Text className="text-white text-[13px] font-semibold">
-          {group.memberIds.length} photos
-        </Text>
-        <Text className="text-white/45 text-[12px]">{formatBytes(group.reclaimBytes)}</Text>
+      <View className="flex-row items-baseline justify-between mt-1.5 px-0.5">
+        <Text className="text-fg text-[15px] font-bold">{group.memberIds.length} photos</Text>
+        <Text className="text-fg-2 text-[13px]">{formatBytes(group.reclaimBytes)}</Text>
       </View>
     </Pressable>
   );
 });
 
 export default function SimilarScreen() {
+  const t = useTheme();
   const insets = useSafeAreaInsets();
   const index = useGalleryStore((s) => s.index);
   const isIndexing = useGalleryStore((s) => s.isIndexing);
@@ -255,23 +261,24 @@ export default function SimilarScreen() {
       : phaseRatio * COMPARE_SHARE;
   const scanPct = Math.round(scanRatio * 100);
 
-  return (
-    <View className="flex-1 bg-bg-dark">
-      <AuroraBackground variant="by-month" />
+  const fadeBottom = t.background.colors[t.background.colors.length - 1];
+  // Top edge of the floating tab bar (FloatingTabBar: bottom offset + 56pt)
+  const tabBarTop = Math.max(insets.bottom - 4, 26) + 56;
+  const notes = scanning
+    ? 'Scan running — reviewing already-found groups'
+    : !analyzerUsed && scannedAt > 0
+      ? 'Grouped by when photos were taken'
+      : null;
 
-      <View
-        className="flex-1 px-5"
-        style={{ paddingTop: insets.top + 16 }}
-      >
+  return (
+    <View className="flex-1">
+      <ScreenBackground />
+
+      <View className="flex-1" style={{ paddingTop: insets.top + 12, paddingHorizontal: SCREEN_X }}>
         <View className="flex-row items-start justify-between gap-3 mb-4">
           <View className="flex-1">
-            <Text
-              className="text-white text-[34px] font-extrabold mb-1"
-              style={{ letterSpacing: -0.8 }}
-            >
-              Similar
-            </Text>
-            <Text className="text-white/50 text-sm">
+            <Text className="font-display text-fg text-[34px] leading-[37px]">Similar</Text>
+            <Text className="text-fg-2 text-[14px] mt-[3px]">
               {displayGroups.length > 0
                 ? `${displayGroups.length} groups · ${totalPhotos} photos · ${formatBytes(totalReclaim)} to free`
                 : scanning
@@ -289,15 +296,8 @@ export default function SimilarScreen() {
               accessibilityRole="progressbar"
               accessibilityLabel={`Scanning for similar photos, ${scanPct}% complete`}
             >
-              <ProgressRing
-                size={48}
-                radius={19.5}
-                strokeWidth={4}
-                progress={scanRatio}
-                duration={450}
-                gradientColors={GRADIENTS.freed}
-              >
-                <Text className="text-white text-[11px] font-extrabold">{scanPct}%</Text>
+              <ProgressRing size={48} radius={19.5} strokeWidth={4} progress={scanRatio} duration={450}>
+                <Text className="text-fg text-[11px] font-extrabold">{scanPct}%</Text>
               </ProgressRing>
             </View>
           )}
@@ -306,31 +306,32 @@ export default function SimilarScreen() {
         {/* Group previews / empty state */}
         {displayGroups.length === 0 ? (
           scanning ? (
-            <Text className="text-white/35 text-[13px] text-center mt-6">
+            <Text className="text-fg-2 text-[13px] text-center mt-6">
               First groups will appear here in a moment — you can start reviewing
               while the scan keeps running.
             </Text>
           ) : (
             <View className="flex-1 items-center justify-center pb-40">
-              <View className="w-20 h-20 rounded-full bg-white/[0.07] border border-white/[0.14] items-center justify-center mb-5">
-                <Ionicons name="copy-outline" size={32} color="rgba(255,255,255,0.6)" />
-              </View>
-              <Text className="text-white text-lg font-bold mb-1.5">
-                {/* An empty library never gets scanned (scannedAt stays 0) —
-                    don't promise a scan that will never come */}
-                {!isIndexing && index.length === 0
-                  ? 'No photos yet'
-                  : isIndexing || scannedAt === 0
-                    ? 'Getting ready…'
-                    : 'No similar photos'}
-              </Text>
-              <Text className="text-white/60 text-sm text-center px-10" style={{ lineHeight: 20 }}>
-                {!isIndexing && index.length === 0
-                  ? 'Look-alike shots from your library will show up here.'
-                  : isIndexing || scannedAt === 0
-                    ? 'Your library is being scanned for lookalike shots.'
-                    : 'Nice — no near-duplicates left in your library.'}
-              </Text>
+              {/* An empty library never gets scanned (scannedAt stays 0) —
+                  don't promise a scan that will never come */}
+              <EmptyState
+                icon="similarTile"
+                color="teal"
+                title={
+                  !isIndexing && index.length === 0
+                    ? 'No photos yet'
+                    : isIndexing || scannedAt === 0
+                      ? 'Getting ready…'
+                      : 'No similar photos'
+                }
+                body={
+                  !isIndexing && index.length === 0
+                    ? 'Look-alike shots from your library will show up here.'
+                    : isIndexing || scannedAt === 0
+                      ? 'Your library is being scanned for lookalike shots.'
+                      : 'Nice — no near-duplicates left in your library.'
+                }
+              />
             </View>
           )
         ) : (
@@ -338,7 +339,7 @@ export default function SimilarScreen() {
             data={visibleGroups}
             keyExtractor={(g) => g.key}
             numColumns={2}
-            columnWrapperStyle={{ gap: 12 }}
+            columnWrapperStyle={{ gap: COLUMN_GAP }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: insets.bottom + 190 }}
             // Counts are rows (numColumns=2). Each collage is up to 8 image
@@ -356,38 +357,40 @@ export default function SimilarScreen() {
 
       {/* Sticky CTA — available whenever loaded groups exist, including during
           a rescan (the session snapshots its groups at start, so a scan
-          finishing mid-review can't affect it). Notes sit above the button so
-          the pill can hug the tab bar. */}
+          finishing mid-review can't affect it). The grid fades into the
+          background behind it; notes sit above the button. */}
       {displayGroups.length > 0 && (
         <View
-          className="absolute left-5 right-5"
-          style={{ bottom: Math.max(insets.bottom, 26) + 66 }}
-          // Only the button takes touches; drags on the notes scroll the grid
+          className="absolute left-0 right-0 bottom-0"
+          // Only the button takes touches; drags on the fade scroll the grid
           pointerEvents="box-none"
         >
-          {/* Notes float over the photo grid — the scrim pill keeps them legible */}
-          {scanning ? (
-            <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2" pointerEvents="none">
-              <Text className="text-white/75 text-[11px] text-center">
-                Scan running — reviewing already-found groups
-              </Text>
-            </View>
-          ) : (
-            !analyzerUsed &&
-            scannedAt > 0 && (
-              <View className="self-center rounded-full bg-scrim px-3 py-1 mb-2" pointerEvents="none">
-                <Text className="text-white/75 text-[11px] text-center">
-                  Grouped by when photos were taken
-                </Text>
-              </View>
-            )
-          )}
-          <GradientPillButton
-            label={`Review ${reviewCount} group${reviewCount === 1 ? '' : 's'}`}
-            icon="sparkles"
-            variant="freed"
-            onPress={() => handleStartReview()}
+          <LinearGradient
+            pointerEvents="none"
+            colors={[`${fadeBottom}00`, fadeBottom]}
+            locations={[0, 0.45]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: tabBarTop + 112 }}
           />
+          <View
+            className="mx-[18px]"
+            style={{ marginBottom: tabBarTop + 12 }}
+            pointerEvents="box-none"
+          >
+            {notes && (
+              <View
+                className="self-center rounded-full bg-card border border-hairline px-3 min-h-[26px] justify-center mb-2"
+                pointerEvents="none"
+              >
+                <Text className="text-fg-2 text-[12px] font-semibold text-center">{notes}</Text>
+              </View>
+            )}
+            <PrimaryButton
+              label={`Review ${reviewCount} group${reviewCount === 1 ? '' : 's'}`}
+              icon="sparkle"
+              floating
+              onPress={() => handleStartReview()}
+            />
+          </View>
         </View>
       )}
       <StatusBarScrim />
