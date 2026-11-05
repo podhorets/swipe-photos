@@ -20,7 +20,8 @@ import { usePlanStore } from '@/stores/planStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { AssetMeta } from '@/types';
 
-const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
+const TILE_GAP = 11;
+const TILE_WIDTH = (SCREEN.width - 42 - TILE_GAP) / 2; // 21pt screen padding
 // Same smallest story size the Feed uses, so a trip shows in both places
 const MIN_PLACE_PHOTOS = 3;
 
@@ -82,7 +83,7 @@ export function LibraryTypes() {
 
   return (
     <View>
-      <View className="flex-row flex-wrap gap-3 mb-6">
+      <View className="flex-row flex-wrap mt-3.5" style={{ gap: TILE_GAP }}>
         <CategoryTile
           label={randomLabel}
           subtitle="Quick 5-min session"
@@ -99,7 +100,8 @@ export function LibraryTypes() {
         <CategoryTile
           label="Screenshots"
           subtitle={`${Math.round(screenshotsProgress * 100)}% reviewed`}
-          icon="phone-portrait-outline"
+          icon="phone"
+          plain
           count={stacks.screenshots.length}
           coverUri={stacks.screenshots[0]?.uri}
           width={TILE_WIDTH}
@@ -117,7 +119,7 @@ export function LibraryTypes() {
         <CategoryTile
           label="Videos"
           subtitle={`${formatBytes(stacks.videos.length * AVG_VIDEO_SIZE_BYTES, 0)} total`}
-          icon="videocam"
+          icon="video"
           count={stacks.videos.length}
           coverUri={stacks.videos[0]?.uri}
           width={TILE_WIDTH}
@@ -136,7 +138,7 @@ export function LibraryTypes() {
         <CategoryTile
           label="On This Day"
           subtitle={`Memories from ${monthDay}`}
-          icon="sparkles"
+          icon="sparkle"
           count={stacks.onThisDay.length}
           coverUri={stacks.onThisDay[0]?.uri}
           width={TILE_WIDTH}
@@ -144,11 +146,9 @@ export function LibraryTypes() {
         />
       </View>
 
-      <View className="flex-row items-baseline justify-between mb-3">
-        <Text className="text-white text-[19px] font-bold" style={{ letterSpacing: -0.3 }}>
-          Places
-        </Text>
-        <Text className="text-white/40 text-[13px] font-medium">On your iPhone</Text>
+      <View className="flex-row items-baseline justify-between mt-[22px] mb-2.5 mx-0.5">
+        <Text className="font-display text-fg text-[21px]">Places</Text>
+        <Text className="text-fg-2 text-[13.5px]">On your iPhone</Text>
       </View>
       {places.length > 0 ? (
         places.map((story) => (
@@ -165,7 +165,7 @@ export function LibraryTypes() {
           />
         ))
       ) : (
-        <Text className="text-white/45 text-[14px] leading-5">
+        <Text className="text-fg-2 text-[14px] leading-5 mx-0.5">
           {!isPhotoAnalyzerAvailable()
             ? 'Places need photo locations, which this device can’t read.'
             : scanning

@@ -1,11 +1,12 @@
 import { Pressable, View, Text } from 'react-native';
 import Animated from 'react-native-reanimated';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { GlassCard } from '@/components/glass/GlassCard';
+import { Card } from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { useSpringPress } from '@/hooks/useSpringPress';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 interface MonthRowProps {
   monthKey: string;    // 'YYYY-MM'
@@ -20,6 +21,7 @@ interface MonthRowProps {
 }
 
 export function MonthRow({ label, count, progress, isComplete, coverUri, subtitle, onPress }: MonthRowProps) {
+  const t = useTheme();
   const { animatedStyle, onPressIn, onPressOut } = useSpringPress();
 
   function handlePress() {
@@ -30,65 +32,47 @@ export function MonthRow({ label, count, progress, isComplete, coverUri, subtitl
   const pct = Math.round(progress * 100);
 
   return (
-    <Animated.View style={animatedStyle}>
+    <Animated.View style={animatedStyle} className="mb-[9px]">
       <Pressable onPress={handlePress} onPressIn={onPressIn} onPressOut={onPressOut}>
-        <GlassCard noBlur radius={24} className="mb-2.5">
-          <View className="p-3 flex-row items-center gap-3.5">
-            {/* Photo thumbnail */}
-            <View className="w-[62px] h-[62px] rounded-2xl overflow-hidden bg-white/10">
-              {coverUri && (
-                <Image
-                  source={{ uri: coverUri }}
-                  style={{ width: '100%', height: '100%' }}
-                  contentFit="cover"
-                  recyclingKey={coverUri}
-                  transition={100}
-                />
-              )}
-            </View>
-
-            {/* Labels */}
-            <View className="flex-1">
-              <Text className="text-white font-bold text-base" style={{ letterSpacing: -0.2 }}>
-                {label}
-              </Text>
-              <Text className="text-white/45 text-[13px] mt-0.5">
-                {subtitle ?? `${count.toLocaleString()} items`}
-              </Text>
-            </View>
-
-            {/* Right badge: done check or progress ring */}
-            {isComplete ? (
-              <View
-                className="w-[30px] h-[30px] rounded-full items-center justify-center mr-1"
-                style={{
-                  backgroundColor: 'rgba(48,209,88,0.18)',
-                  borderWidth: 1.5,
-                  borderColor: 'rgba(48,209,88,0.6)',
-                }}
-              >
-                <Ionicons name="checkmark" size={15} color="#30D158" />
-              </View>
-            ) : (
-              <View className="mr-1">
-                <ProgressRing
-                  size={34}
-                  radius={14}
-                  strokeWidth={3.5}
-                  progress={progress}
-                  trackColor="rgba(255,255,255,0.12)"
-                >
-                  <Text
-                    className="text-white/70 text-[9px] font-bold tracking-tighter"
-                    accessibilityLabel={`${pct} percent reviewed`}
-                  >
-                    {pct}%
-                  </Text>
-                </ProgressRing>
-              </View>
+        <Card className="min-h-[81px] pl-2.5 pr-3 py-2.5 flex-row items-center gap-3">
+          {/* Photo thumbnail */}
+          <View className="w-[60px] h-[60px] rounded-xl overflow-hidden bg-track">
+            {coverUri && (
+              <Image
+                source={{ uri: coverUri }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                recyclingKey={coverUri}
+                transition={100}
+              />
             )}
           </View>
-        </GlassCard>
+
+          {/* Labels */}
+          <View className="flex-1">
+            <Text className="text-fg font-bold text-[15.5px]">{label}</Text>
+            <Text className="text-fg-2 text-[13.5px] mt-0.5">{subtitle ?? `${count.toLocaleString()} items`}</Text>
+          </View>
+
+          {/* Right badge: done check or progress ring */}
+          {isComplete ? (
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center bg-keep-tint border-[3px] border-keep-ring"
+              accessibilityLabel="Reviewed"
+            >
+              <Icon name="check" size={14} color={t.keep.icon} strokeWidth={3} />
+            </View>
+          ) : (
+            <ProgressRing size={32} radius={14.5} strokeWidth={3} progress={progress}>
+              <Text
+                className={`text-[8.5px] font-bold ${pct > 0 ? 'text-fg' : 'text-fg-2'}`}
+                accessibilityLabel={`${pct} percent reviewed`}
+              >
+                {pct}%
+              </Text>
+            </ProgressRing>
+          )}
+        </Card>
       </Pressable>
     </Animated.View>
   );

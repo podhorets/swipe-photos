@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, SectionList, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { getByMonth } from '@/lib/gallery/grouper';
@@ -10,8 +9,9 @@ import { monthLabel } from '@/lib/dateUtils';
 import { MonthRow } from '@/components/ui/MonthRow';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { LibraryTypes } from '@/components/library/LibraryTypes';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
+import { EmptyState as Empty } from '@/components/ui/EmptyState';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
+import { StatusBarScrim } from '@/components/ui/StatusBarScrim';
 import { posthog } from '@/lib/posthog';
 import { gateSessionStart } from '@/lib/sessionGate';
 
@@ -34,12 +34,8 @@ interface YearSection {
 
 function EmptyState() {
   return (
-    <View className="flex-1 items-center justify-center gap-4 px-8">
-      <Ionicons name="calendar-number-outline" size={64} color="rgba(255,255,255,0.12)" />
-      <Text className="text-white text-xl font-semibold text-center">No photos yet</Text>
-      <Text className="text-white/40 text-base text-center">
-        Photos from your library will be grouped here by month.
-      </Text>
+    <View className="flex-1 items-center justify-center pb-24">
+      <Empty icon="calendar" title="No photos yet" body="Photos from your library will be grouped here by month." />
     </View>
   );
 }
@@ -96,11 +92,9 @@ export default function LibraryScreen() {
   }
 
   const header = (
-    <View className="mb-5">
-      <Text className="text-white text-[34px] font-extrabold" style={{ letterSpacing: -0.8 }}>
-        Library
-      </Text>
-      <Text className="text-white/45 text-[15px] mt-1">
+    <View>
+      <Text className="font-display text-fg text-[34px] leading-[37px]">Library</Text>
+      <Text className="text-fg-2 text-[14.5px] mt-[3px]">
         {monthCount > 0
           ? `${monthCount} month${monthCount === 1 ? '' : 's'} · ${itemCount.toLocaleString()} items`
           : 'Browse your photos by month'}
@@ -112,16 +106,16 @@ export default function LibraryScreen() {
   );
 
   const contentStyle = {
-    paddingTop: insets.top + 16,
+    paddingTop: insets.top + 12,
     paddingBottom: insets.bottom + 110,
-    paddingHorizontal: 20,
+    paddingHorizontal: 21,
   };
 
   if (sections.length === 0) {
     return (
-      <View className="flex-1 bg-bg-dark">
-        <AuroraBackground variant="by-month" />
-        <View style={{ paddingTop: insets.top + 16 }} className="px-5 pb-4">
+      <View className="flex-1">
+        <ScreenBackground />
+        <View style={{ paddingTop: insets.top + 12 }} className="px-[21px] pb-4">
           {header}
         </View>
         <EmptyState />
@@ -131,8 +125,8 @@ export default function LibraryScreen() {
 
   if (view === 'Types') {
     return (
-      <View className="flex-1 bg-bg-dark">
-        <AuroraBackground variant="by-month" />
+      <View className="flex-1">
+        <ScreenBackground />
         <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator={false}>
           {header}
           <LibraryTypes />
@@ -143,8 +137,8 @@ export default function LibraryScreen() {
   }
 
   return (
-    <View className="flex-1 bg-bg-dark">
-      <AuroraBackground variant="by-month" />
+    <View className="flex-1">
+      <ScreenBackground />
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.monthKey}
@@ -160,10 +154,7 @@ export default function LibraryScreen() {
           />
         )}
         renderSectionHeader={({ section }) => (
-          <Text
-            className="text-white/40 text-[13px] font-bold mb-2.5 mt-2"
-            style={{ letterSpacing: 1.3 }}
-          >
+          <Text className="text-fg-2 text-[12px] font-bold mt-[26px] mb-2 ml-0.5" style={{ letterSpacing: 1.4 }}>
             {section.title}
           </Text>
         )}

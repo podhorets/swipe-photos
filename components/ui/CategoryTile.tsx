@@ -2,24 +2,30 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Card } from '@/components/ui/Card';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { IconWell } from '@/components/ui/IconWell';
+import { ON_PHOTO } from '@/constants/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 interface CategoryTileProps {
   label: string;
   subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IconName;
   count: number;
   coverUri?: string;
   width: number;
+  /** A plain card with a blue icon well instead of a photo (Screenshots). */
+  plain?: boolean;
   disabled?: boolean;
   loading?: boolean;
   onPress: () => void;
 }
 
-const SCRIM = ['rgba(5,5,8,0.15)', 'rgba(5,5,8,0.82)'] as const;
+const HEIGHT = 118;
+const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
 
-/** Photo-forward category tile for the Home 2×2 grid. */
+/** Library › Types tile: a photo with a count chip, or a plain card. */
 export function CategoryTile({
   label,
   subtitle,
@@ -27,10 +33,15 @@ export function CategoryTile({
   count,
   coverUri,
   width,
+  plain = false,
   disabled = false,
   loading = false,
   onPress,
 }: CategoryTileProps) {
+  const t = useTheme();
+  const countLabel = loading ? '…' : count.toLocaleString();
+  const showPhoto = !plain && coverUri != null;
+
   return (
     <Pressable
       onPress={onPress}
@@ -39,42 +50,41 @@ export function CategoryTile({
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${count} items`}
     >
-      <View
-        className="rounded-3xl overflow-hidden border border-white/[0.14] bg-white/[0.06]"
-        style={{ width, height: 122 }}
-      >
-        {coverUri && (
-          <Image
-            source={{ uri: coverUri }}
-            contentFit="cover"
-            recyclingKey={coverUri}
-            transition={150}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
-        )}
-        <LinearGradient
-          colors={SCRIM}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-        {/* Count pill */}
-        <View className="absolute top-3 right-3 rounded-full overflow-hidden">
-          <BlurView intensity={20} tint="dark" className="px-2.5 py-1 bg-scrim">
-            <Text className="text-white text-xs font-bold">
-              {loading ? '…' : count.toLocaleString()}
+      {showPhoto ? (
+        <View className="rounded-[22px] overflow-hidden bg-track" style={{ width, height: HEIGHT, boxShadow: t.shadow.card }}>
+          <Image source={{ uri: coverUri }} contentFit="cover" recyclingKey={coverUri} transition={150} style={FILL} />
+          <LinearGradient colors={ON_PHOTO.scrim} locations={[0, 1]} style={FILL} />
+          <View className="absolute top-2.5 right-2.5 min-w-[22px] h-[22px] px-[7px] rounded-full bg-chip items-center justify-center">
+            <Text className="text-chip-fg text-[11px] font-extrabold">{countLabel}</Text>
+          </View>
+          <View className="absolute left-3 right-3 bottom-2.5">
+            <Icon name={icon} size={18} color={ON_PHOTO.text} />
+            <Text className="font-display text-on-photo text-[17px]" numberOfLines={1}>
+              {label}
             </Text>
-          </BlurView>
+            <Text className="text-on-photo-2 text-[11.5px]" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </View>
         </View>
-        {/* Label block */}
-        <View className="absolute left-3.5 right-3.5 bottom-3">
-          <Ionicons name={icon} size={20} color="#FFFFFF" style={{ marginBottom: 4 }} />
-          <Text className="text-white text-base font-bold" style={{ letterSpacing: -0.2 }} numberOfLines={1}>
-            {label}
-          </Text>
-          <Text className="text-white/60 text-xs mt-px" numberOfLines={1}>
-            {subtitle}
-          </Text>
-        </View>
-      </View>
+      ) : (
+        <Card style={{ width, height: HEIGHT }}>
+          <View className="absolute top-2.5 right-2.5 min-w-[22px] h-[22px] px-[7px] rounded-full bg-raised items-center justify-center">
+            <Text className="text-fg-2 text-[11px] font-extrabold">{countLabel}</Text>
+          </View>
+          <View className="absolute left-3 top-3.5">
+            <IconWell icon={icon} color="blue" />
+          </View>
+          <View className="absolute left-3 right-3 bottom-2.5">
+            <Text className="font-display text-fg text-[17px]" numberOfLines={1}>
+              {label}
+            </Text>
+            <Text className="text-fg-2 text-[11.5px]" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </View>
+        </Card>
+      )}
     </Pressable>
   );
 }
