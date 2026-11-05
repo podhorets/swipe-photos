@@ -184,6 +184,8 @@ export const ON_PHOTO = {
   textSecondary: 'rgba(255,255,255,0.9)',
   scrim: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)'] as const,
   scrimLocations: [0.35, 1] as const,
+  /** Dims a photo headed for deletion */
+  dim: 'rgba(0,0,0,0.35)',
   keepOverlay: 'rgba(30,158,74,0.82)',
   deleteOverlay: 'rgba(207,58,48,0.82)',
 };

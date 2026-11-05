@@ -5,8 +5,9 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS, SWIPE } from '@/constants/theme';
+import { Icon } from '@/components/ui/Icon';
+import { ON_PHOTO } from '@/constants/colors';
+import { SWIPE } from '@/constants/theme';
 
 interface ActionOverlayProps {
   translateX: SharedValue<number>;
@@ -66,21 +67,21 @@ export function ActionOverlay({ translateX, sizeLabel }: ActionOverlayProps) {
       {/* DELETE */}
       <Animated.View
         className="absolute inset-0 items-center justify-center"
-        style={[{ backgroundColor: COLORS.delete.tint }, deleteOverlayStyle]}
+        style={[{ backgroundColor: ON_PHOTO.deleteOverlay }, deleteOverlayStyle]}
         pointerEvents="none"
       >
         <View className="items-center gap-2">
           <Animated.View style={deleteIconStyle}>
-            <Ionicons name="trash-outline" size={48} color="white" />
+            <Icon name="trash" size={48} color={ON_PHOTO.text} strokeWidth={1.8} />
           </Animated.View>
           <Animated.Text
-            className="text-white font-bold text-2xl tracking-widest"
+            className="text-on-photo font-bold text-2xl tracking-widest"
             style={deleteLabelStyle}
           >
             DELETE
           </Animated.Text>
           {sizeLabel && (
-            <Animated.Text className="text-white/70 text-sm mt-1" style={deleteLabelStyle}>
+            <Animated.Text className="text-on-photo-2 text-sm mt-1" style={deleteLabelStyle}>
               {sizeLabel}
             </Animated.Text>
           )}
@@ -90,15 +91,15 @@ export function ActionOverlay({ translateX, sizeLabel }: ActionOverlayProps) {
       {/* KEEP */}
       <Animated.View
         className="absolute inset-0 items-center justify-center"
-        style={[{ backgroundColor: COLORS.keep.tint }, keepOverlayStyle]}
+        style={[{ backgroundColor: ON_PHOTO.keepOverlay }, keepOverlayStyle]}
         pointerEvents="none"
       >
         <View className="items-center gap-2">
           <Animated.View style={keepIconStyle}>
-            <Ionicons name="checkmark-circle-outline" size={48} color="white" />
+            <Icon name="checkCircle" size={48} color={ON_PHOTO.text} strokeWidth={1.8} />
           </Animated.View>
           <Animated.Text
-            className="text-white font-bold text-2xl tracking-widest"
+            className="text-on-photo font-bold text-2xl tracking-widest"
             style={keepLabelStyle}
           >
             KEEP

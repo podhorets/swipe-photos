@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { View, ViewStyle } from 'react-native';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,6 +22,7 @@ interface SkeletonTileProps {
  * No external gradient library required.
  */
 export function SkeletonTile({ width, height, borderRadius = 16, style }: SkeletonTileProps) {
+  const t = useTheme();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function SkeletonTile({ width, height, borderRadius = 16, style }: Skelet
           width,
           height,
           borderRadius,
-          backgroundColor: 'rgba(255,255,255,0.07)',
+          backgroundColor: t.track,
           overflow: 'hidden',
         },
         style,
@@ -64,7 +66,7 @@ export function SkeletonTile({ width, height, borderRadius = 16, style }: Skelet
         ]}
       >
         <View style={{ flex: 1 }} />
-        <View style={{ flex: 2, backgroundColor: 'rgba(255,255,255,0.13)' }} />
+        <View style={{ flex: 2, backgroundColor: t.surface.raised }} />
         <View style={{ flex: 1 }} />
       </Animated.View>
     </View>

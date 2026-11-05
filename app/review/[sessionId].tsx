@@ -4,8 +4,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { useSession } from '@/hooks/useSession';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -13,13 +11,17 @@ import { useKeepStore } from '@/stores/keepStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useStreakStore } from '@/stores/streakStore';
 import { usePlanStore } from '@/stores/planStore';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SwipeStack, type SwipeStackHandle } from '@/components/swipe/SwipeStack';
 import { GroupReview, type GroupReviewHandle } from '@/components/similar/GroupReview';
-import { ActionButton } from '@/components/ui/ActionButton';
+import { CircleButton } from '@/components/ui/CircleButton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
 import { SessionComplete } from '@/components/ui/SessionComplete';
-import { COLORS, GRADIENTS, REVIEW_CARD } from '@/constants/theme';
+import { SwipeActionButton } from '@/components/ui/SwipeActionButton';
+import { REVIEW_CARD } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import type { Category } from '@/types';
 import { posthog } from '@/lib/posthog';
 
@@ -31,10 +33,9 @@ const PRELOAD_TIMEOUT_MS = 2000;
 
 /**
  * Outcome button for the group review bar. Titles lead with the OUTCOME
- * ("Keep All" / "Delete N") so neither needs decoding — the old pair both
- * started with "Keep", which read ambiguously. Each wears its outcome's color
- * as a border; `highlighted` fades in a fill and glow when the stars make it
- * the obvious choice (every photo starred → Keep All, none → Delete).
+ * ("Keep All" / "Delete N") so neither needs decoding. Each wears its
+ * outcome's ring; `highlighted` fades in the outcome's tint when the stars
+ * make it the obvious choice (every photo starred → Keep All, none → Delete).
  */
 function GroupActionButton({
   icon,
@@ -45,7 +46,7 @@ function GroupActionButton({
   disabled = false,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: IconName;
   title: string;
   subtitle: string;
   tone: 'keep' | 'delete';
@@ -53,90 +54,47 @@ function GroupActionButton({
   disabled?: boolean;
   onPress: () => void;
 }) {
-  const color = tone === 'keep' ? COLORS.keep.solid : COLORS.delete.solid;
+  const t = useTheme();
   const glow = useSharedValue(highlighted ? 1 : 0);
   useEffect(() => {
     glow.value = withTiming(highlighted ? 1 : 0, { duration: 220 });
   }, [highlighted, glow]);
-  const glowStyle = useAnimatedStyle(() => ({ shadowOpacity: glow.value * 0.7 }));
   const fillStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+  const isKeep = tone === 'keep';
 
-  return (
-    // The glow (an iOS shadow) lives on this wrapper: the Pressable clips its
-    // own corners, which would clip a shadow drawn on it too
-    <Animated.View
-      className="flex-1 rounded-3xl bg-bg-dark"
-      style={[
-        { shadowColor: color, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
-        glowStyle,
-        { opacity: disabled ? 0.35 : 1 },
-      ]}
-    >
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={`${title} — ${subtitle}`}
-        className={`rounded-3xl overflow-hidden border-2 bg-white/10 active:opacity-80 ${
-          tone === 'keep'
-            ? highlighted
-              ? 'border-[#30D158]'
-              : 'border-[rgba(48,209,88,0.55)]'
-            : highlighted
-              ? 'border-[#FF453A]'
-              : 'border-[rgba(255,69,58,0.55)]'
-        }`}
-      >
-        <Animated.View className="absolute inset-0" style={fillStyle} pointerEvents="none">
-          <LinearGradient
-            colors={tone === 'keep' ? GRADIENTS.freed : GRADIENTS.delete}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ flex: 1 }}
-          />
-        </Animated.View>
-        <View className="flex-row items-center justify-center gap-2.5 py-3 px-3">
-          <Ionicons name={icon} size={18} color={highlighted ? 'white' : color} />
-          <View>
-            <Text className="text-white text-[15px] font-bold" style={{ letterSpacing: -0.2 }}>
-              {title}
-            </Text>
-            <Text className="text-white/70 text-[11px] mt-px">{subtitle}</Text>
-          </View>
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-function GlassCircleButton({
-  icon,
-  onPress,
-  size = 40,
-  iconSize = 20,
-  label,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  onPress: () => void;
-  size?: number;
-  iconSize?: number;
-  label: string;
-}) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={label}
-      hitSlop={6}
-      className="items-center justify-center rounded-full bg-[rgba(24,24,28,0.6)] border border-white/[0.16] active:opacity-70"
-      style={{ width: size, height: size }}
+      accessibilityLabel={`${title} — ${subtitle}`}
+      className={`flex-1 min-h-[64px] rounded-full overflow-hidden border-2 bg-card active:opacity-80 ${
+        isKeep ? 'border-keep-ring' : 'border-del-ring'
+      }`}
+      style={{ opacity: disabled ? 0.4 : 1 }}
     >
-      <Ionicons name={icon} size={iconSize} color="white" />
+      <Animated.View
+        className={`absolute inset-0 ${isKeep ? 'bg-keep-tint' : 'bg-del-tint'}`}
+        style={fillStyle}
+        pointerEvents="none"
+      />
+      <View className="flex-1 flex-row items-center gap-2 px-3 py-2">
+        <Icon name={icon} size={22} color={isKeep ? t.keep.icon : t.remove.icon} />
+        <View className="flex-1">
+          <Text className="font-display text-fg text-[17px]" numberOfLines={1}>
+            {title}
+          </Text>
+          <Text className="text-fg-2 text-[11px]" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
+      </View>
     </Pressable>
   );
 }
 
 export default function ReviewScreen() {
+  const t = useTheme();
   const insets = useSafeAreaInsets();
   const { sessionId, year, month, startGroup } = useLocalSearchParams<{
     sessionId: string;
@@ -366,32 +324,28 @@ export default function ReviewScreen() {
   // so instead of waiting on a stack that will never fill
   if (phase === 'active' && session && session.assetIds.length === 0) {
     return (
-      <View className="flex-1 bg-bg-dark items-center justify-center px-8">
-        <AuroraBackground />
-        <Ionicons name="checkmark-done-circle-outline" size={64} color="rgba(48,209,88,0.8)" />
-        <Text className="text-white text-2xl font-bold mt-5 text-center">All caught up</Text>
-        <Text className="text-white/60 text-base mt-2 text-center leading-6">
-          There are no photos left to review here.
-        </Text>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          className="mt-8 bg-white/15 rounded-full px-8 min-h-[50px] items-center justify-center active:opacity-70"
-        >
-          <Text className="text-white font-semibold text-base">Done</Text>
-        </Pressable>
+      <View className="flex-1 items-center justify-center">
+        <ScreenBackground />
+        <EmptyState
+          icon="checkCircle"
+          color="green"
+          title="All caught up"
+          body="There are no photos left to review here."
+          action={{ label: 'Done', onPress: () => router.back() }}
+        />
       </View>
     );
   }
 
   if (phase !== 'active' || !session || !sessionReady) {
     return (
-      <View className="flex-1 bg-bg-dark items-center justify-center">
+      <View className="flex-1 items-center justify-center">
+        <ScreenBackground />
         {/* Full-screen modal has no back gesture — never leave this state without an exit */}
-        <View className="absolute left-5" style={{ top: insets.top + 12 }}>
-          <GlassCircleButton icon="close" onPress={() => router.back()} label="Close session" />
+        <View className="absolute left-[18px]" style={{ top: insets.top + 8 }}>
+          <CircleButton icon="close" onPress={() => router.back()} accessibilityLabel="Close session" />
         </View>
-        <Text className="text-white/50">Loading session…</Text>
+        <Text className="text-fg-2">Loading session…</Text>
         {/* Off-screen pre-decode: render first 3 cards at exact card size so SDWebImage
             populates its memory cache before SwipeStack mounts. Once the top card fires
             onLoad, sessionReady → true and the stack replaces this view. */}
@@ -409,18 +363,13 @@ export default function ReviewScreen() {
   }
 
   return (
-    <View className="flex-1 bg-bg-dark">
-      {/* Ambient echo of the current photo */}
-      {/* No backdrop by design: review screens use the flat dark canvas
-          (bg-bg-dark) like every photo-judging tool — nothing may glow,
-          tint, or otherwise compete with the photos */}
+    <View className="flex-1">
+      {/* Calm background only — nothing may glow or tint behind the photos */}
+      <ScreenBackground />
 
       {/* Header */}
-      <View
-        className="flex-row items-center px-5 pb-2.5 gap-3"
-        style={{ paddingTop: insets.top + 12 }}
-      >
-        <GlassCircleButton icon="close" onPress={handleClose} label="Close session" />
+      <View className="flex-row items-center px-[18px] pb-2.5 gap-2" style={{ paddingTop: insets.top + 8 }}>
+        <CircleButton icon="close" onPress={handleClose} accessibilityLabel="Close session" />
 
         <View className="flex-1" />
 
@@ -428,13 +377,13 @@ export default function ReviewScreen() {
             toggle + undo on the right) can't push it off screen center */}
         <View
           className="absolute inset-x-0 items-center justify-center"
-          style={{ top: insets.top + 12, height: 40 }}
+          style={{ top: insets.top + 8, height: 38 }}
           pointerEvents="none"
         >
-          <Text className="text-white font-bold text-base" style={{ letterSpacing: -0.2 }}>
+          <Text className="font-display text-fg text-[17px]" numberOfLines={1}>
             {session.label}
           </Text>
-          <Text className="text-white/55 text-xs mt-px">
+          <Text className="text-fg-2 text-[12px]">
             {isSimilar
               ? `${groupsLeft} of ${totalGroups} groups left`
               : `${remainingCount} of ${totalCount} left`}
@@ -449,27 +398,21 @@ export default function ReviewScreen() {
             accessibilityLabel={
               multiBest ? 'Multi-select mode — tap for single best mode' : 'Single best mode — tap for multi-select mode'
             }
-            className="flex-row items-center gap-1 px-2.5 rounded-full bg-[rgba(24,24,28,0.6)] border border-white/[0.16] active:opacity-70"
-            style={{ height: 40 }}
+            className="flex-row items-center gap-[5px] px-3 h-[38px] rounded-full bg-card border border-hairline active:opacity-70"
           >
-            <Ionicons name={multiBest ? 'star' : 'star-outline'} size={14} color="#FFD60A" />
-            <Text className="text-white text-[12px] font-bold">{multiBest ? 'Multi' : 'One'}</Text>
+            <Icon name="star" size={15} color={t.star} fill={multiBest ? t.star : undefined} />
+            <Text className="text-fg text-[14px] font-bold">{multiBest ? 'Multi' : 'One'}</Text>
           </Pressable>
         )}
 
-        {/* Undo button — fades in after first swipe */}
+        {/* Undo — fades in after the first swipe */}
         <Animated.View style={undoAnimStyle} pointerEvents="box-none">
-          <GlassCircleButton
-            icon="arrow-undo-outline"
-            iconSize={18}
-            onPress={handleUndo}
-            label="Undo last swipe"
-          />
+          <CircleButton icon="undo" onPress={handleUndo} accessibilityLabel="Undo last swipe" />
         </Animated.View>
       </View>
 
       {/* Progress bar */}
-      <ProgressBar progress={progressFraction} />
+      <ProgressBar progress={progressFraction} thin className="mx-[18px]" />
 
       {/* Swipe stack / group review */}
       <View className="flex-1 items-center justify-center mt-3.5">
@@ -494,11 +437,11 @@ export default function ReviewScreen() {
           up Keep All; unstarring every photo lights up Delete. */}
       {isSimilar ? (
         <View
-          className="flex-row items-stretch justify-center gap-3 px-6"
+          className="flex-row items-stretch justify-center gap-3 px-[18px]"
           style={{ paddingBottom: insets.bottom + 24 }}
         >
           <GroupActionButton
-            icon="checkmark-circle-outline"
+            icon="checkCircle"
             tone="keep"
             title="Keep All"
             subtitle="Nothing gets deleted"
@@ -506,7 +449,7 @@ export default function ReviewScreen() {
             onPress={handleSwipeLeft}
           />
           <GroupActionButton
-            icon="trash-outline"
+            icon="trash"
             tone="delete"
             title={pendingCounts.deleteCount > 0 ? `Delete ${pendingCounts.deleteCount}` : 'Delete'}
             subtitle={
@@ -521,17 +464,12 @@ export default function ReviewScreen() {
         </View>
       ) : (
         <View
-          className="flex-row items-center justify-center gap-10"
-          style={{ paddingBottom: insets.bottom + 24 }}
+          className="flex-row items-center justify-between px-14"
+          style={{ paddingBottom: insets.bottom + 18 }}
         >
-          <ActionButton type="delete" onPress={handleSwipeLeft} />
-          <Text
-            className="text-white/40 text-[11px] font-semibold"
-            style={{ letterSpacing: 0.88 }}
-          >
-            SWIPE OR TAP
-          </Text>
-          <ActionButton type="keep" onPress={handleSwipeRight} />
+          <SwipeActionButton type="delete" onPress={handleSwipeLeft} />
+          <Text className="text-fg-2 text-[12px] font-bold">Swipe or tap</Text>
+          <SwipeActionButton type="keep" onPress={handleSwipeRight} />
         </View>
       )}
 

@@ -1,8 +1,7 @@
 import { memo, useEffect, useMemo } from 'react';
-import { Dimensions, View, Text } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import Animated, {
   useAnimatedStyle,
@@ -10,7 +9,10 @@ import Animated, {
   Extrapolation,
   type SharedValue,
 } from 'react-native-reanimated';
+import { PhotoChip } from '@/components/ui/PhotoChip';
+import { ON_PHOTO } from '@/constants/colors';
 import { REVIEW_CARD, SWIPE } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { formatBytes } from '@/lib/dateUtils';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useGalleryStore } from '@/stores/galleryStore';
@@ -19,14 +21,6 @@ import { ActionOverlay } from './ActionOverlay';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_LEFT = (SCREEN_WIDTH - REVIEW_CARD.width) / 2;
 
-const CARD_SHADOW = {
-  shadowColor: '#000',
-  shadowOpacity: 0.55,
-  shadowRadius: 28,
-  shadowOffset: { width: 0, height: 20 },
-};
-
-const CHIP_SCRIM = ['transparent', 'rgba(0,0,0,0.55)'] as const;
 
 // Stack depth → look. Depth 3 is the hidden staging slot behind the visible stack.
 const DEPTHS = [0, 1, 2, 3];
@@ -64,6 +58,7 @@ export const SwipeCard = memo(function SwipeCard({
   animTop,
   isTopCard,
 }: SwipeCardProps) {
+  const theme = useTheme();
   // Narrow per-asset selectors — only this card re-renders when its own size
   // arrives from the background fetch, not the entire SwipeStack.
   const realSize = useSessionStore((s) => s.sizeSnapshot.get(assetId));
@@ -119,16 +114,15 @@ export const SwipeCard = memo(function SwipeCard({
 
   return (
     <Animated.View
-      className="absolute rounded-4xl overflow-hidden border border-white/25"
+      className="absolute rounded-[26px] overflow-hidden bg-track"
       pointerEvents="none"
       style={[
         {
           width: REVIEW_CARD.width,
           height: REVIEW_CARD.height,
           left: CARD_LEFT,
-          backgroundColor: '#1C1C1E',
+          boxShadow: theme.shadow.swipeCard,
         },
-        CARD_SHADOW,
         cardStyle,
       ]}
     >
@@ -152,22 +146,13 @@ export const SwipeCard = memo(function SwipeCard({
         <>
           {/* Bottom scrim + metadata chips */}
           <LinearGradient
-            colors={CHIP_SCRIM}
+            colors={ON_PHOTO.scrim}
             style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 110 }}
             pointerEvents="none"
           />
-          <View className="absolute left-3.5 bottom-3.5 flex-row gap-2" pointerEvents="none">
-            {!!dateLabel && (
-              <View className="flex-row items-center gap-[5px] px-[11px] py-1.5 rounded-full bg-scrim">
-                <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.7)" />
-                <Text className="text-white text-xs font-semibold">{dateLabel}</Text>
-              </View>
-            )}
-            {!!sizeLabel && (
-              <View className="px-[11px] py-1.5 rounded-full bg-scrim">
-                <Text className="text-white text-xs font-semibold">{sizeLabel}</Text>
-              </View>
-            )}
+          <View className="absolute left-3 bottom-3.5 flex-row gap-2" pointerEvents="none">
+            {!!dateLabel && <PhotoChip label={dateLabel} icon="calendar" />}
+            {!!sizeLabel && <PhotoChip label={sizeLabel} />}
           </View>
         </>
       )}

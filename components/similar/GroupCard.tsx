@@ -1,14 +1,17 @@
 import React, { useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS, REVIEW_CARD } from '@/constants/theme';
+import { Icon } from '@/components/ui/Icon';
+import { PhotoChip } from '@/components/ui/PhotoChip';
+import { ON_PHOTO } from '@/constants/colors';
+import { REVIEW_CARD } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { formatBytes } from '@/lib/dateUtils';
 import { ProgressivePhoto } from '@/components/similar/ProgressivePhoto';
 
 export const GROUP_HERO_WIDTH = REVIEW_CARD.width;
 export const GROUP_HERO_HEIGHT = REVIEW_CARD.height - 118; // room for the thumbnail rail
-const THUMB_SIZE = 76;
+const THUMB_SIZE = 74;
 
 interface GroupCardProps {
   groupIds: string[];
@@ -40,6 +43,7 @@ export function GroupCard({
   onToggleStar,
   onPreview,
 }: GroupCardProps) {
+  const t = useTheme();
   // The suggested best leads the rail. Order is frozen at group load (the
   // component remounts per group) — starring or unstarring moves only the
   // badges, never the thumbnails, so nothing jumps under the user's finger.
@@ -58,42 +62,36 @@ export function GroupCard({
     <View style={{ width: GROUP_HERO_WIDTH }}>
       {/* Hero — last tapped photo, dimmed when it's headed for deletion */}
       <View
-        className={`rounded-3xl overflow-hidden bg-bg-card border ${
-          heroKept ? 'border-white/10' : 'border-[rgba(255,69,58,0.45)]'
-        }`}
-        style={{ width: GROUP_HERO_WIDTH, height: GROUP_HERO_HEIGHT }}
+        className={`rounded-[26px] overflow-hidden bg-track ${heroKept ? '' : 'border-[3px] border-del-ring'}`}
+        style={{ width: GROUP_HERO_WIDTH, height: GROUP_HERO_HEIGHT, boxShadow: t.shadow.swipeCard }}
       >
         {heroUri && (
           <Pressable onPress={() => onPreview(heroId)} accessibilityLabel="Preview photo">
             <ProgressivePhoto uri={heroUri} width={GROUP_HERO_WIDTH} height={GROUP_HERO_HEIGHT} />
           </Pressable>
         )}
-        {!heroKept && <View className="absolute inset-0 bg-black/35" pointerEvents="none" />}
+        {!heroKept && (
+          <View className="absolute inset-0" style={{ backgroundColor: ON_PHOTO.dim }} pointerEvents="none" />
+        )}
 
         {/* Fate badge — the hero's star state, in words */}
-        <View className="absolute top-3 left-3 flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/55">
-          <Ionicons
-            name={heroKept ? 'star' : 'trash-outline'}
-            size={12}
-            color={heroKept ? '#FFD60A' : COLORS.destructive}
-          />
-          <Text className="text-white text-[12px] font-bold">{heroKept ? 'Keep' : 'Delete'}</Text>
+        <View className="absolute top-3 left-3" pointerEvents="none">
+          {heroKept ? (
+            <PhotoChip label="Keep" star />
+          ) : (
+            <PhotoChip label="Delete" icon="trashSmall" iconColor={t.remove.icon} />
+          )}
         </View>
 
         {/* Info chips */}
-        <View className="absolute bottom-3 left-3 right-3 flex-row gap-2">
-          <View className="px-2.5 py-1.5 rounded-full bg-black/55">
-            <Text className="text-white text-[12px] font-semibold">
-              {groupIds.length} similar
-            </Text>
-          </View>
+        <View className="absolute bottom-3 left-3 right-3 flex-row gap-2" pointerEvents="none">
+          <PhotoChip label={`${groupIds.length} similar`} />
           {deleteIds.length > 0 && (
-            <View className="px-2.5 py-1.5 rounded-full bg-black/55 flex-row items-center gap-1">
-              <Ionicons name="trash-outline" size={11} color="#FF453A" />
-              <Text className="text-white text-[12px] font-semibold">
-                {deleteIds.length} · {formatBytes(freeBytes)}
-              </Text>
-            </View>
+            <PhotoChip
+              label={`${deleteIds.length} · ${formatBytes(freeBytes)}`}
+              icon="trashSmall"
+              iconColor={t.remove.icon}
+            />
           )}
         </View>
       </View>
@@ -102,7 +100,7 @@ export function GroupCard({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="mt-3"
+        className="mt-4"
         contentContainerClassName="gap-2.5 px-0.5"
       >
         {railIds.map((id) => {
@@ -120,32 +118,28 @@ export function GroupCard({
                     ? 'Marked for deletion — tap to star and keep'
                     : 'Marked for deletion — tap to keep this one instead'
               }
-              className={
-                isKept
-                  ? 'rounded-2xl overflow-hidden border-2 border-[#FFD60A]'
-                  : 'rounded-2xl overflow-hidden border-2 border-[rgba(255,69,58,0.45)]'
-              }
+              className={`rounded-2xl overflow-hidden border-[3px] bg-track ${isKept ? 'border-star' : 'border-del-ring'}`}
               style={{ width: THUMB_SIZE, height: THUMB_SIZE }}
             >
               {uri ? (
                 <Image
                   source={{ uri }}
-                  style={{ width: THUMB_SIZE, height: THUMB_SIZE, opacity: willDelete ? 0.55 : 1 }}
+                  style={{ width: '100%', height: '100%', opacity: willDelete ? 0.75 : 1 }}
                   contentFit="cover"
                 />
               ) : (
-                <View className="flex-1 bg-white/10 items-center justify-center">
-                  <Ionicons name="cloud-offline-outline" size={18} color="rgba(255,255,255,0.4)" />
+                <View className="flex-1 items-center justify-center">
+                  <Icon name="cloudOffline" size={18} color={t.text.tertiary} />
                 </View>
               )}
 
               {/* Fate marker: photos not kept show where they're headed */}
               {willDelete && (
                 <View
-                  className="absolute bottom-1 left-1 w-5 h-5 rounded-full bg-black/60 items-center justify-center"
+                  className="absolute bottom-1 left-1 w-5 h-5 rounded-full bg-del-fill items-center justify-center"
                   pointerEvents="none"
                 >
-                  <Ionicons name="trash-outline" size={11} color="#FF453A" />
+                  <Icon name="trashSmall" size={11} color={t.text.onButton} strokeWidth={2.6} />
                 </View>
               )}
 
@@ -153,8 +147,8 @@ export function GroupCard({
                   any number in Multi mode, or none (the whole group goes).
                   No other selection states exist. */}
               {isKept && (
-                <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFD60A] items-center justify-center">
-                  <Ionicons name="star" size={11} color="black" />
+                <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-star items-center justify-center">
+                  <Icon name="star" size={12} color={t.badge.text} fill={t.badge.text} />
                 </View>
               )}
             </Pressable>
