@@ -11,10 +11,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import * as MediaLibrary from 'expo-media-library';
 import * as LocalAuthentication from 'expo-local-authentication';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useKeepStore } from '@/stores/keepStore';
@@ -24,16 +22,23 @@ import { useStreakStore } from '@/stores/streakStore';
 import { usePlanStore } from '@/stores/planStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { SessionComplete } from '@/components/ui/SessionComplete';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import { GradientPillButton } from '@/components/ui/GradientPillButton';
+import { Card } from '@/components/ui/Card';
+import { BackCircle } from '@/components/ui/CircleButton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon } from '@/components/ui/Icon';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { formatBytes } from '@/lib/dateUtils';
 import type { AssetMeta, SwipeDecision } from '@/types';
 import { posthog } from '@/lib/posthog';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const GRID_GAP = 8;
-const CELL_SIZE = (SCREEN_WIDTH - 40 - GRID_GAP * 2) / 3; // px-5 screen padding, 3 cols
+const SCREEN_X = 21;
+const GRID_GAP = 10;
+const CELL_SIZE = (SCREEN_WIDTH - SCREEN_X * 2 - GRID_GAP * 2) / 3; // 3 columns
+const CELL_HEIGHT = 110;
 
 // ─── Photo cell ───────────────────────────────────────────────────────────────
 
@@ -46,16 +51,15 @@ function PhotoCell({
   selected: boolean;
   onToggle: (id: string) => void;
 }) {
+  const t = useTheme();
   return (
     <Pressable
       onPress={() => onToggle(asset.id)}
-      className="rounded-2xl overflow-hidden"
-      style={{
-        width: CELL_SIZE,
-        height: CELL_SIZE,
-        borderWidth: selected ? 2 : 1,
-        borderColor: selected ? 'rgba(255,69,58,0.85)' : 'rgba(255,255,255,0.1)',
-      }}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={selected ? 'Marked for deletion — tap to keep' : 'Kept — tap to delete'}
+      className={`rounded-[13px] overflow-hidden bg-track ${selected ? 'border-[2.5px] border-del-ring' : 'border border-hairline'}`}
+      style={{ width: CELL_SIZE, height: CELL_HEIGHT }}
     >
       <Image
         source={{ uri: asset.uri }}
@@ -65,31 +69,26 @@ function PhotoCell({
       />
       {/* Deselected — kept overlay */}
       {!selected && (
-        <View className="absolute inset-0 bg-[rgba(5,5,8,0.68)] items-center justify-center">
-          <View className="flex-row items-center gap-1 px-[9px] py-1 rounded-full bg-[rgba(48,209,88,0.2)] border border-[rgba(48,209,88,0.5)]">
-            <Ionicons name="heart" size={10} color="#30D158" />
-            <Text className="text-keep text-[10px] font-bold">Kept</Text>
+        <>
+          <View className="absolute inset-0 bg-card" style={{ opacity: 0.72 }} />
+          <View className="absolute inset-0 items-center justify-center">
+            <View className="flex-row items-center gap-1 px-[9px] py-1 rounded-full bg-keep-tint border border-keep-ring">
+              <Icon name="heart" size={11} color={t.keep.icon} fill={t.keep.icon} />
+              <Text className="text-keep-text text-[11px] font-bold">Kept</Text>
+            </View>
           </View>
-        </View>
+        </>
       )}
       {/* Selected — red check badge */}
       {selected && (
-        <View
-          className="absolute top-1.5 right-1.5 w-[22px] h-[22px] rounded-full bg-delete items-center justify-center"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.4,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: 4 },
-          }}
-        >
-          <Ionicons name="checkmark" size={13} color="white" />
+        <View className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-del-fill items-center justify-center">
+          <Icon name="check" size={11} color={t.text.onButton} strokeWidth={3.4} />
         </View>
       )}
       {/* Video badge */}
       {asset.mediaType === 'video' && (
-        <View className="absolute bottom-1 left-1 bg-black/60 rounded px-1 py-0.5 flex-row items-center gap-0.5">
-          <Ionicons name="play" size={9} color="white" />
+        <View className="absolute bottom-1.5 left-1.5 bg-chip rounded-full w-5 h-5 items-center justify-center">
+          <Icon name="play" size={10} color={t.photoChip.text} />
         </View>
       )}
     </Pressable>
@@ -100,16 +99,13 @@ function PhotoCell({
 
 function EmptyTrash() {
   return (
-    <View className="flex-1 items-center justify-center gap-3">
-      <Ionicons name="trash-outline" size={56} color="rgba(255,255,255,0.15)" />
-      <Text className="text-white/30 text-base">No photos marked for deletion</Text>
-      <Pressable
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        className="mt-2 min-h-[44px] px-6 justify-center active:opacity-60"
-      >
-        <Text className="text-white/60 text-base">Go back</Text>
-      </Pressable>
+    <View className="flex-1 items-center justify-center pb-20">
+      <EmptyState
+        icon="trash"
+        color="rose"
+        title="No photos marked for deletion"
+        action={{ label: 'Go back', onPress: () => router.back() }}
+      />
     </View>
   );
 }
@@ -117,6 +113,7 @@ function EmptyTrash() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function TrashScreen() {
+  const t = useTheme();
   const insets = useSafeAreaInsets();
 
   const index = useGalleryStore((s) => s.index);
@@ -289,20 +286,15 @@ export default function TrashScreen() {
     setShowSummary(true);
   }
 
+  const fadeBottom = t.background.colors[t.background.colors.length - 1];
+
   if (deleteAssets.length === 0 && !showSummary) {
     return (
-      <View className="flex-1 bg-bg-dark" style={{ paddingTop: insets.top }}>
-        <AuroraBackground variant="trash" />
-        <View className="flex-row items-center px-5 py-4 gap-3">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14]"
-          >
-            <Ionicons name="chevron-back" size={20} color="white" />
-          </Pressable>
-          <Text className="text-white text-2xl font-extrabold" style={{ letterSpacing: -0.5 }}>
-            Trash
-          </Text>
+      <View className="flex-1" style={{ paddingTop: insets.top }}>
+        <ScreenBackground />
+        <View className="flex-row items-center px-[18px] py-4 gap-2.5">
+          <BackCircle />
+          <Text className="font-display text-fg text-[22px]">Trash</Text>
         </View>
         <EmptyTrash />
       </View>
@@ -310,27 +302,15 @@ export default function TrashScreen() {
   }
 
   return (
-    <View className="flex-1 bg-bg-dark">
-      <AuroraBackground variant="trash" />
+    <View className="flex-1">
+      <ScreenBackground />
 
       {/* Header */}
-      <View
-        className="flex-row items-center px-5 pb-3.5 gap-3"
-        style={{ paddingTop: insets.top + 12 }}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-10 h-10 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14]"
-        >
-          <Ionicons name="chevron-back" size={20} color="white" />
-        </Pressable>
+      <View className="flex-row items-start pl-[18px] pr-[21px] pb-3 gap-2.5" style={{ paddingTop: insets.top + 16 }}>
+        <BackCircle className="mt-[3px]" />
         <View className="flex-1">
-          <Text className="text-white text-2xl font-extrabold" style={{ letterSpacing: -0.5 }}>
-            Trash
-          </Text>
-          <Text className="text-white/45 text-[13px] mt-px">
+          <Text className="font-display text-fg text-[22px]">Trash</Text>
+          <Text className="text-fg-2 text-[12.5px] leading-4 mt-0.5">
             Last check before deleting — tap to keep instead
           </Text>
         </View>
@@ -340,7 +320,7 @@ export default function TrashScreen() {
           className="min-h-[44px] justify-center active:opacity-60"
           hitSlop={12}
         >
-          <Text className="text-accent text-sm font-semibold">
+          <Text className="text-link text-[13px] font-bold">
             {allSelected ? 'Deselect all' : 'Select all'}
           </Text>
         </Pressable>
@@ -358,54 +338,37 @@ export default function TrashScreen() {
             onToggle={toggleSelect}
           />
         )}
-        columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: 20 }}
+        columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: SCREEN_X }}
         contentContainerStyle={{ gap: GRID_GAP, paddingBottom: insets.bottom + 140 }}
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Floating bottom bar over fade-out gradient */}
+      {/* Floating bottom bar over a fade into the background */}
       <View className="absolute bottom-0 left-0 right-0">
         <LinearGradient
-          colors={['transparent', 'rgba(5,5,8,0.9)']}
+          colors={[`${fadeBottom}00`, fadeBottom]}
           locations={[0, 0.4]}
-          style={{
-            paddingTop: 16,
-            paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 16,
-          }}
+          style={{ paddingTop: 16, paddingHorizontal: SCREEN_X, paddingBottom: insets.bottom + 12 }}
         >
-          <View
-            className="rounded-3xl overflow-hidden"
-            style={{
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.14)',
-              borderTopColor: 'rgba(255,255,255,0.28)',
-            }}
-          >
-            <BlurView intensity={60} tint="dark" className="bg-chrome">
-              <View className="flex-row items-center px-4 py-3.5 gap-3.5">
-                <View className="flex-1">
-                  <Text className="text-white text-[15px] font-bold">
-                    {selected.size} selected
-                  </Text>
-                  <Text className="text-white/45 text-xs mt-px">
-                    {selected.size > 0
-                      ? `About ${formatBytes(selectedBytes)} · recoverable for 30 days`
-                      : 'Tap photos to select'}
-                  </Text>
-                </View>
-                <GradientPillButton
-                  label="Delete"
-                  variant="delete"
-                  compact
-                  icon={faceIdEnabled ? 'lock-closed' : undefined}
-                  onPress={handleDelete}
-                  disabled={selected.size === 0}
-                  loading={isDeleting}
-                />
-              </View>
-            </BlurView>
-          </View>
+          <Card floating className="flex-row items-center min-h-[65px] pl-4 pr-2.5 py-2.5 gap-3">
+            <View className="flex-1">
+              <Text className="text-fg text-[15.5px] font-bold">{selected.size} selected</Text>
+              <Text className="text-fg-2 text-[11px] mt-px">
+                {selected.size > 0
+                  ? `About ${formatBytes(selectedBytes)} · recoverable for 30 days`
+                  : 'Tap photos to select'}
+              </Text>
+            </View>
+            <PrimaryButton
+              label="Delete"
+              variant="delete"
+              compact
+              icon={faceIdEnabled ? 'lock' : 'trashSmall'}
+              onPress={handleDelete}
+              disabled={selected.size === 0}
+              loading={isDeleting}
+            />
+          </Card>
         </LinearGradient>
       </View>
 

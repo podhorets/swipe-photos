@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Icon } from '@/components/ui/Icon';
 import { PhotoChip } from '@/components/ui/PhotoChip';
