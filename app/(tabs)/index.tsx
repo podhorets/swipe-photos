@@ -1,40 +1,37 @@
 import { AuroraBackground } from '@/components/glass/AuroraBackground';
 import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
 import { GlassCard } from '@/components/glass/GlassCard';
-import { CategoryTile } from '@/components/ui/CategoryTile';
+import { ShortcutTile } from '@/components/home/ShortcutTile';
+import { StackCard } from '@/components/home/StackCard';
 import { IconSquircle } from '@/components/ui/IconSquircle';
 import { SessionsMeter } from '@/components/ui/SessionsMeter';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { StreakChip } from '@/components/ui/StreakChip';
-import { AVG_VIDEO_SIZE_BYTES } from '@/constants/config';
 import { GRADIENTS, SCREEN } from '@/constants/theme';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatBytes } from '@/lib/dateUtils';
-import { getOnThisDay, getScreenshots, getVideos } from '@/lib/gallery/grouper';
+import { buildPlaceStories } from '@/lib/feed/stories';
+import { getOnThisDay } from '@/lib/gallery/grouper';
 import { effectiveBatchSize } from '@/lib/planUtils';
 import { startCategoryReview } from '@/lib/session/startCategoryReview';
 import { filterGroupsForReview } from '@/lib/similar/filterGroups';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
+import { useFeedStore } from '@/stores/feedStore';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useKeepStore } from '@/stores/keepStore';
+import { usePlacesStore } from '@/stores/placesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useSimilarStore } from '@/stores/similarStore';
-import type { Category } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
 
-interface TileDef {
-  id: Category;
-  label: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -48,66 +45,69 @@ export default function HomeScreen() {
   // Free plan clamps the tile label to match the actual session size
   const displayBatchSize = effectiveBatchSize(planState, batchSize);
 
-  const tiles: TileDef[] = useMemo(
-    () => [
-      { id: 'on-this-day', label: 'On This Day', icon: 'sparkles' },
-      { id: 'screenshots', label: 'Screenshots', icon: 'phone-portrait-outline' },
-      { id: 'videos', label: 'Videos', icon: 'videocam' },
-      { id: 'random', label: `Random ${displayBatchSize}`, icon: 'shuffle' },
-    ],
-    [displayBatchSize],
-  );
+  const liked = useFeedStore((s) => s.liked);
+  const trashed = useFeedStore((s) => s.trashed);
+  const locations = usePlacesStore((s) => s.locations);
 
-  // Counts + cover photos per category — one pass per index change
-  const { counts, covers, videoBytes } = useMemo(() => {
-    const onThisDay = getOnThisDay(index);
-    const screenshots = getScreenshots(index);
-    const videos = getVideos(index);
-    return {
-      counts: {
-        'on-this-day': onThisDay.length,
-        screenshots: screenshots.length,
-        videos: videos.length,
-        random: index.length,
-      },
-      covers: {
-        'on-this-day': onThisDay[0]?.uri,
-        screenshots: screenshots[0]?.uri,
-        videos: videos[0]?.uri,
-        random: index[0]?.uri,
-      },
-      videoBytes: videos.length * AVG_VIDEO_SIZE_BYTES,
-    };
+  // Photo GPS for the "By location" count — read on the device; the store skips photos already checked
+  useEffect(() => {
+    if (index.length > 0) usePlacesStore.getState().scan(index.map((a) => a.id));
   }, [index]);
 
-  // Per-category progress (0–1): ratio of kept items to total in category.
-  const categoryProgress = useMemo(() => {
-    function ratio(assets: { id: string }[]): number {
-      if (assets.length === 0) return 0;
-      return assets.filter((a) => keepIds.has(a.id)).length / assets.length;
-    }
+  const onThisDay = useMemo(() => getOnThisDay(index), [index]);
+  const onThisDayProgress = useMemo(
+    () => (onThisDay.length > 0 ? onThisDay.filter((a) => keepIds.has(a.id)).length / onThisDay.length : 0),
+    [onThisDay, keepIds],
+  );
+  // "4 photos from 2025, 2023 and 2021" — newest year first, at most three named
+  const onThisDaySubtitle = useMemo(() => {
+    const years = [...new Set(onThisDay.map((a) => new Date(a.creationTime).getFullYear()))].sort((a, b) => b - a);
+    const photos = `${onThisDay.length} ${onThisDay.length === 1 ? 'photo' : 'photos'}`;
+    if (years.length === 0) return photos;
+    const named = years.slice(0, 3);
+    const rest = years.length - named.length;
+    const list =
+      rest > 0
+        ? `${named.join(', ')} and ${rest} more ${rest === 1 ? 'year' : 'years'}`
+        : named.length === 1
+          ? String(named[0])
+          : `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}`;
+    return `${photos} from ${list}`;
+  }, [onThisDay]);
 
-    return {
-      screenshots: ratio(getScreenshots(index)),
-      videos: ratio(getVideos(index)),
-      'on-this-day': ratio(getOnThisDay(index)),
-    } as Partial<Record<Category, number>>;
-  }, [index, keepIds]);
+  const { yearCount, monthCount } = useMemo(() => {
+    const months = new Set(index.map((a) => {
+      const d = new Date(a.creationTime);
+      return d.getFullYear() * 12 + d.getMonth();
+    }));
+    const years = new Set([...months].map((m) => Math.floor(m / 12)));
+    return { yearCount: years.size, monthCount: months.size };
+  }, [index]);
 
-  function countFor(id: Category): number {
-    return counts[id as keyof typeof counts] ?? 0;
-  }
+  const placeCount = useMemo(() => {
+    const reviewed = new Set<string>([...keepIds, ...liked, ...trashed]);
+    return buildPlaceStories(index, locations, 3, reviewed).length;
+  }, [index, locations, keepIds, liked, trashed]);
 
-  function handleCategoryPress(category: Category) {
-    startCategoryReview(category, {
-      label: tiles.find((t) => t.id === category)?.label ?? category,
-      count: countFor(category),
-      progress: categoryProgress[category],
+  const randomLabel = `Random ${displayBatchSize}`;
+
+  function startOnThisDay() {
+    startCategoryReview('on-this-day', {
+      label: 'On This Day',
+      count: onThisDay.length,
+      progress: onThisDayProgress,
       indexing: isIndexing,
     });
   }
 
-  const monthDay = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  function startRandom() {
+    startCategoryReview('random', { label: randomLabel, count: index.length, indexing: isIndexing });
+  }
+
+  // Library opens on the chosen view; `at` makes a repeat tap re-apply it
+  function openLibrary(view: 'Months' | 'Types') {
+    router.navigate({ pathname: '/(tabs)/by-month', params: { view, at: String(Date.now()) } });
+  }
 
   // Similar-photos card (same filter the Similar tab uses, so the counts match)
   const similarGroups = useSimilarStore((s) => s.groups);
@@ -137,28 +137,14 @@ export default function HomeScreen() {
   // describes the feature instead of showing "0 groups"
   const similarSubtitle =
     similarMeta.groupCount > 0
-      ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes, 0)} to free`
+      ? `${similarMeta.groupCount} groups · ${formatBytes(similarMeta.reclaimBytes, 0)}`
       : similarScanning
-        ? 'Finding look-alike shots…'
+        ? 'Finding look-alikes…'
         : similarScannedAt === 0
-          ? 'Group look-alike shots, keep the best'
-          : 'No look-alike shots right now';
+          ? 'Keep the best shot'
+          : 'None right now';
 
   const libraryEmpty = !isIndexing && index.length === 0;
-
-  // Data-driven tile subtitles, per the design mock
-  function subtitleFor(id: Category): string {
-    switch (id) {
-      case 'on-this-day':
-        return `Memories from ${monthDay}`;
-      case 'screenshots':
-        return `${Math.round((categoryProgress.screenshots ?? 0) * 100)}% reviewed`;
-      case 'videos':
-        return `${formatBytes(videoBytes, 0)} total`;
-      default:
-        return 'Quick 5-min session';
-    }
-  }
 
   // Permission status still loading — render the backdrop only, so the locked
   // state below doesn't flash on every cold start
@@ -279,62 +265,62 @@ export default function HomeScreen() {
           </GlassCard>
         ) : (
           <>
-            {/* Similar photos — what sets the app apart, one tap from Home */}
-            <Pressable
-              onPress={() => router.navigate('/(tabs)/similar')}
-              accessibilityRole="button"
-              accessibilityLabel={`Similar photos. ${similarSubtitle}`}
-              className="mb-5 active:opacity-70"
-            >
-              <GlassCard radius={24}>
-                <View className="flex-row items-center gap-3 p-3.5">
-                  <IconSquircle
-                    icon="copy-outline"
-                    colors={GRADIENTS.freed}
-                    size={40}
-                    radius={13}
-                    iconSize={20}
-                    style={{
-                      shadowColor: '#30D158',
-                      shadowOpacity: 0.3,
-                      shadowRadius: 20,
-                      shadowOffset: { width: 0, height: 8 },
-                    }}
-                  />
-                  <View className="flex-1">
-                    <Text className="text-white font-bold text-[15px]">Similar photos</Text>
-                    <Text className="text-white/55 text-[12px] mt-px">{similarSubtitle}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
-                </View>
-              </GlassCard>
-            </Pressable>
+            {/* Today's memories, then a random stack — each starts a session */}
+            {onThisDay.length > 0 && (
+              <StackCard
+                title="On This Day"
+                subtitle={onThisDaySubtitle}
+                icon="sparkles"
+                badge="Today"
+                coverUri={onThisDay[0]?.uri}
+                height={156}
+                onStart={startOnThisDay}
+                onPress={() => router.push('/on-this-day')}
+              />
+            )}
+            <StackCard
+              title={randomLabel}
+              subtitle={`Quick 5-min session · ${index.length.toLocaleString()} items`}
+              icon="shuffle"
+              coverUri={index[0]?.uri}
+              height={112}
+              onStart={startRandom}
+            />
 
-            {/* Category tiles */}
-            <View className="flex-row items-baseline justify-between mb-3">
-              <Text className="text-white text-[19px] font-bold" style={{ letterSpacing: -0.3 }}>
-                Review
-              </Text>
-              <Text className="text-white/40 text-[13px] font-medium">Pick a stack</Text>
-            </View>
-            <View className="flex-row flex-wrap gap-3 mb-3">
-              {tiles.map((tile) => {
-                const count = countFor(tile.id);
-                return (
-                  <CategoryTile
-                    key={tile.id}
-                    label={tile.label}
-                    subtitle={subtitleFor(tile.id)}
-                    icon={tile.icon}
-                    count={count}
-                    coverUri={covers[tile.id as keyof typeof covers]}
-                    width={TILE_WIDTH}
-                    disabled={!isIndexing && count === 0}
-                    loading={isIndexing && count === 0}
-                    onPress={() => handleCategoryPress(tile.id)}
-                  />
-                );
-              })}
+            {/* Shortcuts to the other tabs and Library views */}
+            <View className="flex-row flex-wrap gap-3 mt-1 mb-3">
+              <ShortcutTile
+                label="Feed"
+                subtitle="Scroll and decide"
+                icon="albums"
+                colors={GRADIENTS.accent}
+                width={TILE_WIDTH}
+                onPress={() => router.navigate('/(tabs)/feed')}
+              />
+              <ShortcutTile
+                label="Similar"
+                subtitle={similarSubtitle}
+                icon="copy-outline"
+                colors={GRADIENTS.freed}
+                width={TILE_WIDTH}
+                onPress={() => router.navigate('/(tabs)/similar')}
+              />
+              <ShortcutTile
+                label="By Year"
+                subtitle={`${yearCount} ${yearCount === 1 ? 'year' : 'years'} · ${monthCount} months`}
+                icon="calendar-number"
+                colors={GRADIENTS.notify}
+                width={TILE_WIDTH}
+                onPress={() => openLibrary('Months')}
+              />
+              <ShortcutTile
+                label="By Location"
+                subtitle={placeCount > 0 ? `${placeCount} ${placeCount === 1 ? 'place' : 'places'}` : 'Trips from your photos'}
+                icon="location"
+                colors={GRADIENTS.shield}
+                width={TILE_WIDTH}
+                onPress={() => openLibrary('Types')}
+              />
             </View>
           </>
         )}

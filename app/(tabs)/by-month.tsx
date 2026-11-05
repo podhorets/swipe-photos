@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, SectionList, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGalleryStore } from '@/stores/galleryStore';
@@ -53,6 +53,11 @@ type LibraryView = (typeof VIEWS)[number];
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const [view, setView] = useState<LibraryView>('Months');
+  // Home's By Year / By Location shortcuts pick the view; `at` changes on every tap
+  const params = useLocalSearchParams<{ view?: string; at?: string }>();
+  useEffect(() => {
+    if (params.view === 'Months' || params.view === 'Types') setView(params.view);
+  }, [params.view, params.at]);
   const index = useGalleryStore((s) => s.index);
   const keepIds = useKeepStore((s) => s.keepIds);
 
