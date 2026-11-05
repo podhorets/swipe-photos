@@ -186,6 +186,8 @@ export const ON_PHOTO = {
   scrimLocations: [0.35, 1] as const,
   /** Dims a photo headed for deletion */
   dim: 'rgba(0,0,0,0.35)',
+  /** Light wash on a demo thumbnail marked for deletion */
+  deleteWash: 'rgba(207,58,48,0.38)',
   keepOverlay: 'rgba(30,158,74,0.82)',
   deleteOverlay: 'rgba(207,58,48,0.82)',
 };
@@ -200,6 +202,7 @@ export const DEMO_GRADIENTS = {
   amber: ['#F5B460', '#B45309'],
   rose: ['#F59AAE', '#B4233C'],
   green: ['#6EE7A0', '#15803D'],
+  slate: ['#9DADC6', '#4D5E78'],
 } as const satisfies Record<string, readonly [string, string]>;
 
 /**

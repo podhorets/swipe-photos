@@ -20,12 +20,14 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { createMMKV } from 'react-native-mmkv';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GlassCard } from '@/components/glass/GlassCard';
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
+import { Card } from '@/components/ui/Card';
 import { DemoFill } from '@/components/ui/DemoFill';
-import { GradientPillButton } from '@/components/ui/GradientPillButton';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { IconWell } from '@/components/ui/IconWell';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
+import { DEMO_GRADIENTS, ON_PHOTO, type TileColor } from '@/constants/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import {
     DEDUP_BEST_INDEX,
     DEDUP_DEMO_PHOTOS,
@@ -36,7 +38,7 @@ import {
 import { usePermissions } from '@/hooks/usePermissions';
 import { gatedHaptic } from '@/lib/haptics';
 import { STORAGE_KEYS } from '@/constants/config';
-import { GRADIENTS, SPRING } from '@/constants/theme';
+import { SPRING } from '@/constants/theme';
 import { posthog } from '@/lib/posthog';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -67,7 +69,7 @@ const F_SETTLE = 0.18; // by here the card has settled from back pose to front
 const F_DRAG = 0.48; // rest ends, hesitation drag begins
 const F_COMMIT = 0.78; // threshold crossed — fly-off begins
 // Placeholder gradient per deck position, so unfilled slots stay distinguishable
-const DECK_GRADIENTS = [GRADIENTS.accent, GRADIENTS.analytics, GRADIENTS.shield, GRADIENTS.freed] as const;
+const DECK_GRADIENTS = [DEMO_GRADIENTS.sky, DEMO_GRADIENTS.rose, DEMO_GRADIENTS.teal, DEMO_GRADIENTS.green] as const;
 
 /** Front-card translateX over the beat — piecewise, eased per phase. */
 function deckFrontX(u: number, dir: number): number {
@@ -94,6 +96,7 @@ function DeckCard({
     card: SwipeDemoCard;
     total: number;
 }) {
+    const t = useTheme();
     const dir = card.decision === 'delete' ? -1 : 1;
     const isDelete = card.decision === 'delete';
 
@@ -169,12 +172,9 @@ function DeckCard({
                     width: DEMO_W,
                     height: DEMO_H,
                     borderRadius: 22,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.35)',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.5,
-                    shadowRadius: 24,
-                    shadowOffset: { width: 0, height: 16 },
+                    borderWidth: 3,
+                    borderColor: t.surface.card,
+                    boxShadow: t.shadow.card,
                 },
                 cardStyle,
             ]}
@@ -184,17 +184,13 @@ function DeckCard({
             <Animated.View
                 className="absolute inset-0 items-center justify-center gap-1.5"
                 style={[
-                    { backgroundColor: isDelete ? 'rgba(255,69,58,0.82)' : 'rgba(48,209,88,0.82)' },
+                    { backgroundColor: isDelete ? ON_PHOTO.deleteOverlay : ON_PHOTO.keepOverlay },
                     overlayStyle,
                 ]}
                 pointerEvents="none"
             >
-                <Ionicons
-                    name={isDelete ? 'trash-outline' : 'checkmark-circle-outline'}
-                    size={40}
-                    color="white"
-                />
-                <Text className="text-white font-bold text-[19px] tracking-widest">
+                <Icon name={isDelete ? 'trash' : 'checkCircle'} size={40} color={ON_PHOTO.text} strokeWidth={1.8} />
+                <Text className="text-on-photo font-bold text-[19px] tracking-widest">
                     {isDelete ? 'DELETE' : 'KEEP'}
                 </Text>
             </Animated.View>
@@ -232,7 +228,8 @@ function SwipeDemo({ active }: { active: boolean }) {
         <View className="items-center">
             <View
                 className="items-center justify-center overflow-hidden"
-                style={{ width: 280, height: DEMO_H + 36 }}
+                // Extra height so the card shadow is not clipped by the overflow mask
+                style={{ width: 280, height: DEMO_H + 64 }}
             >
                 {SWIPE_DEMO_CARDS.map((card, i) => (
                     <DeckCard key={i} clock={clock} index={i} card={card} total={total} />
@@ -240,17 +237,11 @@ function SwipeDemo({ active }: { active: boolean }) {
             </View>
             {/* Legend chips */}
             <View className="flex-row gap-2.5 mt-1">
-                <View
-                    className="px-3.5 py-[7px] rounded-full border"
-                    style={{ backgroundColor: 'rgba(255,69,58,0.14)', borderColor: 'rgba(255,69,58,0.4)' }}
-                >
-                    <Text className="text-[13px] font-semibold" style={{ color: '#FF6482' }}>← Delete</Text>
+                <View className="px-3.5 py-[7px] rounded-full border bg-del-tint border-del-ring">
+                    <Text className="text-del-icon text-[13px] font-bold">← Delete</Text>
                 </View>
-                <View
-                    className="px-3.5 py-[7px] rounded-full border"
-                    style={{ backgroundColor: 'rgba(48,209,88,0.14)', borderColor: 'rgba(48,209,88,0.4)' }}
-                >
-                    <Text className="text-keep text-[13px] font-semibold">Keep →</Text>
+                <View className="px-3.5 py-[7px] rounded-full border bg-keep-tint border-keep-ring">
+                    <Text className="text-keep-text text-[13px] font-bold">Keep →</Text>
                 </View>
             </View>
         </View>
@@ -278,7 +269,7 @@ const MAIN_L = (DEDUP_W - MAIN_W) / 2;
 const THUMB_TOP = MAIN_H + ROW_MT;
 // Neutral dark-grey socket shown while a slot's photo is in flight (and behind
 // photos while they load) — quiet, no blue flashes in this demo
-const DEDUP_BG = ['#2A2A2E', '#141416'] as const;
+const DEDUP_BG = DEMO_GRADIENTS.slate;
 // Thumbnails render indices 1–3 of DEDUP_DEMO_PHOTOS, in order
 const THUMB_INDICES = [1, 2, 3] as const;
 
@@ -341,6 +332,7 @@ function SwapSlot({
 }
 
 function DedupDemo({ active }: { active: boolean }) {
+    const t = useTheme();
     const p = useSharedValue(0);
     // Thumbnail row slot the winner occupies (0–2); it receives photo 1 in exchange
     const winnerSlot = DEDUP_BEST_INDEX - 1;
@@ -477,12 +469,9 @@ function DedupDemo({ active }: { active: boolean }) {
                         width: MAIN_W,
                         height: MAIN_H,
                         borderRadius: MAIN_R,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.35)',
-                        shadowColor: '#000',
-                        shadowOpacity: 0.5,
-                        shadowRadius: 24,
-                        shadowOffset: { width: 0, height: 16 },
+                        borderWidth: 3,
+                        borderColor: t.surface.card,
+                        boxShadow: t.shadow.card,
                     }}
                 >
                     <SwapSlot
@@ -508,7 +497,7 @@ function DedupDemo({ active }: { active: boolean }) {
                                     height: THUMB,
                                     borderRadius: THUMB_R,
                                     borderWidth: 2,
-                                    borderColor: 'rgba(255,69,58,0.45)',
+                                    borderColor: t.remove.ring,
                                 },
                                 isWinner ? winnerPulse : undefined,
                             ]}
@@ -530,10 +519,10 @@ function DedupDemo({ active }: { active: boolean }) {
                             <Animated.View
                                 pointerEvents="none"
                                 className="items-center justify-center"
-                                style={[FILL, { backgroundColor: 'rgba(255,69,58,0.38)' }, trashWashStyle]}
+                                style={[FILL, { backgroundColor: ON_PHOTO.deleteWash }, trashWashStyle]}
                             >
                                 <Animated.View style={trashIconStyle}>
-                                    <Ionicons name="trash-outline" size={16} color="white" />
+                                    <Icon name="trash" size={16} color={ON_PHOTO.text} />
                                 </Animated.View>
                             </Animated.View>
                         </Animated.View>
@@ -543,13 +532,7 @@ function DedupDemo({ active }: { active: boolean }) {
                 <Animated.View
                     className="overflow-hidden"
                     style={[
-                        {
-                            position: 'absolute',
-                            shadowColor: '#000',
-                            shadowOpacity: 0.45,
-                            shadowRadius: 18,
-                            shadowOffset: { width: 0, height: 10 },
-                        },
+                        { position: 'absolute', boxShadow: t.shadow.card },
                         travelerBStyle,
                     ]}
                     pointerEvents="none"
@@ -559,13 +542,7 @@ function DedupDemo({ active }: { active: boolean }) {
                 <Animated.View
                     className="overflow-hidden"
                     style={[
-                        {
-                            position: 'absolute',
-                            shadowColor: '#000',
-                            shadowOpacity: 0.45,
-                            shadowRadius: 18,
-                            shadowOffset: { width: 0, height: 10 },
-                        },
+                        { position: 'absolute', boxShadow: t.shadow.card },
                         travelerAStyle,
                     ]}
                     pointerEvents="none"
@@ -577,23 +554,20 @@ function DedupDemo({ active }: { active: boolean }) {
                 </Animated.View>
                 {/* Best badge — lands on the new main shot after the trade */}
                 <Animated.View
-                    className="flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-black/55"
+                    className="flex-row items-center gap-1.5 px-[11px] py-1.5 rounded-full bg-chip"
                     style={[{ position: 'absolute', left: MAIN_L + 10, top: 10 }, badgeStyle]}
                 >
-                    <Ionicons name="star" size={12} color="#FFD60A" />
-                    <Text className="text-white text-xs font-bold">Best</Text>
+                    <Icon name="star" size={12} color={t.star} fill={t.star} />
+                    <Text className="text-chip-fg text-xs font-bold">Best</Text>
                 </Animated.View>
             </Animated.View>
             {/* Freed-space payoff chip */}
             <Animated.View
-                className="flex-row items-center gap-[7px] mt-3.5 px-4 py-2 rounded-full border"
-                style={[
-                    { backgroundColor: 'rgba(48,209,88,0.14)', borderColor: 'rgba(48,209,88,0.4)' },
-                    chipStyle,
-                ]}
+                className="flex-row items-center gap-[7px] mt-3.5 px-4 py-2 rounded-full border bg-keep-tint border-keep-ring"
+                style={chipStyle}
             >
-                <Ionicons name="trash-outline" size={13} color="#30D158" />
-                <Text className="text-keep text-[13px] font-bold">3 deleted · 14 MB freed</Text>
+                <Icon name="trash" size={13} color={t.keep.icon} />
+                <Text className="text-keep-text text-[13px] font-bold">3 deleted · 14 MB freed</Text>
             </Animated.View>
         </View>
     );
@@ -601,24 +575,24 @@ function DedupDemo({ active }: { active: boolean }) {
 
 // ─── Step 3 hero: trust + proof card (permission priming) ───────────────────
 
-const TRUST_ROWS = [
+const TRUST_ROWS: { color: TileColor; icon: IconName; title: string; sub: string }[] = [
     {
-        gradient: GRADIENTS.freed,
-        icon: 'phone-portrait-outline' as const,
+        color: 'teal',
+        icon: 'phone',
         title: 'Your photos stay on your iPhone',
         sub: 'Never uploaded. No account needed.',
     },
     {
         // Feature claim, not social proof — no ratings or install counts until
         // the App Store has real ones to back them up
-        gradient: GRADIENTS.star,
-        icon: 'sparkles' as const,
+        color: 'amber',
+        icon: 'sparkle',
         title: 'Smart duplicate finder',
         sub: 'Groups look-alike shots, stars the sharpest',
     },
     {
-        gradient: GRADIENTS.delete,
-        icon: 'arrow-undo-outline' as const,
+        color: 'blue',
+        icon: 'undo',
         title: 'Nothing is deleted without you',
         sub: '30-day recovery via Recently Deleted',
     },
@@ -626,35 +600,20 @@ const TRUST_ROWS = [
 
 function TrustCard() {
     return (
-        <GlassCard className="w-full" style={{ marginTop: 28 }}>
-            <View className="px-5 py-[18px] gap-3.5">
-                {TRUST_ROWS.map((row, i) => (
-                    <View key={row.title} className="gap-3.5">
-                        {i > 0 && <View className="h-px bg-white/10" />}
-                        <View className="flex-row items-center gap-3">
-                            <LinearGradient
-                                colors={row.gradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={{
-                                    width: 38,
-                                    height: 38,
-                                    borderRadius: 12,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                            >
-                                <Ionicons name={row.icon} size={18} color="white" />
-                            </LinearGradient>
-                            <View className="flex-1 gap-0.5">
-                                <Text className="text-white text-[15px] font-semibold">{row.title}</Text>
-                                <Text className="text-white/55 text-[13px]">{row.sub}</Text>
-                            </View>
+        <Card className="w-full px-5 py-[18px] gap-3.5" style={{ marginTop: 28 }}>
+            {TRUST_ROWS.map((row, i) => (
+                <View key={row.title} className="gap-3.5">
+                    {i > 0 && <View className="h-px bg-divider" />}
+                    <View className="flex-row items-center gap-3">
+                        <IconWell icon={row.icon} color={row.color} size={38} />
+                        <View className="flex-1 gap-0.5">
+                            <Text className="text-fg text-[15px] font-semibold">{row.title}</Text>
+                            <Text className="text-fg-2 text-[13px]">{row.sub}</Text>
                         </View>
                     </View>
-                ))}
-            </View>
-        </GlassCard>
+                </View>
+            ))}
+        </Card>
     );
 }
 
@@ -709,18 +668,8 @@ function PageDot({ index, offset }: { index: number; offset: SharedValue<number>
         opacity: 1 - Math.min(Math.abs(offset.value - index), 1),
     }));
     return (
-        <Animated.View
-            className="h-1.5 rounded-full overflow-hidden bg-white/25"
-            style={[{ width: 6 }, dotStyle]}
-        >
-            <Animated.View style={[FILL, fillStyle]}>
-                <LinearGradient
-                    colors={GRADIENTS.accent}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={{ flex: 1 }}
-                />
-            </Animated.View>
+        <Animated.View className="h-1.5 rounded-full overflow-hidden bg-track" style={[{ width: 6 }, dotStyle]}>
+            <Animated.View className="bg-accent" style={[FILL, fillStyle]} />
         </Animated.View>
     );
 }
@@ -782,12 +731,12 @@ export default function OnboardingScreen() {
 
     return (
         <View
-            className="flex-1 bg-bg-dark"
+            className="flex-1"
             // Floor the bottom inset: on home-button devices it is 0, which
             // would leave the CTA flush against the screen edge.
             style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }}
         >
-            <AuroraBackground variant="onboarding" />
+            <ScreenBackground />
 
             {/* Slides */}
             <View className="flex-1 overflow-hidden">
@@ -809,46 +758,19 @@ export default function OnboardingScreen() {
                                 </View>
                             )}
                             {i === 2 && (
-                                <View
-                                    className="items-center justify-center mb-7"
-                                    style={{
-                                        width: 72,
-                                        height: 72,
-                                        borderRadius: 22,
-                                        shadowColor: '#0A84FF',
-                                        shadowOpacity: 0.35,
-                                        shadowRadius: 28,
-                                        shadowOffset: { width: 0, height: 10 },
-                                    }}
-                                >
-                                    <LinearGradient
-                                        colors={GRADIENTS.shield}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            borderRadius: 22,
-                                        }}
-                                    />
-                                    <Ionicons name="lock-closed" size={32} color="white" />
+                                <View className="mb-7">
+                                    <IconWell icon="lock" color="blue" size={72} />
                                 </View>
                             )}
 
                             {/* Title */}
-                            <Text
-                                className="text-white font-extrabold text-center mb-4"
-                                style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1 }}
-                            >
+                            <Text className="font-display text-fg text-center text-[40px] leading-[46px] mb-4">
                                 {s.title}
                             </Text>
 
                             {/* Subtitle */}
                             <Text
-                                className="text-white/55 text-[17px] text-center"
+                                className="text-fg-2 text-[17px] text-center"
                                 style={{ lineHeight: 26, maxWidth: 310 }}
                             >
                                 {s.subtitle}
@@ -872,7 +794,7 @@ export default function OnboardingScreen() {
 
                 {/* Same label on every step: on the last one it leads straight
                     to the iOS photo prompt, so it must not read "Allow" */}
-                <GradientPillButton
+                <PrimaryButton
                     label="Continue"
                     onPress={isLastStep ? handleFinish : goNext}
                 />

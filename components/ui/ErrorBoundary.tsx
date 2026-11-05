@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
-import { View, Text, Pressable } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { View, Text } from 'react-native';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
 import * as Sentry from '@sentry/react-native';
 
 interface Props {
@@ -28,24 +29,21 @@ export class ErrorBoundary extends Component<Props, State> {
     if (error) {
       // User-facing fallback — never show stack traces outside development
       return (
-        <View className="flex-1 bg-bg-dark items-center justify-center px-8">
-          <Ionicons name="alert-circle-outline" size={56} color="rgba(255,255,255,0.35)" />
-          <Text className="text-white text-xl font-bold mt-5 text-center">Something went wrong</Text>
-          <Text className="text-white/60 text-base mt-2 text-center leading-6">
-            Your photos are safe — nothing was deleted. Please try again.
-          </Text>
-          {__DEV__ && (
-            <Text className="text-red-300/80 text-xs mt-4 text-center" numberOfLines={4}>
-              {error.message}
-            </Text>
-          )}
-          <Pressable
-            className="mt-8 bg-white/15 rounded-full px-8 py-4 min-h-[44px] items-center justify-center"
-            accessibilityRole="button"
-            onPress={() => this.setState({ error: null })}
+        <View className="flex-1 items-center justify-center">
+          <ScreenBackground />
+          <EmptyState
+            icon="warning"
+            color="amber"
+            title="Something went wrong"
+            body="Your photos are safe — nothing was deleted. Please try again."
+            action={{ label: 'Try Again', onPress: () => this.setState({ error: null }) }}
           >
-            <Text className="text-white font-semibold text-base">Try Again</Text>
-          </Pressable>
+            {__DEV__ && (
+              <Text className="text-del-icon text-xs mt-4 text-center" numberOfLines={4}>
+                {error.message}
+              </Text>
+            )}
+          </EmptyState>
         </View>
       );
     }

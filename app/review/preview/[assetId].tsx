@@ -5,7 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import * as MediaLibrary from 'expo-media-library';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { ThemeScope, useTheme } from '@/lib/theme/ThemeProvider';
+import { useStatusBarStyle } from '@/lib/theme/statusBar';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -25,18 +27,19 @@ const UNDERLAY_SCALE = Math.ceil(Math.max(SCREEN_WIDTH, SCREEN_HEIGHT) / 76);
 const SHRINK_DISTANCE = SCREEN_HEIGHT * 0.5;
 const CHROME_FADE_DISTANCE = 90;
 
-/** Round glass button used for the preview chrome. */
+/** Round chip-coloured button for the preview chrome (always dark). */
 function ChromeButton({
   icon,
   label,
   onPress,
   busy = false,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: IconName;
   label: string;
   onPress: () => void;
   busy?: boolean;
 }) {
+  const t = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -44,9 +47,13 @@ function ChromeButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={6}
-      className="w-10 h-10 rounded-full bg-black/50 items-center justify-center border border-white/20 active:opacity-70"
+      className="w-[38px] h-[38px] rounded-full bg-chip items-center justify-center border border-hairline active:opacity-70"
     >
-      {busy ? <ActivityIndicator size="small" color="white" /> : <Ionicons name={icon} size={20} color="white" />}
+      {busy ? (
+        <ActivityIndicator size="small" color={t.text.primary} />
+      ) : (
+        <Icon name={icon} size={icon === 'close' ? 16 : 18} color={t.text.primary} strokeWidth={icon === 'close' ? 2.4 : 2} />
+      )}
     </Pressable>
   );
 }
@@ -55,6 +62,8 @@ function ChromeButton({
 export default function PreviewScreen() {
   const { assetId } = useLocalSearchParams<{ assetId: string }>();
   const insets = useSafeAreaInsets();
+  // Photos are judged on black: the preview is always dark
+  useStatusBarStyle('light');
   const index = useGalleryStore((s) => s.index);
   const asset = index.find((a) => a.id === assetId);
   const isVideo = asset?.mediaType === 'video';
@@ -132,7 +141,7 @@ export default function PreviewScreen() {
   }));
 
   return (
-    <View className="flex-1 bg-black">
+    <ThemeScope mode="dark" className="flex-1 bg-feed">
       <GestureDetector gesture={pan}>
         <Animated.View style={[{ flex: 1 }, mediaStyle]}>
           {isVideo ? (
@@ -186,13 +195,13 @@ export default function PreviewScreen() {
         style={[{ top: insets.top + 12 }, chromeStyle]}
       >
         <ChromeButton
-          icon="share-outline"
+          icon="share"
           label="Share"
           onPress={handleShare}
           busy={preparing}
         />
         <ChromeButton icon="close" label="Close preview" onPress={close} />
       </Animated.View>
-    </View>
+    </ThemeScope>
   );
 }
