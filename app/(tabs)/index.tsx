@@ -219,7 +219,7 @@ export default function HomeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — streak chip stays; sessions moved to its own full-width slot below */}
+        {/* Header — streak chip + Settings (no longer a tab); sessions get their own slot below */}
         <View className="flex-row items-end justify-between mb-3">
           <Text
             className="text-white text-[34px] font-extrabold"
@@ -229,6 +229,15 @@ export default function HomeScreen() {
           </Text>
           <View className="flex-row items-center gap-2">
             <StreakChip />
+            <Pressable
+              onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              hitSlop={4}
+              className="w-10 h-10 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14] active:opacity-70"
+            >
+              <Ionicons name="settings-sharp" size={19} color="white" />
+            </Pressable>
           </View>
         </View>
 

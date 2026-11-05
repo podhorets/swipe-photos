@@ -18,6 +18,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { BackButton } from '@/components/ui/BackButton';
 import { useMemo } from 'react';
 import {
   Dimensions,
@@ -309,7 +310,8 @@ export default function OnThisDayScreen() {
   const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
   const titleBlock = (
-    <View className="px-5 pb-[18px]" style={{ paddingTop: insets.top + 16 }}>
+    <View className="px-5 pb-[18px]" style={{ paddingTop: insets.top + 8 }}>
+      <BackButton className="mb-3" />
       <Text className="text-white text-[34px] font-extrabold" style={{ letterSpacing: -0.8 }}>
         On This Day
       </Text>
@@ -345,7 +347,7 @@ export default function OnThisDayScreen() {
         )}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 190 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
         style={{ width: SCREEN_WIDTH }}
         ListHeaderComponent={
           <>

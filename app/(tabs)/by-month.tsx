@@ -86,7 +86,7 @@ export default function ByMonthScreen() {
   const header = (
     <View className="mb-5">
       <Text className="text-white text-[34px] font-extrabold" style={{ letterSpacing: -0.8 }}>
-        By Month
+        Library
       </Text>
       <Text className="text-white/45 text-[15px] mt-1">
         {monthCount > 0

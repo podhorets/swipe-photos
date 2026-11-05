@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { BackButton } from '@/components/ui/BackButton';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Application from 'expo-application';
@@ -307,12 +308,13 @@ export default function SettingsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 110,
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 32,
           paddingHorizontal: 20,
         }}
         showsVerticalScrollIndicator={false}
       >
+        <BackButton className="mb-3" />
         <Text
           className="text-white text-[34px] font-extrabold mb-[22px]"
           style={{ letterSpacing: -0.8 }}

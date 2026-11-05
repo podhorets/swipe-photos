@@ -1,26 +1,17 @@
 import React from 'react';
 import { Pressable, View, Text } from 'react-native';
-import Animated, { LinearTransition } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurPanel } from '@/components/glass/BlurPanel';
-import { SPRING } from '@/constants/theme';
 
-// Bar-only labels/icons (screen titles keep their existing names)
+// Bar labels/icons — four tabs, so every label fits and always shows
 const TAB_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  index: { label: 'Library', icon: 'images' },
-  'by-month': { label: 'Months', icon: 'calendar-number' },
-  'on-this-day': { label: 'Memories', icon: 'sparkles' },
-  similar: { label: 'Similar', icon: 'copy' },
+  index: { label: 'Home', icon: 'home' },
   feed: { label: 'Feed', icon: 'albums' },
-  settings: { label: 'Settings', icon: 'settings-sharp' },
+  similar: { label: 'Similar', icon: 'copy' },
+  'by-month': { label: 'Library', icon: 'folder-open' },
 };
-
-const pillSpring = LinearTransition.springify()
-  .damping(SPRING.press.damping)
-  .stiffness(SPRING.press.stiffness)
-  .mass(SPRING.press.mass);
 
 const BAR_SHADOW = {
   shadowColor: '#000',
@@ -39,8 +30,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
       className="absolute left-0 right-0 px-5"
       style={{ bottom: Math.max(insets.bottom, 26) }}
     >
-      <Animated.View
-        layout={pillSpring}
+      <View
         className="flex-row justify-between gap-1 rounded-full overflow-hidden p-1.5 bg-chrome w-full"
         style={[
           {
@@ -71,30 +61,34 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           return (
             <Pressable
               key={route.key}
+              className="flex-1"
               accessibilityRole="tab"
               accessibilityState={{ selected: isFocused }}
               accessibilityLabel={descriptors[route.key]?.options.tabBarAccessibilityLabel ?? meta.label}
               onPress={onPress}
             >
-              <Animated.View
-                layout={pillSpring}
-                className={`flex-row items-center rounded-full px-4 py-2.5 gap-[7px] ${
+              <View
+                className={`items-center rounded-full py-1.5 gap-0.5 ${
                   isFocused ? 'bg-white/[0.14]' : ''
                 }`}
               >
                 <Ionicons
                   name={meta.icon}
-                  size={20}
-                  color={isFocused ? '#FFFFFF' : 'rgba(255,255,255,0.45)'}
+                  size={21}
+                  color={isFocused ? '#FFFFFF' : 'rgba(255,255,255,0.5)'}
                 />
-                {isFocused && (
-                  <Text className="text-white text-[13px] font-bold">{meta.label}</Text>
-                )}
-              </Animated.View>
+                <Text
+                  className={
+                    isFocused ? 'text-white text-[11px] font-bold' : 'text-white/50 text-[11px] font-semibold'
+                  }
+                >
+                  {meta.label}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
-      </Animated.View>
+      </View>
     </View>
   );
 }

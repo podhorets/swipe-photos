@@ -98,7 +98,7 @@ function NotificationBootstrap() {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown>;
       if (data?.navigateTo === 'on-this-day') {
-        router.push('/(tabs)/on-this-day');
+        router.push('/on-this-day');
       }
     });
     return () => sub.remove();
@@ -147,6 +147,8 @@ return (
             <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="review/[sessionId]" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="review/preview/[assetId]" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="on-this-day" />
             <Stack.Screen name="trash" options={{ presentation: 'modal' }} />
             <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal' }} />
           </Stack>
