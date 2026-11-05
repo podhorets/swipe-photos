@@ -1,51 +1,37 @@
 import React from 'react';
 import { Pressable, View, Text } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BlurPanel } from '@/components/glass/BlurPanel';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { ThemeScope, useTheme } from '@/lib/theme/ThemeProvider';
 
 // Bar labels/icons — four tabs, so every label fits and always shows
-const TAB_META: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
+const TAB_META: Record<string, { label: string; icon: IconName }> = {
   index: { label: 'Home', icon: 'home' },
-  feed: { label: 'Feed', icon: 'albums' },
-  similar: { label: 'Similar', icon: 'copy' },
-  'by-month': { label: 'Library', icon: 'folder-open' },
+  feed: { label: 'Feed', icon: 'feed' },
+  similar: { label: 'Similar', icon: 'similar' },
+  'by-month': { label: 'Library', icon: 'library' },
 };
 
-const BAR_SHADOW = {
-  shadowColor: '#000',
-  shadowOpacity: 0.5,
-  shadowRadius: 40,
-  shadowOffset: { width: 0, height: 16 },
-  elevation: 12,
-};
-
-export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+function Bar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const t = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <View
       pointerEvents="box-none"
-      className="absolute left-0 right-0 px-5"
-      style={{ bottom: Math.max(insets.bottom, 26) }}
+      className="absolute left-0 right-0 px-[18px]"
+      style={{ bottom: Math.max(insets.bottom - 4, 26) }}
     >
       <View
-        className="flex-row justify-between gap-1 rounded-full overflow-hidden p-1.5 bg-chrome w-full"
-        style={[
-          {
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.14)',
-            borderTopColor: 'rgba(255,255,255,0.28)',
-          },
-          BAR_SHADOW,
-        ]}
+        className="flex-row gap-1 rounded-full p-[5px] bg-tab border border-tab-border w-full"
+        style={{ boxShadow: t.shadow.floating }}
       >
-        <BlurPanel intensity={60} />
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name];
           if (!meta) return null;
           const isFocused = state.index === index;
+          const color = isFocused ? t.accent.onTint : t.text.tertiary;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -67,20 +53,11 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               accessibilityLabel={descriptors[route.key]?.options.tabBarAccessibilityLabel ?? meta.label}
               onPress={onPress}
             >
-              <View
-                className={`items-center rounded-full py-1.5 gap-0.5 ${
-                  isFocused ? 'bg-white/[0.14]' : ''
-                }`}
-              >
-                <Ionicons
-                  name={meta.icon}
-                  size={21}
-                  color={isFocused ? '#FFFFFF' : 'rgba(255,255,255,0.5)'}
-                />
+              <View className={`items-center justify-center rounded-[23px] min-h-[44px] gap-px ${isFocused ? 'bg-tint' : ''}`}>
+                <Icon name={meta.icon} size={20} color={color} strokeWidth={1.8} />
                 <Text
-                  className={
-                    isFocused ? 'text-white text-[11px] font-bold' : 'text-white/50 text-[11px] font-semibold'
-                  }
+                  maxFontSizeMultiplier={1.2}
+                  className={`text-[10.5px] font-bold ${isFocused ? 'text-on-tint' : 'text-fg-3'}`}
                 >
                   {meta.label}
                 </Text>
@@ -90,5 +67,16 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         })}
       </View>
     </View>
+  );
+}
+
+/** Floating pill tab bar. Dark while Feed is focused (Feed is always dark). */
+export function FloatingTabBar(props: BottomTabBarProps) {
+  const { mode } = useTheme();
+  const onFeed = props.state.routes[props.state.index]?.name === 'feed';
+  return (
+    <ThemeScope mode={onFeed ? 'dark' : mode} className="absolute inset-0" pointerEvents="box-none">
+      <Bar {...props} />
+    </ThemeScope>
   );
 }

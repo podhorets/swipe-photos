@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Icon } from '@/components/ui/Icon';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 interface SegmentedControlProps<T extends string | number> {
   options: readonly T[];
@@ -9,18 +10,23 @@ interface SegmentedControlProps<T extends string | number> {
   /** Options rendered with a star badge; presses go to onLockedPress instead of onChange. */
   lockedOptions?: readonly T[];
   onLockedPress?: (value: T) => void;
+  /** `tint` (Settings): the active segment uses the accent tint. */
+  variant?: 'default' | 'tint';
 }
 
-/** iOS-style segmented control on a recessed dark track. */
+/** iOS-style segmented control on a raised track. */
 export function SegmentedControl<T extends string | number>({
   options,
   value,
   onChange,
   lockedOptions,
   onLockedPress,
+  variant = 'default',
 }: SegmentedControlProps<T>) {
+  const t = useTheme();
+  const tint = variant === 'tint';
   return (
-    <View className="flex-row gap-1.5 p-1 rounded-[14px] bg-black/35">
+    <View className="flex-row gap-1 p-[3px] rounded-[13px] bg-raised">
       {options.map((opt) => {
         const selected = opt === value;
         const locked = lockedOptions?.includes(opt) ?? false;
@@ -30,22 +36,19 @@ export function SegmentedControl<T extends string | number>({
             onPress={() => (locked ? onLockedPress?.(opt) : onChange(opt))}
             accessibilityRole="button"
             accessibilityState={{ selected, disabled: locked }}
-            className={`flex-1 py-[9px] rounded-[11px] items-center ${
-              selected ? 'bg-white/[0.16] border-[0.5px] border-white/20' : ''
+            className={`flex-1 min-h-[35px] rounded-[10px] flex-row items-center justify-center gap-1 ${
+              selected ? (tint ? 'bg-tint' : 'bg-segment') : ''
             }`}
+            style={selected && !tint ? { boxShadow: '0px 1px 3px rgba(0,0,0,0.10)' } : undefined}
           >
             <Text
-              className={
-                selected ? 'text-white text-[15px] font-bold' : 'text-white/50 text-[15px] font-semibold'
-              }
+              className={`text-[14.5px] font-bold ${
+                selected ? (tint ? 'text-on-tint' : 'text-segment-fg') : 'text-fg-2'
+              }`}
             >
               {opt}
             </Text>
-            {locked && (
-              <View className="absolute top-1 right-1.5">
-                <Ionicons name="star" size={9} color="#FF9F0A" />
-              </View>
-            )}
+            {locked && <Icon name="star" size={11} color={t.star} fill={t.star} />}
           </Pressable>
         );
       })}

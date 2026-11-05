@@ -1,38 +1,30 @@
-import { View, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
-import { GRADIENTS } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TRACK_WIDTH = SCREEN_WIDTH - 40;
+import { View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 
 interface ProgressBarProps {
   progress: number; // 0–1
+  /** 3pt on review screens, 4pt elsewhere */
+  thin?: boolean;
+  className?: string;
 }
 
-export function ProgressBar({ progress }: ProgressBarProps) {
-  // Animated width clips a fixed full-width gradient so the gradient never stretches
-  const clipStyle = useAnimatedStyle(() => ({
-    width: withTiming(progress * TRACK_WIDTH, {
-      duration: 300,
-      easing: Easing.out(Easing.cubic),
-    }),
+/** Accent fill on a track, easing to each new value. */
+export function ProgressBar({ progress, thin = false, className = 'mx-5' }: ProgressBarProps) {
+  const trackWidth = useSharedValue(0);
+  const clamped = Math.min(1, Math.max(0, progress));
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: withTiming(clamped * trackWidth.value, { duration: 300, easing: Easing.out(Easing.cubic) }),
   }));
 
   return (
-    <View className="h-1 bg-white/[0.14] rounded-full mx-5 overflow-hidden">
-      <Animated.View className="h-full rounded-full overflow-hidden" style={clipStyle}>
-        <LinearGradient
-          colors={GRADIENTS.accent}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ width: TRACK_WIDTH, height: '100%' }}
-        />
-      </Animated.View>
+    <View
+      className={`${thin ? 'h-[3px]' : 'h-1'} bg-track rounded-full overflow-hidden ${className}`}
+      onLayout={(e) => {
+        trackWidth.value = e.nativeEvent.layout.width;
+      }}
+    >
+      <Animated.View className="h-full rounded-full bg-accent" style={fillStyle} />
     </View>
   );
 }

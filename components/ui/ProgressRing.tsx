@@ -7,6 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -15,9 +16,9 @@ interface ProgressRingProps {
   radius: number;
   strokeWidth: number;
   progress: number; // 0–1
-  trackColor?: string;
+  trackColor?: string; // defaults to the theme track
   gradientColors?: readonly [string, string];
-  color?: string; // solid stroke; ignored when gradientColors is set
+  color?: string; // solid stroke (defaults to accent); ignored when gradientColors is set
   /** Ease duration in ms. Shorten it for sources that tick faster than 800ms. */
   duration?: number;
   children?: React.ReactNode; // absolutely-centered content
@@ -32,12 +33,13 @@ export function ProgressRing({
   radius,
   strokeWidth,
   progress,
-  trackColor = 'rgba(255,255,255,0.1)',
+  trackColor,
   gradientColors,
-  color = '#0A84FF',
+  color,
   duration = 800,
   children,
 }: ProgressRingProps) {
+  const t = useTheme();
   const gradientId = useId();
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(1, Math.max(0, progress));
@@ -55,7 +57,7 @@ export function ProgressRing({
   }));
 
   const center = size / 2;
-  const stroke = gradientColors ? `url(#${gradientId})` : color;
+  const stroke = gradientColors ? `url(#${gradientId})` : color ?? t.accent.primary;
 
   return (
     <View style={{ width: size, height: size }}>
@@ -73,7 +75,7 @@ export function ProgressRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke={trackColor}
+          stroke={trackColor ?? t.track}
           strokeWidth={strokeWidth}
         />
         <AnimatedCircle

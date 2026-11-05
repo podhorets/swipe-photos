@@ -47,15 +47,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function ThemeScope({
   mode,
   className = 'flex-1',
+  pointerEvents,
   children,
 }: {
   mode: ThemeMode;
   className?: string;
+  pointerEvents?: 'box-none' | 'auto';
   children: React.ReactNode;
 }) {
   return (
     <ThemeContext.Provider value={THEMES[mode]}>
-      <View className={className} style={THEME_VARS[mode]}>
+      <View className={className} style={THEME_VARS[mode]} pointerEvents={pointerEvents}>
         {children}
       </View>
     </ThemeContext.Provider>
