@@ -1,8 +1,9 @@
 import { DemoFill } from '@/components/ui/DemoFill';
+import { Icon } from '@/components/ui/Icon';
+import { DEMO_GRADIENTS, ON_PHOTO } from '@/constants/colors';
 import { SWIPE_DEMO_CARDS } from '@/constants/demoPhotos';
-import { GRADIENTS } from '@/constants/theme';
 import { gatedHaptic } from '@/lib/haptics';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import * as Haptics from 'expo-haptics';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
@@ -23,8 +24,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const FLY = 420; // off the hero viewport
 const DRAG = 48; // "hesitation" drag before commit
-const CARD_W = 110;
-const CARD_H = 134;
+const CARD_W = 104;
+const CARD_H = 130;
 
 interface PaywallHeroProps {
     /** Amber lock chip above the demo, e.g. "2 of 2 free reviews used today". */
@@ -37,6 +38,7 @@ interface PaywallHeroProps {
  * alternating delete/keep), pure UI-thread transforms, light haptic per commit.
  */
 export function PaywallHero({ lockLabel }: PaywallHeroProps) {
+    const t = useTheme();
     const x = useSharedValue(0);
 
     useEffect(() => {
@@ -87,65 +89,50 @@ export function PaywallHero({ lockLabel }: PaywallHeroProps) {
     return (
         <View className="items-center gap-2.5" style={{ height: lockLabel ? 190 : 150, justifyContent: 'center' }}>
             {lockLabel && (
-                <View
-                    className="flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-full border"
-                    style={{ backgroundColor: 'rgba(255,159,10,0.14)', borderColor: 'rgba(255,159,10,0.4)' }}
-                >
-                    <Ionicons name="lock-closed" size={12} color="#FF9F0A" />
-                    <Text className="text-streak text-[12px] font-bold">{lockLabel}</Text>
+                <View className="flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-tile-amber">
+                    <Icon name="lock" size={12} color={t.tile.amber.fg} strokeWidth={2.4} />
+                    <Text className="text-tile-amber-fg text-[12px] font-bold">{lockLabel}</Text>
                 </View>
             )}
-            <View className="items-center justify-center overflow-hidden" style={{ width: 250, height: CARD_H + 10 }}>
+            <View className="items-center justify-center overflow-hidden" style={{ width: 250, height: CARD_H + 30 }}>
                 {/* Back card */}
                 <View
-                    className="overflow-hidden"
+                    className="overflow-hidden border-[3px] border-card"
                     style={{
                         position: 'absolute',
                         width: CARD_W,
                         height: CARD_H,
-                        borderRadius: 16,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,0.25)',
+                        borderRadius: 14,
                         transform: [{ scale: 0.94 }, { translateY: 8 }],
                         opacity: 0.85,
                     }}
                 >
-                    <DemoFill photo={SWIPE_DEMO_CARDS[1].photo} gradient={GRADIENTS.analytics} />
+                    <DemoFill photo={SWIPE_DEMO_CARDS[1].photo} gradient={DEMO_GRADIENTS.teal} />
                 </View>
                 {/* Auto-swiping top card */}
                 <Animated.View
-                    className="absolute overflow-hidden"
+                    className="absolute overflow-hidden border-[3px] border-card"
                     style={[
-                        {
-                            width: CARD_W,
-                            height: CARD_H,
-                            borderRadius: 16,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.35)',
-                            shadowColor: '#000',
-                            shadowOpacity: 0.5,
-                            shadowRadius: 18,
-                            shadowOffset: { width: 0, height: 12 },
-                        },
+                        { width: CARD_W, height: CARD_H, borderRadius: 14, boxShadow: t.shadow.card },
                         cardStyle,
                     ]}
                 >
-                    <DemoFill photo={SWIPE_DEMO_CARDS[0].photo} gradient={GRADIENTS.accent} />
+                    <DemoFill photo={SWIPE_DEMO_CARDS[0].photo} gradient={DEMO_GRADIENTS.sky} />
                     <Animated.View
                         className="absolute inset-0 items-center justify-center gap-0.5"
-                        style={[{ backgroundColor: 'rgba(255,69,58,0.82)' }, delStyle]}
+                        style={[{ backgroundColor: ON_PHOTO.deleteOverlay }, delStyle]}
                         pointerEvents="none"
                     >
-                        <Ionicons name="trash-outline" size={24} color="white" />
-                        <Text className="text-white font-bold text-[11px] tracking-widest">DELETE</Text>
+                        <Icon name="trash" size={24} color={ON_PHOTO.text} />
+                        <Text className="text-on-photo font-bold text-[11px] tracking-widest">DELETE</Text>
                     </Animated.View>
                     <Animated.View
                         className="absolute inset-0 items-center justify-center gap-0.5"
-                        style={[{ backgroundColor: 'rgba(48,209,88,0.82)' }, keepStyle]}
+                        style={[{ backgroundColor: ON_PHOTO.keepOverlay }, keepStyle]}
                         pointerEvents="none"
                     >
-                        <Ionicons name="checkmark-circle-outline" size={24} color="white" />
-                        <Text className="text-white font-bold text-[11px] tracking-widest">KEEP</Text>
+                        <Icon name="checkCircle" size={24} color={ON_PHOTO.text} />
+                        <Text className="text-on-photo font-bold text-[11px] tracking-widest">KEEP</Text>
                     </Animated.View>
                 </Animated.View>
             </View>

@@ -1,9 +1,12 @@
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import { GlassCard } from '@/components/glass/GlassCard';
 import { PaywallHero } from '@/components/paywall/PaywallHero';
-import { GradientPillButton } from '@/components/ui/GradientPillButton';
+import { Card } from '@/components/ui/Card';
+import { CircleButton } from '@/components/ui/CircleButton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
 import { FREE_PLAN, LEGAL } from '@/constants/config';
-import { GRADIENTS } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { posthog } from '@/lib/posthog';
 import { isPro, sessionsRemaining } from '@/lib/planUtils';
 import {
@@ -14,9 +17,7 @@ import {
   restore,
 } from '@/lib/purchases';
 import { usePlanStore } from '@/stores/planStore';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -31,9 +32,9 @@ const SUBSCRIPTION_NAME = 'Swipe Photos Pro';
 
 // Every benefit here must be true of the code (lib/planUtils.ts) — a paywall
 // that promises features the app doesn't have fails Guideline 2.3.1.
-const BENEFITS = [
-  { icon: 'infinite' as const, text: `Unlimited reviews every day (free: ${FREE_PLAN.sessionsPerDay} a day)` },
-  { icon: 'albums' as const, text: `Review up to 100 photos at a time (free: ${FREE_PLAN.maxBatchSize})` },
+const BENEFITS: { icon: IconName; text: string }[] = [
+  { icon: 'infinity', text: `Unlimited reviews every day (free: ${FREE_PLAN.sessionsPerDay} a day)` },
+  { icon: 'feed', text: `Review up to 100 photos at a time (free: ${FREE_PLAN.maxBatchSize})` },
 ];
 
 function headline(context: PaywallContext): string {
@@ -88,54 +89,54 @@ function freeTrialLabel(pkg: PurchasesPackage | null): { short: string; days: nu
 }
 
 function Benefits() {
+  const t = useTheme();
   return (
-    <GlassCard radius={24} className="mb-4">
-      <View className="p-4 gap-3">
-        <Text className="text-white text-[15px] font-bold">{SUBSCRIPTION_NAME} includes</Text>
-        {BENEFITS.map((b) => (
-          <View key={b.text} className="flex-row items-center gap-3">
-            <View className="w-8 h-8 rounded-full bg-tint items-center justify-center">
-              <Ionicons name={b.icon} size={16} color="#0A84FF" />
-            </View>
-            <Text className="flex-1 text-white/80 text-[14px]">{b.text}</Text>
+    <Card className="px-3.5 py-3 gap-2.5 mb-4">
+      <Text className="text-fg text-[14.5px] font-bold">{SUBSCRIPTION_NAME} includes</Text>
+      {BENEFITS.map((b) => (
+        <View key={b.text} className="flex-row items-center gap-2.5">
+          <View className="w-[27px] h-[27px] rounded-full bg-tint items-center justify-center">
+            <Icon name={b.icon} size={15} color={t.accent.primary} strokeWidth={2.2} />
           </View>
-        ))}
-      </View>
-    </GlassCard>
+          <Text className="flex-1 text-fg text-[13.5px]">{b.text}</Text>
+        </View>
+      ))}
+    </Card>
   );
 }
 
 function TrialTimeline({ days, renewalPrice }: { days: number | null; renewalPrice: string }) {
-  const steps = [
-    { icon: 'lock-open' as const, title: 'Today: Pro unlocks', sub: 'Free for the length of your trial.' },
+  const t = useTheme();
+  const steps: { icon: IconName; title: string; sub: string }[] = [
+    { icon: 'lockOpen', title: 'Today: Pro unlocks', sub: 'Free for the length of your trial.' },
     {
-      icon: 'calendar' as const,
+      icon: 'calendar',
       title: days ? `Day ${days}: trial ends` : 'Trial ends',
       sub: `You'll be charged ${renewalPrice} per week unless you cancel at least 24 hours before the trial ends.`,
     },
     {
-      icon: 'close-circle' as const,
+      icon: 'closeCircle',
       title: 'Cancel anytime',
       sub: 'In Settings › your name › Subscriptions.',
     },
   ];
   return (
-    <View className="p-4 mb-4 bg-white/10 border border-white/[0.16] rounded-3xl">
+    <Card className="p-3.5 mb-4">
       {steps.map((s, i) => (
         <View key={s.title} className="flex-row gap-3">
           <View className="items-center">
-            <View className="w-8 h-8 rounded-full bg-tint items-center justify-center">
-              <Ionicons name={s.icon} size={15} color="#0A84FF" />
+            <View className="w-[27px] h-[27px] rounded-full bg-tint items-center justify-center">
+              <Icon name={s.icon} size={15} color={t.accent.primary} strokeWidth={2.2} />
             </View>
-            {i < steps.length - 1 && <View className="w-0.5 flex-1 bg-white/10 my-1" />}
+            {i < steps.length - 1 && <View className="w-0.5 flex-1 bg-divider my-1" />}
           </View>
           <View className={i < steps.length - 1 ? 'flex-1 pb-4' : 'flex-1'}>
-            <Text className="text-white text-[15px] font-semibold">{s.title}</Text>
-            <Text className="text-white/60 text-[13px] mt-0.5">{s.sub}</Text>
+            <Text className="text-fg text-[15px] font-semibold">{s.title}</Text>
+            <Text className="text-fg-2 text-[13px] mt-0.5">{s.sub}</Text>
           </View>
         </View>
       ))}
-    </View>
+    </Card>
   );
 }
 
@@ -150,6 +151,7 @@ interface PlanCardProps {
 }
 
 function PlanCard({ selected, onPress, title, price, priceSuffix, sub, badge }: PlanCardProps) {
+  const t = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -158,44 +160,36 @@ function PlanCard({ selected, onPress, title, price, priceSuffix, sub, badge }: 
       accessibilityLabel={`${title}, ${price} ${priceSuffix}${sub ? `, ${sub}` : ''}`}
     >
       <View
-        className={
-          selected
-            ? 'rounded-3xl border-2 border-accent bg-tint px-4 py-3.5 min-h-[64px] justify-center'
-            : 'rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3.5 min-h-[64px] justify-center'
-        }
+        className={`rounded-[22px] bg-card px-3.5 py-3 justify-center ${
+          selected ? 'border-2 border-accent min-h-[74px]' : 'border border-hairline min-h-[60px]'
+        }`}
+        style={{ boxShadow: t.shadow.card }}
       >
         {badge && (
-          <View className="absolute -top-2.5 right-4 rounded-full overflow-hidden">
-            <LinearGradient
-              colors={GRADIENTS.star}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ paddingHorizontal: 10, paddingVertical: 3 }}
-            >
-              <Text className="text-black text-[11px] font-extrabold">{badge}</Text>
-            </LinearGradient>
+          <View className="absolute -top-[9px] right-3.5 rounded-[9px] bg-badge px-[9px] py-0.5">
+            <Text className="text-badge-fg text-[10.5px] font-extrabold" style={{ letterSpacing: 0.2 }}>
+              {badge}
+            </Text>
           </View>
         )}
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center justify-between gap-3">
           <View className="flex-row items-center gap-3 flex-1">
-            <View
-              className={
-                selected
-                  ? 'w-5 h-5 rounded-full bg-accent items-center justify-center'
-                  : 'w-5 h-5 rounded-full border border-white/30'
-              }
-            >
-              {selected && <Ionicons name="checkmark" size={12} color="white" />}
-            </View>
+            {selected ? (
+              <View className="w-[18px] h-[18px] rounded-full bg-accent items-center justify-center">
+                <Icon name="check" size={10} color={t.text.onButton} strokeWidth={3.6} />
+              </View>
+            ) : (
+              <View className="w-[17px] h-[17px] rounded-full border-[1.5px] border-fg-3" />
+            )}
             <View className="flex-1">
-              <Text className="text-white text-[16px] font-bold">{title}</Text>
-              {!!sub && <Text className="text-white/60 text-[12px] mt-0.5">{sub}</Text>}
+              <Text className="text-fg text-[15.5px] font-bold">{title}</Text>
+              {!!sub && <Text className="text-fg-2 text-[11.5px] mt-px">{sub}</Text>}
             </View>
           </View>
           {/* Billed amount is the most prominent number on the card */}
           <View className="items-end">
-            <Text className="text-white text-[18px] font-extrabold">{price}</Text>
-            <Text className="text-white/60 text-[12px]">{priceSuffix}</Text>
+            <Text className="text-fg text-[17.5px] font-extrabold">{price}</Text>
+            <Text className="text-fg-2 text-[11.5px]">{priceSuffix}</Text>
           </View>
         </View>
       </View>
@@ -208,14 +202,15 @@ function FooterLink({ label, onPress }: { label: string; onPress: () => void }) 
     <Pressable
       onPress={onPress}
       accessibilityRole="link"
-      className="min-h-[44px] px-2 items-center justify-center active:opacity-60"
+      className="min-h-[44px] px-[7px] items-center justify-center active:opacity-60"
     >
-      <Text className="text-white/60 text-[13px] underline">{label}</Text>
+      <Text className="text-fg text-[12px] font-medium underline">{label}</Text>
     </Pressable>
   );
 }
 
 export default function PaywallScreen() {
+  const t = useTheme();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ context?: string }>();
   const context = (params.context ?? 'settings') as PaywallContext;
@@ -318,35 +313,30 @@ export default function PaywallScreen() {
         : `${selectedPlan === 'annual' ? `${annualPrice} per year` : `${weeklyPrice} per week`}, charged to your Apple ID at confirmation of purchase. The subscription renews automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in your App Store account settings.`;
 
   return (
-    <View className="flex-1 bg-bg-dark" style={{ paddingTop: insets.top }}>
-      <AuroraBackground variant="onboarding" />
+    <View className="flex-1" style={{ paddingTop: insets.top }}>
+      <ScreenBackground />
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-10"
+        contentContainerClassName="px-[21px] pt-10"
         showsVerticalScrollIndicator={false}
       >
         {/* Living hero: lock chip (sessions) + auto-swiping demo */}
         <PaywallHero lockLabel={lockLabel} />
 
         {/* Headline + subscription name */}
-        <View className="items-center mt-2 mb-4">
-          <Text
-            className="text-white font-extrabold text-center"
-            style={{ fontSize: 30, lineHeight: 35, letterSpacing: -0.8 }}
-          >
-            {headline(context)}
-          </Text>
-          <Text className="text-white/60 text-[14px] mt-2">{SUBSCRIPTION_NAME} · auto-renewable subscription</Text>
+        <View className="items-center mt-2 mb-5 gap-2.5">
+          <Text className="font-display text-fg text-center text-[29px] leading-[32.5px]">{headline(context)}</Text>
+          <Text className="text-fg-2 text-[13px]">{SUBSCRIPTION_NAME} · auto-renewable subscription</Text>
         </View>
 
         {/* Plan cards — or a clear error with retry when the store is unreachable */}
         {!offeringsLoaded ? (
           <View className="h-[150px] items-center justify-center mb-4">
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={t.accent.primary} />
           </View>
         ) : purchasesAvailable ? (
-          <View className="gap-3 mb-4">
+          <View className="gap-2.5 mb-4">
             <PlanCard
               selected={selectedPlan === 'annual'}
               onPress={() => setSelectedPlan('annual')}
@@ -367,24 +357,15 @@ export default function PaywallScreen() {
           </View>
         ) : (
           !pro && (
-            <GlassCard radius={24} className="mb-4">
-              <View className="p-5 items-center gap-3">
-                <Ionicons name="cloud-offline-outline" size={28} color="rgba(255,255,255,0.6)" />
-                <Text className="text-white text-[15px] font-semibold text-center">
-                  Subscription options couldn’t be loaded
-                </Text>
-                <Text className="text-white/60 text-[13px] text-center">
-                  Check your internet connection and try again.
-                </Text>
-                <Pressable
-                  onPress={fetchOfferings}
-                  accessibilityRole="button"
-                  className="min-h-[44px] px-6 rounded-full bg-white/15 items-center justify-center active:opacity-70"
-                >
-                  <Text className="text-white font-semibold">Try Again</Text>
-                </Pressable>
-              </View>
-            </GlassCard>
+            <Card className="py-6 mb-4">
+              <EmptyState
+                icon="cloudOffline"
+                color="sky"
+                title="Subscription options couldn’t be loaded"
+                body="Check your internet connection and try again."
+                action={{ label: 'Try Again', onPress: fetchOfferings }}
+              />
+            </Card>
           )
         )}
 
@@ -395,15 +376,15 @@ export default function PaywallScreen() {
       </ScrollView>
 
       {/* Sticky CTA + full disclosure + required links, always visible */}
-      <View className="px-6 pt-2 gap-1.5" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-        <GradientPillButton
+      <View className="px-[21px] pt-2 gap-1.5" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+        <PrimaryButton
           label={ctaLabel}
           onPress={pro ? manageSubscriptions : handlePurchase}
           loading={!pro && (purchasing || !offeringsLoaded)}
           disabled={!pro && (!purchasesAvailable || restoring)}
         />
         {!!disclosure && (
-          <Text className="text-white/60 text-[12px] text-center" style={{ lineHeight: 16 }}>
+          <Text className="text-fg-2 text-[11px] text-center leading-[15px] px-1">
             {disclosure}
           </Text>
         )}
@@ -415,17 +396,9 @@ export default function PaywallScreen() {
       </View>
 
       {/* Close — visible and tappable from the first frame (no delayed dismiss) */}
-      <Pressable
-        onPress={close}
-        disabled={purchasing}
-        hitSlop={6}
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-        className="absolute left-4 w-11 h-11 rounded-full bg-white/15 items-center justify-center active:opacity-70"
-        style={{ top: insets.top + 4, zIndex: 10 }}
-      >
-        <Ionicons name="close" size={22} color="rgba(255,255,255,0.9)" />
-      </Pressable>
+      <View className="absolute left-3.5" style={{ top: insets.top + 4, zIndex: 10 }} pointerEvents={purchasing ? 'none' : 'auto'}>
+        <CircleButton icon="close" onPress={close} accessibilityLabel="Close" />
+      </View>
     </View>
   );
 }

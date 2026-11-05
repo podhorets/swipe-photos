@@ -191,6 +191,18 @@ export const ON_PHOTO = {
 };
 
 /**
+ * Placeholder art behind demo cards (onboarding, paywall) until the photo
+ * loads: soft tile-colour gradients, never blue→violet.
+ */
+export const DEMO_GRADIENTS = {
+  sky: ['#7CC8F5', '#2457D6'],
+  teal: ['#5FD3DF', '#0E7380'],
+  amber: ['#F5B460', '#B45309'],
+  rose: ['#F59AAE', '#B4233C'],
+  green: ['#6EE7A0', '#15803D'],
+} as const satisfies Record<string, readonly [string, string]>;
+
+/**
  * Tailwind colour name → token. tailwind.config.js maps each name to
  * `var(--name)`; THEME_VARS sets the variables per theme (scripts/theme-audit
  * checks that the two lists match).
