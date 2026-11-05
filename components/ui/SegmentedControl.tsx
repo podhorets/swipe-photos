@@ -39,7 +39,7 @@ export function SegmentedControl<T extends string | number>({
             className={`flex-1 min-h-[35px] rounded-[10px] flex-row items-center justify-center gap-1 ${
               selected ? (tint ? 'bg-tint' : 'bg-segment') : ''
             }`}
-            style={selected && !tint ? { boxShadow: '0px 1px 3px rgba(0,0,0,0.10)' } : undefined}
+            style={selected && !tint ? { boxShadow: t.shadow.segment } : undefined}
           >
             <Text
               className={`text-[14.5px] font-bold ${

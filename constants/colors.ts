@@ -69,7 +69,7 @@ export interface Theme {
   tile: Record<TileColor, { bg: string; fg: string }>;
 
   /** CSS box-shadow strings (RN `boxShadow` style, New Architecture). */
-  shadow: { card: string; floating: string; swipeCard: string };
+  shadow: { card: string; floating: string; swipeCard: string; segment: string };
 }
 
 export const light: Theme = {
@@ -118,6 +118,7 @@ export const light: Theme = {
     card: '0px 1px 2px rgba(18,35,61,0.05), 0px 10px 24px rgba(36,87,214,0.09)',
     floating: '0px 8px 24px rgba(36,87,214,0.12)',
     swipeCard: '0px 18px 40px rgba(18,35,61,0.22)',
+    segment: '0px 1px 3px rgba(0,0,0,0.10)',
   },
 };
 
@@ -167,6 +168,7 @@ export const dark: Theme = {
     floating: '0px 8px 24px rgba(0,0,0,0.40)',
     // Same as light, per the handoff
     swipeCard: '0px 18px 40px rgba(18,35,61,0.22)',
+    segment: '0px 1px 3px rgba(0,0,0,0.10)',
   },
 };
 

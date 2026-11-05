@@ -41,7 +41,7 @@ function FreeBadge() {
 
 /**
  * Free-plan sessions fuel gauge — full-width block for the Home screen
- * (own slot under the header). Replaces the old SessionsChip pill.
+ * (own slot under the header).
  *
  * States: segmented accent meter while reviews remain; exhausted shows an
  * amber hourglass with a live h:mm:ss countdown and a bar showing time elapsed toward the

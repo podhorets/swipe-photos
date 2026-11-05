@@ -32,26 +32,6 @@ module.exports = {
         'on-photo': '#FFFFFF',
         'on-photo-2': 'rgba(255,255,255,0.9)',
         feed: '#000000',
-        // ── Legacy (removed once every screen uses the theme tokens) ──
-        // Glass surfaces
-        glass: {
-          light: 'rgba(255,255,255,0.07)',
-          border: 'rgba(255,255,255,0.12)',
-          'border-strong': 'rgba(255,255,255,0.28)',
-        },
-        // Flat glass surfaces (no backdrop blur — list rows, sections)
-        'glass-6': 'rgba(255,255,255,0.06)',
-        'glass-7': 'rgba(255,255,255,0.07)',
-        // Swipe decisions
-        delete: '#FF453A',
-        keep: '#30D158',
-        // Accent (legacy `accent` is now the theme token above)
-        streak: '#FF9F0A',
-        // Backgrounds
-        'bg-dark': '#050508',
-        'bg-card': 'rgba(28,28,30,0.85)',
-        chrome: 'rgba(24,24,28,0.72)',
-        scrim: 'rgba(5,5,8,0.55)',
       },
       fontFamily: {
         // Nunito ExtraBold: titles, big numbers, review titles. Never combine

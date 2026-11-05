@@ -31,7 +31,7 @@ const styles = StyleSheet.create({ container: { flex: 1 } });
 Mix both when needed: `className` for static, `style` for animated/dynamic.
 
 ### Native code
-Prefer the Expo SDK and the third-party native modules already in use: `react-native-purchases` (RevenueCat, subscriptions), `react-native-mmkv`, `@shopify/react-native-skia`, `lottie-react-native`, `@sentry/react-native`.
+Prefer the Expo SDK and the third-party native modules already in use: `react-native-purchases` (RevenueCat, subscriptions), `react-native-mmkv`, `lottie-react-native`, `@sentry/react-native` (`@shopify/react-native-skia` is installed but no longer used).
 When Expo can't do something well (or fast enough), add native code to the project's own module `modules/expo-photo-analyzer` (Swift: Apple Vision feature prints, blur, face count, bulk photo locations). This module is owned and edited here — it started as a copy of cleani's module but no longer has to match it. After changing Swift, rebuild the native app (Fast Refresh doesn't pick it up). Every call site must check `isPhotoAnalyzerAvailable()` and degrade gracefully (iOS-only module).
 
 ### Theme: Light ("Mist") and Dark ("Night Sky") — follow the design, not glass
@@ -120,7 +120,8 @@ Never hardcode spring configs or swipe thresholds. Always use `SPRING.*` and `SW
 ## Quality Gates (run before every commit)
 
 ```bash
-npm run lint       # ESLint — patterns, restricted APIs
-npm run typecheck  # tsc --noEmit — type errors (ESLint does NOT catch these)
+npm run lint         # ESLint — patterns, restricted APIs (Ionicons, expo-blur banned)
+npm run typecheck    # tsc --noEmit — type errors (ESLint does NOT catch these)
+npm run audit:theme  # theme tokens only: no hex/rgba, white/black classes, dark:, uncoloured <Text>
 ```
-Both must pass clean.
+All three must pass clean.

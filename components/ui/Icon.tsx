@@ -112,7 +112,9 @@ interface Props {
 }
 
 export function Icon({ name, size = 20, color, strokeWidth = 2, fill }: Props) {
-  const def: IconDef = ICONS[name];
+  const def: IconDef | undefined = ICONS[name];
+  // A stale name (e.g. mid Fast Refresh) draws nothing instead of crashing the screen
+  if (!def) return <Svg width={size} height={size} />;
   const pathFill = def.filled ? color : fill ?? 'none';
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
