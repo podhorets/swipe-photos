@@ -1,13 +1,17 @@
-import { AuroraBackground } from '@/components/glass/AuroraBackground';
-import { StatusBarScrim } from '@/components/glass/StatusBarScrim';
-import { GlassCard } from '@/components/glass/GlassCard';
 import { ShortcutTile } from '@/components/home/ShortcutTile';
 import { StackCard } from '@/components/home/StackCard';
-import { IconSquircle } from '@/components/ui/IconSquircle';
+import { Card } from '@/components/ui/Card';
+import { CircleButton } from '@/components/ui/CircleButton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon } from '@/components/ui/Icon';
+import { IconWell } from '@/components/ui/IconWell';
+import { ScreenBackground } from '@/components/ui/ScreenBackground';
 import { SessionsMeter } from '@/components/ui/SessionsMeter';
+import { StatusBarScrim } from '@/components/ui/StatusBarScrim';
 import { StorageSummary } from '@/components/ui/StorageSummary';
 import { StreakChip } from '@/components/ui/StreakChip';
-import { GRADIENTS, SCREEN } from '@/constants/theme';
+import { SCREEN } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatBytes } from '@/lib/dateUtils';
 import { buildPlaceStories } from '@/lib/feed/stories';
@@ -23,17 +27,19 @@ import { usePlacesStore } from '@/stores/placesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useSimilarStore } from '@/stores/similarStore';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TILE_WIDTH = (SCREEN.width - 40 - 12) / 2; // px-5 screen padding, gap-3
+const SCREEN_X = 21;
+const TILE_GAP = 11;
+const TILE_WIDTH = (SCREEN.width - SCREEN_X * 2 - TILE_GAP) / 2;
 
 
 export default function HomeScreen() {
+  const t = useTheme();
   const insets = useSafeAreaInsets();
   const index = useGalleryStore((s) => s.index);
   const isIndexing = useGalleryStore((s) => s.isIndexing);
@@ -150,8 +156,8 @@ export default function HomeScreen() {
   // state below doesn't flash on every cold start
   if (!mediaStatus) {
     return (
-      <View className="flex-1 bg-bg-dark">
-        <AuroraBackground />
+      <View className="flex-1">
+        <ScreenBackground />
       </View>
     );
   }
@@ -162,57 +168,43 @@ export default function HomeScreen() {
   if (!isMediaGranted) {
     const canAsk = mediaStatus.canAskAgain;
     return (
-      <View className="flex-1 bg-bg-dark items-center justify-center px-8" style={{ paddingTop: insets.top }}>
-        <AuroraBackground />
-        <Ionicons name="images-outline" size={64} color="rgba(255,255,255,0.25)" />
-        <Text className="text-white text-2xl font-bold mt-6 text-center">Photo Access Needed</Text>
-        <Text className="text-white/60 text-base mt-3 text-center leading-6">
-          {canAsk
-            ? 'Swipe Photos shows your photos one at a time so you can keep or delete them. Your photos never leave your iPhone.'
-            : 'Photo access is turned off. To review your photos, allow access for Swipe Photos in Settings › Privacy & Security › Photos.'}
-        </Text>
-        <Pressable
-          onPress={() => (canAsk ? requestMedia() : Linking.openSettings())}
-          accessibilityRole="button"
-          className="mt-8 bg-white/15 rounded-full px-8 min-h-[50px] items-center justify-center active:opacity-70"
-        >
-          <Text className="text-white font-semibold text-base">{canAsk ? 'Continue' : 'Open Settings'}</Text>
-        </Pressable>
+      <View className="flex-1 items-center justify-center" style={{ paddingTop: insets.top }}>
+        <ScreenBackground />
+        <EmptyState
+          icon="images"
+          title="Photo Access Needed"
+          body={
+            canAsk
+              ? 'Swipe Photos shows your photos one at a time so you can keep or delete them. Your photos never leave your iPhone.'
+              : 'Photo access is turned off. To review your photos, allow access for Swipe Photos in Settings › Privacy & Security › Photos.'
+          }
+          action={{ label: canAsk ? 'Continue' : 'Open Settings', onPress: () => (canAsk ? requestMedia() : Linking.openSettings()) }}
+        />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-bg-dark">
-      <AuroraBackground />
+    <View className="flex-1">
+      <ScreenBackground />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: insets.top + 4,
+          paddingTop: insets.top + 8,
           paddingBottom: insets.bottom + 110,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_X,
+          gap: 12,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — streak chip + Settings (no longer a tab); sessions get their own slot below */}
-        <View className="flex-row items-end justify-between mb-3">
-          <Text
-            className="text-white text-[34px] font-extrabold"
-            style={{ letterSpacing: -0.8 }}
-          >
+        {/* Header — streak chip + Settings; sessions get their own slot below */}
+        <View className="flex-row items-center justify-between min-h-[36px]">
+          <Text className="font-display text-fg text-[31px]" numberOfLines={1}>
             Swipe Photos
           </Text>
           <View className="flex-row items-center gap-2">
             <StreakChip />
-            <Pressable
-              onPress={() => router.push('/settings')}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-              hitSlop={4}
-              className="w-10 h-10 items-center justify-center rounded-full bg-white/[0.08] border border-white/[0.14] active:opacity-70"
-            >
-              <Ionicons name="settings-sharp" size={19} color="white" />
-            </Pressable>
+            <CircleButton icon="gear" size={34} accessibilityLabel="Settings" onPress={() => router.push('/settings')} />
           </View>
         </View>
 
@@ -224,45 +216,38 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => MediaLibrary.presentPermissionsPickerAsync().catch(() => Linking.openSettings())}
             accessibilityRole="button"
-            className="flex-row items-center gap-3 rounded-2xl px-4 py-3 mb-3"
-            style={{ backgroundColor: 'rgba(255,159,10,0.12)', borderWidth: 1, borderColor: 'rgba(255,159,10,0.25)' }}
+            className="active:opacity-80"
           >
-            <Ionicons name="warning-outline" size={20} color="rgba(255,159,10,0.9)" />
-            <View className="flex-1">
-              <Text className="text-streak text-sm font-semibold">Limited photo access</Text>
-              <Text className="text-streak/70 text-xs mt-0.5">
-                Swipe Photos can see {index.length.toLocaleString()} of your photos. Tap to choose more.
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="rgba(255,159,10,0.4)" />
+            <Card radius={18} className="flex-row items-center gap-3 px-3 py-3">
+              <IconWell icon="warning" color="amber" />
+              <View className="flex-1">
+                <Text className="text-fg text-[14.5px] font-bold">Limited photo access</Text>
+                <Text className="text-fg-2 text-[12.5px] mt-0.5">
+                  Swipe Photos can see {index.length.toLocaleString()} of your photos. Tap to choose more.
+                </Text>
+              </View>
+              <Icon name="chevron" size={14} color={t.text.tertiary} strokeWidth={2.4} />
+            </Card>
           </Pressable>
         )}
 
-        {/* Hero storage card — the week streak strip now lives in its footer */}
+        {/* Hero storage card with the week-streak footer */}
         <StorageSummary />
 
         {libraryEmpty ? (
           // Empty (or nothing selected under Limited Access) — say how to get
           // started instead of a grid of zeros. Review devices often start empty.
-          <GlassCard radius={24}>
-            <View className="items-center px-6 py-7">
-              <IconSquircle
-                icon={isMediaLimited ? 'images-outline' : 'camera-outline'}
-                colors={GRADIENTS.accent}
-                size={52}
-                radius={17}
-                iconSize={26}
-              />
-              <Text className="text-white text-lg font-bold mt-4">
-                {isMediaLimited ? 'No photos selected' : 'No photos yet'}
-              </Text>
-              <Text className="text-white/60 text-sm text-center mt-1.5" style={{ lineHeight: 20 }}>
-                {isMediaLimited
+          <Card className="py-7">
+            <EmptyState
+              icon={isMediaLimited ? 'images' : 'camera'}
+              title={isMediaLimited ? 'No photos selected' : 'No photos yet'}
+              body={
+                isMediaLimited
                   ? 'Tap the banner above to choose which photos Swipe Photos can see.'
-                  : 'Photos you take with the Camera show up here. Take 3 or 4 shots of the same scene to see Similar group them.'}
-              </Text>
-            </View>
-          </GlassCard>
+                  : 'Photos you take with the Camera show up here. Take 3 or 4 shots of the same scene to see Similar group them.'
+              }
+            />
+          </Card>
         ) : (
           <>
             {/* Today's memories, then a random stack — each starts a session */}
@@ -270,10 +255,10 @@ export default function HomeScreen() {
               <StackCard
                 title="On This Day"
                 subtitle={onThisDaySubtitle}
-                icon="sparkles"
+                icon="sparkle"
                 badge="Today"
                 coverUri={onThisDay[0]?.uri}
-                height={156}
+                height={149}
                 onStart={startOnThisDay}
                 onPress={() => router.push('/on-this-day')}
               />
@@ -283,41 +268,41 @@ export default function HomeScreen() {
               subtitle={`Quick 5-min session · ${index.length.toLocaleString()} items`}
               icon="shuffle"
               coverUri={index[0]?.uri}
-              height={112}
+              height={106}
               onStart={startRandom}
             />
 
             {/* Shortcuts to the other tabs and Library views */}
-            <View className="flex-row flex-wrap gap-3 mt-1 mb-3">
+            <View className="flex-row flex-wrap" style={{ gap: TILE_GAP }}>
               <ShortcutTile
                 label="Feed"
                 subtitle="Scroll and decide"
-                icon="albums"
-                colors={GRADIENTS.accent}
+                icon="stack"
+                color="blue"
                 width={TILE_WIDTH}
                 onPress={() => router.navigate('/(tabs)/feed')}
               />
               <ShortcutTile
                 label="Similar"
                 subtitle={similarSubtitle}
-                icon="copy-outline"
-                colors={GRADIENTS.freed}
+                icon="similarTile"
+                color="teal"
                 width={TILE_WIDTH}
                 onPress={() => router.navigate('/(tabs)/similar')}
               />
               <ShortcutTile
                 label="By Year"
                 subtitle={`${yearCount} ${yearCount === 1 ? 'year' : 'years'} · ${monthCount} months`}
-                icon="calendar-number"
-                colors={GRADIENTS.notify}
+                icon="calendar"
+                color="amber"
                 width={TILE_WIDTH}
                 onPress={() => openLibrary('Months')}
               />
               <ShortcutTile
                 label="By Location"
                 subtitle={placeCount > 0 ? `${placeCount} ${placeCount === 1 ? 'place' : 'places'}` : 'Trips from your photos'}
-                icon="location"
-                colors={GRADIENTS.shield}
+                icon="pin"
+                color="sky"
                 width={TILE_WIDTH}
                 onPress={() => openLibrary('Types')}
               />

@@ -1,19 +1,20 @@
 import { Pressable, Text, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { GlassCard } from '@/components/glass/GlassCard';
-import { IconSquircle } from '@/components/ui/IconSquircle';
+import { Card } from '@/components/ui/Card';
+import { IconWell } from '@/components/ui/IconWell';
+import type { IconName } from '@/components/ui/Icon';
+import type { TileColor } from '@/constants/colors';
 
 interface ShortcutTileProps {
   label: string;
   subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  colors: readonly [string, string];
+  icon: IconName;
+  color: TileColor;
   width: number;
   onPress: () => void;
 }
 
-/** Small glass shortcut on Home that leads to another tab (Feed, Similar, Library views). */
-export function ShortcutTile({ label, subtitle, icon, colors, width, onPress }: ShortcutTileProps) {
+/** Small Home shortcut to another tab (Feed, Similar, Library views). */
+export function ShortcutTile({ label, subtitle, icon, color, width, onPress }: ShortcutTileProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -22,19 +23,17 @@ export function ShortcutTile({ label, subtitle, icon, colors, width, onPress }: 
       className="active:opacity-70"
       style={{ width }}
     >
-      <GlassCard radius={20}>
-        <View className="flex-row items-center gap-2.5 p-3">
-          <IconSquircle icon={icon} colors={colors} size={34} radius={11} iconSize={17} />
-          <View className="flex-1">
-            <Text className="text-white font-bold text-[14px]" numberOfLines={1}>
-              {label}
-            </Text>
-            <Text className="text-white/55 text-[11px] mt-px" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          </View>
+      <Card radius={18} className="flex-row items-center gap-[9px] px-2.5 min-h-[53px] py-2">
+        <IconWell icon={icon} color={color} />
+        <View className="flex-1">
+          <Text className="text-fg font-bold text-[14.5px]" numberOfLines={1}>
+            {label}
+          </Text>
+          <Text className="text-fg-2 text-[11px]" numberOfLines={1}>
+            {subtitle}
+          </Text>
         </View>
-      </GlassCard>
+      </Card>
     </Pressable>
   );
 }

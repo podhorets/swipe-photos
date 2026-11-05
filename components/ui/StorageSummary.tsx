@@ -1,22 +1,24 @@
-import { GlassCard } from '@/components/glass/GlassCard';
+import { Card } from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { formatBytes } from '@/lib/dateUtils';
 import { estimateSizeFromAsset } from '@/lib/sizeUtils';
 import { computeStreak, getWeekCompletions } from '@/lib/streakUtils';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { useGalleryStore } from '@/stores/galleryStore';
 import { useKeepStore } from '@/stores/keepStore';
 import { useStatsStore } from '@/stores/statsStore';
 import { useStreakStore } from '@/stores/streakStore';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /**
- * Week-streak footer — 🔥 streak count + 7 day dots (complete = amber check,
- * today = ring). Moved in from the removed StreakWidget.tsx.
+ * Week-streak footer — streak count + 7 day dots (complete = amber with a
+ * dark check, today = ring).
  */
 function StreakFooter() {
+  const t = useTheme();
   const completedDates = useStreakStore((s) => s.completedDates);
 
   const { weekCompletions, streak } = useMemo(
@@ -34,38 +36,29 @@ function StreakFooter() {
 
   return (
     <>
-      <View className="h-px bg-white/[0.08]" />
-      <View className="flex-row items-center justify-between px-4 pt-2.5 pb-3">
+      <View className="h-px bg-divider" />
+      <View className="flex-row items-center justify-between px-3.5 pt-2 pb-2.5">
         {streak > 0 ? (
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-[13px]">🔥</Text>
-            <Text className="text-streak text-xs font-bold">{streak}-day streak</Text>
+          <View className="flex-row items-center gap-1">
+            <Icon name="flame" size={13} color={t.streak.text} fill={t.streak.flame} strokeWidth={1.8} />
+            <Text className="text-streak-fg text-[12px] font-bold">{streak}-day streak</Text>
           </View>
         ) : (
-          <Text className="text-white/50 text-xs font-semibold">This week</Text>
+          <Text className="text-fg-2 text-[12px] font-bold">This week</Text>
         )}
-        <View className="flex-row gap-2.5">
+        <View className="flex-row gap-1.5">
           {DAY_LETTERS.map((letter, i) => {
             const completed = weekCompletions[i];
             const isToday = i === todayIndex;
             return (
-              <View key={i} className="items-center gap-1">
-                <Text
-                  className={`text-[10px] font-semibold ${
-                    isToday ? 'text-white/80' : 'text-white/35'
+              <View key={i} className="items-center gap-[3px]">
+                <Text className={`text-[9.5px] font-semibold ${isToday ? 'text-fg' : 'text-fg-2'}`}>{letter}</Text>
+                <View
+                  className={`w-5 h-5 rounded-full items-center justify-center ${
+                    completed ? 'bg-dot-done' : isToday ? 'border-2 border-fg' : 'bg-dot-off'
                   }`}
                 >
-                  {letter}
-                </Text>
-                <View
-                  className="w-[18px] h-[18px] rounded-full items-center justify-center"
-                  style={{
-                    backgroundColor: completed ? '#FF9F0A' : 'rgba(255,255,255,0.08)',
-                    borderWidth: isToday && !completed ? 1.5 : 0,
-                    borderColor: 'rgba(255,255,255,0.4)',
-                  }}
-                >
-                  {completed && <Ionicons name="checkmark" size={10} color="#050508" />}
+                  {completed && <Icon name="check" size={12} color={t.dot.doneFg} strokeWidth={3} />}
                 </View>
               </View>
             );
@@ -79,9 +72,9 @@ function StreakFooter() {
 /** One inline fact of the stat row: muted label, bold value. */
 function StatInline({ label, value, green }: { label: string; value: string; green?: boolean }) {
   return (
-    <Text className="text-white/50 text-[13px]">
+    <Text className="text-fg-2 text-[13px]">
       {label}{' '}
-      <Text className={green ? 'text-keep font-bold' : 'text-white font-bold'}>{value}</Text>
+      <Text className={green ? 'text-keep-text font-bold' : 'text-fg font-bold'}>{value}</Text>
     </Text>
   );
 }
@@ -110,41 +103,29 @@ export function StorageSummary() {
 
   if (isIndexing) {
     return (
-      // Distinct key: without it React reuses this GlassCard instance for the
-      // loaded-summary branch below, and the Skia border can keep this card's
-      // (shorter) stale size — a ghost border overlapping the summary card
-      <GlassCard key="indexing" radius={28} className="mb-4">
-        <View className="p-4">
-          <Text className="text-white/60 text-sm mb-2">Scanning library…</Text>
-          <View className="h-1 bg-white/10 rounded-full overflow-hidden">
-            <View
-              className="h-full bg-accent rounded-full"
-              style={{ width: `${Math.round(indexProgress * 100)}%` }}
-            />
-          </View>
-          {index.length > 0 && (
-            <Text className="text-white/40 text-xs mt-2">
-              {index.length.toLocaleString()} found so far…
-            </Text>
-          )}
+      <Card className="p-3.5">
+        <Text className="text-fg-2 text-sm mb-2">Scanning library…</Text>
+        <View className="h-1 bg-track rounded-full overflow-hidden">
+          <View className="h-full bg-accent rounded-full" style={{ width: `${Math.round(indexProgress * 100)}%` }} />
         </View>
-      </GlassCard>
+        {index.length > 0 && (
+          <Text className="text-fg-2 text-xs mt-2">{index.length.toLocaleString()} found so far…</Text>
+        )}
+      </Card>
     );
   }
 
   return (
-    <GlassCard key="summary" radius={28} className="mb-4">
-      <View className="px-4 pt-4 pb-3">
+    <Card className="overflow-hidden">
+      <View className="px-3.5 pt-[13px] pb-3 gap-2.5">
         <View className="flex-row items-baseline justify-between">
-          <Text className="text-white text-[20px] font-extrabold" style={{ letterSpacing: -0.4 }}>
-            {Math.round(reviewedRatio * 100)}% reviewed
-          </Text>
-          <Text className="text-white/50 text-[13px]">
+          <Text className="font-display text-fg text-[22px]">{Math.round(reviewedRatio * 100)}% reviewed</Text>
+          <Text className="text-fg-2 text-[12.5px]">
             {index.length.toLocaleString()} items · {formatBytes(estimatedSize, 0)}
           </Text>
         </View>
 
-        <View className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2.5 mb-3">
+        <View className="h-1 bg-track rounded-full overflow-hidden">
           <View
             className="h-full bg-accent rounded-full"
             // A sliver stays visible once anything is reviewed
@@ -163,8 +144,7 @@ export function StorageSummary() {
         </View>
       </View>
 
-      {/* Week streak strip (was StreakWidget) */}
       <StreakFooter />
-    </GlassCard>
+    </Card>
   );
 }

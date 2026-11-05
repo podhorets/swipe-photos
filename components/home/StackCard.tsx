@@ -1,70 +1,61 @@
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import Ionicons from '@expo/vector-icons/Ionicons';
-
-const SCRIM = ['rgba(5,5,8,0.05)', 'rgba(5,5,8,0.85)'] as const;
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { PhotoChip } from '@/components/ui/PhotoChip';
+import { StartPill } from '@/components/ui/PrimaryButton';
+import { ON_PHOTO } from '@/constants/colors';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 
 interface StackCardProps {
   title: string;
   subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IconName;
   coverUri?: string;
   height: number;
-  /** Small pill in the top-left corner, e.g. "Today" */
+  /** Small chip in the top-left corner, e.g. "Today" */
   badge?: string;
   onStart: () => void;
   /** Tapping the card outside Start (e.g. opens the year-by-year screen) */
   onPress?: () => void;
 }
 
-/** Full-width photo card for a review stack on Home, with its own Start button. */
+const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
+
+/** Full-width photo card for a review stack on Home, with its own Start pill. */
 export function StackCard({ title, subtitle, icon, coverUri, height, badge, onStart, onPress }: StackCardProps) {
+  const t = useTheme();
   return (
     <Pressable
       onPress={onPress ?? onStart}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${subtitle}`}
-      className="mb-3 active:opacity-90"
+      className="active:opacity-90"
     >
-      <View className="rounded-3xl overflow-hidden border border-white/[0.14] bg-white/[0.06]" style={{ height }}>
+      <View
+        className="rounded-[22px] overflow-hidden bg-track"
+        style={{ height, boxShadow: t.shadow.card }}
+      >
         {coverUri && (
-          <Image
-            source={{ uri: coverUri }}
-            contentFit="cover"
-            recyclingKey={coverUri}
-            transition={150}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
+          <Image source={{ uri: coverUri }} contentFit="cover" recyclingKey={coverUri} transition={150} style={FILL} />
         )}
-        <LinearGradient colors={SCRIM} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <LinearGradient colors={ON_PHOTO.scrim} locations={ON_PHOTO.scrimLocations} style={FILL} />
         {badge && (
-          <View className="absolute top-3 left-3 rounded-full overflow-hidden">
-            <BlurView intensity={20} tint="dark" className="px-2.5 py-1 bg-scrim">
-              <Text className="text-white text-xs font-bold">{badge}</Text>
-            </BlurView>
+          <View className="absolute top-2.5 left-3">
+            <PhotoChip label={badge} small />
           </View>
         )}
-        <View className="absolute left-4 right-3.5 bottom-3.5 flex-row items-end gap-3">
+        <View className="absolute left-3.5 right-3 bottom-3 flex-row items-end gap-3">
           <View className="flex-1">
-            <Ionicons name={icon} size={20} color="#FFFFFF" style={{ marginBottom: 4 }} />
-            <Text className="text-white text-[20px] font-extrabold" style={{ letterSpacing: -0.3 }} numberOfLines={1}>
+            <Icon name={icon} size={20} color={ON_PHOTO.text} strokeWidth={1.8} />
+            <Text className="font-display text-on-photo text-[20px] mt-0.5" numberOfLines={1}>
               {title}
             </Text>
-            <Text className="text-white/75 text-[13px] mt-px" numberOfLines={2}>
+            <Text className="text-on-photo-2 text-[12.5px]" numberOfLines={2}>
               {subtitle}
             </Text>
           </View>
-          <Pressable
-            onPress={onStart}
-            accessibilityRole="button"
-            accessibilityLabel={`Start ${title}`}
-            hitSlop={6}
-            className="bg-accent rounded-full px-5 min-h-[44px] items-center justify-center active:opacity-80"
-          >
-            <Text className="text-white text-[15px] font-bold">Start</Text>
-          </Pressable>
+          <StartPill onPress={onStart} label="Start" />
         </View>
       </View>
     </Pressable>
